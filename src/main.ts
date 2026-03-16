@@ -1,4 +1,5 @@
 import './style.css'
+import 'toastify-js/src/toastify.css'
 import { renderLogin, handleRedirection } from './login/Login'
 
 const token = localStorage.getItem('auth_token')

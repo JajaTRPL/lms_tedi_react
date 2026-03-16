@@ -1,4 +1,5 @@
 import { renderForgotPassword } from './ResetPassword'
+import Toastify from 'toastify-js'
 import { renderAdminDashboard } from '../dashboard/AdminDashboard'
 import { renderMahasiswaDashboard } from '../dashboard/MahasiswaDashboard'
 import { renderTendikDashboard } from '../dashboard/TendikDashboard'
@@ -15,7 +16,14 @@ export const handleRedirection = (role: string) => {
   } else if (['kadep', 'kaprodi', 'sekprodi', 'sekdep'].includes(role)) {
     renderAkademikDashboard(role)
   } else {
-    alert('Role tidak dikenali, menghubungi admin.')
+    Toastify({
+      text: 'Role tidak dikenali, menghubungi admin.',
+      duration: 3000,
+      close: true,
+      gravity: "top",
+      position: "right",
+      style: { background: "#EF4444" } // Red
+    }).showToast()
   }
 }
 
@@ -158,17 +166,38 @@ export const renderLogin = () => {
 
       if (response.ok) {
         localStorage.setItem('auth_token', data.token)
-        handleRedirection(data.user.role)
+        Toastify({
+          text: 'Berhasil masuk! Mengalihkan...',
+          duration: 1500, close: false, gravity: "top", position: "right",
+          style: { background: "#10B981" } // Green
+        }).showToast()
+
+        // Delay redirection slightly so the toast has time to be seen
+        setTimeout(() => {
+          handleRedirection(data.user.role)
+        }, 800)
       } else {
         if (response.status === 404) {
-          alert('Endpoint API tidak ditemukan (404). Pastikan backend Laravel sudah jalan di port 8000.')
+          Toastify({
+            text: 'Endpoint API tidak ditemukan (404). Pastikan backend Laravel sudah jalan di port 8000.',
+            duration: 5000, close: true, gravity: "top", position: "right",
+            style: { background: "#EF4444" }
+          }).showToast()
         } else {
-          alert(data.message || `Login gagal (Status: ${response.status})`)
+          Toastify({
+            text: data.message || `Login gagal (Status: ${response.status})`,
+            duration: 3000, close: true, gravity: "top", position: "right",
+            style: { background: "#EF4444" }
+          }).showToast()
         }
       }
     } catch (error) {
       console.error('Error:', error)
-      alert('Tidak dapat terhubung ke server. Pastikan backend Laravel aktif.')
+      Toastify({
+        text: 'Tidak dapat terhubung ke server. Pastikan backend Laravel aktif.',
+        duration: 5000, close: true, gravity: "top", position: "right",
+        style: { background: "#EF4444" }
+      }).showToast()
     }
   })
 

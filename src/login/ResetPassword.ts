@@ -1,4 +1,5 @@
 import { renderLogin } from './Login'
+import Toastify from 'toastify-js'
 
 declare global {
   interface Window {
@@ -104,7 +105,17 @@ export const renderForgotPassword = () => {
 
       if (response.ok) {
         if (data.token_simulation) {
-          alert(`Mode Simulasi: Token Anda adalah ${data.token_simulation}\n\nSalin token ini untuk verifikasi karena sistem sedang tidak mengirim email asli.`);
+          Toastify({
+            text: `Mode Simulasi: Token Anda adalah ${data.token_simulation}\n\nSalin token ini untuk verifikasi karena sistem sedang tidak mengirim email asli.`,
+            duration: 8000, close: true, gravity: "top", position: "right",
+            style: { background: "#3B82F6" } // Blue
+          }).showToast()
+        } else {
+          Toastify({
+            text: data.message || 'Token berhasil dikirim!',
+            duration: 3000, close: true, gravity: "top", position: "right",
+            style: { background: "#10B981" } // Green
+          }).showToast()
         }
         window.tempEmail = email
         renderVerifyToken()
@@ -112,16 +123,32 @@ export const renderForgotPassword = () => {
         if (response.status === 429) {
           const seconds = data.seconds_left || 60
           startCountdown(submitBtn, seconds)
-          alert(data.message || 'Harap tunggu sebentar sebelum mengirim ulang.')
+          Toastify({
+            text: data.message || 'Harap tunggu sebentar sebelum mengirim ulang.',
+            duration: 3000, close: true, gravity: "top", position: "right",
+            style: { background: "#EAB308" } // Yellow
+          }).showToast()
         } else if (response.status === 404) {
-          alert('Endpoint API tidak ditemukan (404).')
+          Toastify({
+            text: 'Endpoint API tidak ditemukan (404).',
+            duration: 3000, close: true, gravity: "top", position: "right",
+            style: { background: "#EF4444" }
+          }).showToast()
         } else {
-          alert(data.message || 'Email tidak ditemukan atau terjadi kesalahan.')
+          Toastify({
+            text: data.message || 'Email tidak ditemukan atau terjadi kesalahan.',
+            duration: 3000, close: true, gravity: "top", position: "right",
+            style: { background: "#EF4444" }
+          }).showToast()
         }
       }
     } catch (error) {
       console.error('Error:', error)
-      alert('Terjadi kesalahan pada server. Pastikan backend Laravel aktif.')
+      Toastify({
+        text: 'Terjadi kesalahan pada server. Pastikan backend Laravel aktif.',
+        duration: 3000, close: true, gravity: "top", position: "right",
+        style: { background: "#EF4444" }
+      }).showToast()
     }
   })
 
@@ -220,7 +247,11 @@ export const renderVerifyToken = () => {
     e.preventDefault()
     const token = Array.from(otpInputs).map(i => i.value).join('')
     if (token.length < 6) {
-      alert('Silakan masukkan 6 digit token dengan lengkap.')
+      Toastify({
+        text: 'Silakan masukkan 6 digit token dengan lengkap.',
+        duration: 3000, close: true, gravity: "top", position: "right",
+        style: { background: "#EAB308" }
+      }).showToast()
       return
     }
     try {
@@ -240,17 +271,34 @@ export const renderVerifyToken = () => {
       }
 
       if (response.ok) {
+        Toastify({
+          text: data.message || 'Token berhasil diverifikasi!',
+          duration: 3000, close: true, gravity: "top", position: "right",
+          style: { background: "#10B981" }
+        }).showToast()
         renderResetPassword()
       } else {
         if (response.status === 404) {
-          alert('Endpoint API tidak ditemukan (404). Pastikan backend Laravel sudah jalan di port 8000.')
+          Toastify({
+            text: 'Endpoint API tidak ditemukan (404). Pastikan backend Laravel sudah jalan di port 8000.',
+            duration: 3000, close: true, gravity: "top", position: "right",
+            style: { background: "#EF4444" }
+          }).showToast()
         } else {
-          alert(data.message || 'Token salah atau sudah kadaluwarsa.')
+          Toastify({
+            text: data.message || 'Token salah atau sudah kadaluwarsa.',
+            duration: 3000, close: true, gravity: "top", position: "right",
+            style: { background: "#EF4444" }
+          }).showToast()
         }
       }
     } catch (error) {
       console.error('Error:', error)
-      alert('Terjadi kesalahan pada verifikasi token. Pastikan backend Laravel aktif.')
+      Toastify({
+        text: 'Terjadi kesalahan pada verifikasi token. Pastikan backend Laravel aktif.',
+        duration: 3000, close: true, gravity: "top", position: "right",
+        style: { background: "#EF4444" }
+      }).showToast()
     }
   })
 
@@ -271,23 +319,43 @@ export const renderVerifyToken = () => {
 
       if (response.ok) {
         if (data.token_simulation) {
-          alert(`Mode Simulasi: Token baru Anda adalah ${data.token_simulation}\n\nSalin token ini untuk verifikasi.`);
+          Toastify({
+            text: `Mode Simulasi: Token baru Anda adalah ${data.token_simulation}\n\nSalin token ini untuk verifikasi.`,
+            duration: 8000, close: true, gravity: "top", position: "right",
+            style: { background: "#3B82F6" }
+          }).showToast()
         } else {
-          alert('Token baru telah dikirim ke email Anda.')
+          Toastify({
+            text: data.message || 'Token baru telah dikirim ke email Anda.',
+            duration: 3000, close: true, gravity: "top", position: "right",
+            style: { background: "#10B981" }
+          }).showToast()
         }
         startCountdown(resendBtn, 60)
       } else {
         if (response.status === 429) {
           const seconds = data.seconds_left || 60
           startCountdown(resendBtn, seconds)
-          alert(data.message || 'Harap tunggu sebentar sebelum mengirim ulang.')
+          Toastify({
+            text: data.message || 'Harap tunggu sebentar sebelum mengirim ulang.',
+            duration: 3000, close: true, gravity: "top", position: "right",
+            style: { background: "#EAB308" }
+          }).showToast()
         } else {
-          alert(data.message || 'Terjadi kesalahan saat mengirim ulang token.')
+          Toastify({
+            text: data.message || 'Terjadi kesalahan saat mengirim ulang token.',
+            duration: 3000, close: true, gravity: "top", position: "right",
+            style: { background: "#EF4444" }
+          }).showToast()
         }
       }
     } catch (error) {
       console.error('Error:', error)
-      alert('Terjadi kesalahan pada server.')
+      Toastify({
+        text: 'Terjadi kesalahan pada server.',
+        duration: 3000, close: true, gravity: "top", position: "right",
+        style: { background: "#EF4444" }
+      }).showToast()
     }
   })
 }
@@ -408,7 +476,11 @@ export const renderResetPassword = () => {
     const confirmPassword = confirmPasswordInput.value
 
     if (newPassword !== confirmPassword) {
-      alert('Kata sandi dan konfirmasi tidak cocok!')
+      Toastify({
+        text: 'Kata sandi dan konfirmasi tidak cocok!',
+        duration: 3000, close: true, gravity: "top", position: "right",
+        style: { background: "#EAB308" }
+      }).showToast()
       return
     }
 
@@ -430,18 +502,34 @@ export const renderResetPassword = () => {
       }
 
       if (response.ok) {
-        alert('Kata sandi berhasil diatur ulang!')
+        Toastify({
+          text: data.message || 'Kata sandi berhasil diatur ulang!',
+          duration: 3000, close: true, gravity: "top", position: "right",
+          style: { background: "#10B981" }
+        }).showToast()
         renderLogin()
       } else {
         if (response.status === 404) {
-          alert('Endpoint API tidak ditemukan (404). Pastikan backend Laravel sudah jalan di port 8000.')
+          Toastify({
+            text: 'Endpoint API tidak ditemukan (404). Pastikan backend Laravel sudah jalan di port 8000.',
+            duration: 3000, close: true, gravity: "top", position: "right",
+            style: { background: "#EF4444" }
+          }).showToast()
         } else {
-          alert(data.message || 'Gagal mereset password.')
+          Toastify({
+            text: data.message || 'Gagal mereset password.',
+            duration: 3000, close: true, gravity: "top", position: "right",
+            style: { background: "#EF4444" }
+          }).showToast()
         }
       }
     } catch (error) {
       console.error('Error:', error)
-      alert('Terjadi kesalahan pada saat mereset kata sandi. Pastikan backend Laravel aktif.')
+      Toastify({
+        text: 'Terjadi kesalahan pada saat mereset kata sandi. Pastikan backend Laravel aktif.',
+        duration: 3000, close: true, gravity: "top", position: "right",
+        style: { background: "#EF4444" }
+      }).showToast()
     }
   })
 }
