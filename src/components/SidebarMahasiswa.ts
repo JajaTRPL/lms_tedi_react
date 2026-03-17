@@ -1,6 +1,7 @@
-export const renderSidebar = (_currentRole: string) => {
+export const renderSidebar = (currentRole: string) => {
+    if (currentRole !== 'mahasiswa') return '';
     return `
-        <aside class="w-64 bg-primary-teal text-white min-h-screen flex flex-col">
+        <aside class="w-64 bg-primary-teal text-white min-h-screen flex flex-col sticky top-0 h-screen overflow-y-auto">
             <div class="p-6 flex items-center gap-4">
                 <img src="/ugm-logo.png" alt="UGM Logo" class="w-10 h-10 object-contain brightness-0 invert">
                 <span class="text-xl font-bold tracking-tight">Surat DTEDI</span>

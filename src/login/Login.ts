@@ -166,6 +166,7 @@ export const renderLogin = () => {
 
       if (response.ok) {
         localStorage.setItem('auth_token', data.token)
+        localStorage.setItem('auth_name', data.user.name)
         Toastify({
           text: 'Berhasil masuk! Mengalihkan...',
           duration: 1500, close: false, gravity: "top", position: "right",

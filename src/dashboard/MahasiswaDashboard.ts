@@ -2,107 +2,242 @@ import { renderDashboardLayout } from './DashboardLayout';
 
 export const renderMahasiswaDashboard = () => {
     const content = `
-        <div class="space-y-6">
-            <!-- Banner Section -->
-            <div class="relative overflow-hidden bg-primary-teal rounded-[32px] p-8 text-white min-h-[200px] flex flex-col justify-center">
-                <div class="relative z-10">
-                    <h2 class="text-2xl font-bold mb-2">Periode Semester Genap 2025/2026</h2>
-                    <p class="text-white/80">24 February 2026</p>
+        <div class="space-y-8">
+            <!-- Greeting Banner -->
+            <div class="bg-primary-teal rounded-[24px] p-8 text-white relative overflow-hidden shadow-lg border border-teal-800/30">
+                <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div class="flex-1">
+                        <h2 class="text-3xl font-bold mb-2 tracking-tight">Halo, ${localStorage.getItem('auth_name')?.split(' ')[0] || 'User'}! 👋</h2>
+                        <p class="text-teal-50/90 text-sm mb-6">Profil kamu baru terisi 60%. Lengkapi sekarang!</p>
+                        <div class="max-w-md">
+                            <div class="h-2.5 w-full bg-white/20 rounded-full overflow-hidden">
+                                <div class="h-full bg-white rounded-full w-[60%] shadow-[0_0_10px_rgba(255,255,255,0.4)]"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <button class="px-6 py-2.5 bg-white text-primary-teal font-bold rounded-xl hover:bg-teal-50 transition-all duration-200 shadow-sm whitespace-nowrap">
+                            Lengkapi Profil
+                        </button>
+                    </div>
                 </div>
                 <!-- Decorative Elements -->
-                <div class="absolute right-0 top-0 w-64 h-full bg-white/10 rounded-l-full transform translate-x-1/2"></div>
-                <div class="absolute right-12 top-12 w-32 h-32 bg-secondary-teal rounded-full blur-2xl opacity-50"></div>
+                <div class="absolute right-[-50px] top-[-50px] w-[300px] h-[300px] bg-white/5 rounded-full blur-3xl"></div>
+                <div class="absolute left-[-20px] bottom-[-20px] w-[150px] h-[150px] bg-white/5 rounded-full blur-2xl"></div>
             </div>
 
-            <!-- Status Cards Section -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 -mt-12 relative z-20 px-4">
-                <!-- Rejected Status -->
-                <div class="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 flex flex-col items-center text-center">
-                    <h3 class="text-sm font-bold text-gray-800 mb-4 self-start">Status Pengajuan</h3>
-                    <div class="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center mb-4 text-white">
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="18" y1="6" x2="6" y2="18"></line>
-                            <line x1="6" y1="6" x2="18" y2="18"></line>
+            <!-- Summary Status Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Diproses -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-6 hover:shadow-md transition-shadow">
+                    <div class="w-14 h-14 bg-[#3D4E4E]/5 rounded-xl flex items-center justify-center text-[#3D4E4E]">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2v6M12 22v-6M12 12c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"></path>
+                            <circle cx="12" cy="12" r="10"></circle>
                         </svg>
                     </div>
-                    <p class="text-[12px] font-bold text-gray-900 mb-1">Administrasi Beasiswamu Ditolak!</p>
-                    <p class="text-[10px] text-gray-500 mb-4 line-clamp-2">mohon maaf, Surat Rekomendasi Beasiswamu belum memenuhi kriteria untuk disetujui.</p>
-                    <div class="flex items-center gap-1 text-[10px] font-bold text-gray-400 mt-auto">
-                        Ajukan surat lain <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                    <div>
+                        <p class="text-3xl font-black text-gray-900 leading-tight">2</p>
+                        <p class="text-sm font-semibold text-gray-500">Surat Diproses</p>
                     </div>
                 </div>
 
-                <!-- In Progress Status -->
-                <div class="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 flex flex-col items-center text-center">
-                    <h3 class="text-sm font-bold text-gray-800 mb-4 self-start">Status Pengajuan</h3>
-                    <div class="w-16 h-16 bg-gray-400 rounded-full flex items-center justify-center mb-4 text-white">
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                <!-- Butuh Revisi -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-6 hover:shadow-md transition-shadow">
+                    <div class="w-14 h-14 bg-amber-50 rounded-xl flex items-center justify-center text-amber-500">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                            <line x1="12" y1="9" x2="12" y2="13"></line>
+                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
                         </svg>
                     </div>
-                    <p class="text-[12px] font-bold text-gray-900 mb-1">Administrasi Beasiswamu Diproses!</p>
-                    <p class="text-[10px] text-gray-500 mb-4 line-clamp-2">Surat Rekomendasi Beasiswamu sedang dalam proses pemberkasan.</p>
-                    <div class="flex items-center gap-1 text-[10px] font-bold text-gray-400 mt-auto">
-                        Ajukan surat lain <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                    <div>
+                        <p class="text-3xl font-black text-gray-900 leading-tight">1</p>
+                        <p class="text-sm font-semibold text-gray-500">Surat Butuh Revisi</p>
                     </div>
                 </div>
 
-                <!-- Accepted Status -->
-                <div class="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 flex flex-col items-center text-center">
-                    <h3 class="text-sm font-bold text-gray-800 mb-4 self-start">Status Pengajuan</h3>
-                    <div class="w-16 h-16 bg-[#3D4E4E] rounded-full flex items-center justify-center mb-4 text-white">
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <!-- Selesai -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-6 hover:shadow-md transition-shadow">
+                    <div class="w-14 h-14 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-500">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
                             <polyline points="20 6 9 17 4 12"></polyline>
                         </svg>
                     </div>
-                    <p class="text-[12px] font-bold text-gray-900 mb-1">Administrasi Beasiswamu Diterima!</p>
-                    <p class="text-[10px] text-gray-500 mb-4 line-clamp-2">Selamat, Surat Rekomendasi Beasiswamu disetujui.</p>
-                    <div class="flex items-center gap-1 text-[10px] font-bold text-gray-400 mt-auto">
-                        Ajukan surat lain <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                    <div>
+                        <p class="text-3xl font-black text-gray-900 leading-tight">5</p>
+                        <p class="text-sm font-semibold text-gray-500">Surat Selesai</p>
                     </div>
                 </div>
             </div>
 
-            <!-- Report Activity Section -->
+            <!-- Ajukan Surat Button -->
+            <button class="w-full py-4 bg-primary-teal text-white rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-teal-800 transition-all duration-200 shadow-sm border border-teal-700/20">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                Ajukan Surat Baru
+            </button>
+
+            <!-- Active Tracking Section -->
+            <div>
+                <h3 class="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                    Active Tracking
+                </h3>
+                <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                    <!-- Tracking Card 1 -->
+                    <div class="bg-white rounded-[24px] shadow-sm border border-gray-100 overflow-hidden flex flex-col">
+                        <div class="bg-[#FBC02D] px-6 py-4">
+                            <h4 class="font-bold text-gray-900">Surat Rekomendasi Beasiswa Djarum</h4>
+                        </div>
+                        <div class="p-8 flex-1">
+                            <div class="relative flex justify-between items-start mb-12 px-2">
+                                <!-- Connection Lines -->
+                                <div class="absolute top-[18px] left-[10%] right-[10%] h-0.5 border-t-2 border-dashed border-gray-200 -z-0"></div>
+                                <div class="absolute top-[18px] left-[10%] w-[35%] h-0.5 bg-emerald-500 -z-0"></div>
+                                
+                                <!-- Step 1 -->
+                                <div class="relative z-10 flex flex-col items-center gap-3">
+                                    <div class="w-9 h-9 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center border-4 border-white shadow-sm">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                    </div>
+                                    <span class="text-[10px] font-bold text-gray-600 text-center leading-tight">Diajukan</span>
+                                </div>
+                                
+                                <!-- Step 2 -->
+                                <div class="relative z-10 flex flex-col items-center gap-3">
+                                    <div class="w-9 h-9 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center border-4 border-white shadow-sm">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                    </div>
+                                    <span class="text-[10px] font-bold text-gray-600 text-center leading-tight">Verifikasi<br>Tendik</span>
+                                </div>
+                                
+                                <!-- Step 3 -->
+                                <div class="relative z-10 flex flex-col items-center gap-3">
+                                    <div class="w-9 h-9 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center border-4 border-white shadow-sm animate-pulse">
+                                        <div class="w-3 h-3 bg-amber-500 rounded-full"></div>
+                                    </div>
+                                    <span class="text-[10px] font-bold text-amber-600 text-center leading-tight">Menunggu<br>TTD Kaprodi</span>
+                                </div>
+                                
+                                <!-- Step 4 -->
+                                <div class="relative z-10 flex flex-col items-center gap-3 opacity-30">
+                                    <div class="w-9 h-9 bg-gray-100 text-gray-400 rounded-full flex items-center justify-center border-4 border-white"></div>
+                                    <span class="text-[10px] font-bold text-gray-400 text-center leading-tight">TTD Kadep</span>
+                                </div>
+                                
+                                <!-- Step 5 -->
+                                <div class="relative z-10 flex flex-col items-center gap-3 opacity-30">
+                                    <div class="w-9 h-9 bg-gray-100 text-gray-400 rounded-full flex items-center justify-center border-4 border-white"></div>
+                                    <span class="text-[10px] font-bold text-gray-400 text-center leading-tight">Selesai</span>
+                                </div>
+                            </div>
+                            <button class="w-full py-3 bg-gray-500 text-white rounded-xl font-bold hover:bg-gray-600 transition-colors shadow-sm">
+                                Lihat Detail
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Tracking Card 2 -->
+                    <div class="bg-white rounded-[24px] shadow-sm border border-gray-100 overflow-hidden flex flex-col">
+                        <div class="bg-[#E53935] px-6 py-4 text-white">
+                            <h4 class="font-bold">Surat Pengantar Magang</h4>
+                        </div>
+                        <div class="p-8 flex-1">
+                            <div class="relative flex justify-between items-start mb-8 px-2">
+                                <!-- Connection Line -->
+                                <div class="absolute top-[18px] left-[10%] right-[10%] h-0.5 border-t-2 border-dashed border-gray-200 -z-0"></div>
+                                <div class="absolute top-[18px] left-[10%] w-[35%] h-0.5 bg-red-500 -z-0"></div>
+
+                                <!-- Step 1 -->
+                                <div class="relative z-10 flex flex-col items-center gap-3">
+                                    <div class="w-9 h-9 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center border-4 border-white shadow-sm">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                    </div>
+                                    <span class="text-[10px] font-bold text-gray-600 text-center leading-tight">Diajukan</span>
+                                </div>
+
+                                <!-- Step 2 (Error) -->
+                                <div class="relative z-10 flex flex-col items-center gap-3">
+                                    <div class="w-9 h-9 bg-red-500 text-white rounded-full flex items-center justify-center border-4 border-white shadow-md">
+                                        <div class="w-3 h-3 bg-white rounded-full"></div>
+                                    </div>
+                                    <span class="text-[10px] font-bold text-red-600 text-center leading-tight">Ditolak<br>Tendik</span>
+                                </div>
+
+                                <!-- Others -->
+                                <div class="relative z-10 flex flex-col items-center gap-3 opacity-20">
+                                    <div class="w-9 h-9 bg-gray-100 rounded-full border-4 border-white"></div>
+                                    <span class="text-[10px] font-bold text-gray-400">TTD Kaprodi</span>
+                                </div>
+                                <div class="relative z-10 flex flex-col items-center gap-3 opacity-20">
+                                    <div class="w-9 h-9 bg-gray-100 rounded-full border-4 border-white"></div>
+                                    <span class="text-[10px] font-bold text-gray-400">TTD Kadep</span>
+                                </div>
+                                <div class="relative z-10 flex flex-col items-center gap-3 opacity-20">
+                                    <div class="w-9 h-9 bg-gray-100 rounded-full border-4 border-white"></div>
+                                    <span class="text-[10px] font-bold text-gray-400">Selesai</span>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-amber-50 rounded-xl p-4 mb-6 flex items-start gap-3 border border-amber-100">
+                                <svg class="text-amber-500 mt-1 shrink-0" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                                </svg>
+                                <p class="text-xs font-semibold text-amber-800">Perhatian: <span class="font-medium text-amber-700">Ada dokumen tidak sesuai.</span></p>
+                            </div>
+
+                            <button class="w-full py-3 bg-[#E53935] text-white rounded-xl font-bold hover:bg-red-700 transition-colors shadow-sm flex items-center justify-center gap-2">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                                LIHAT CATATAN REVISI & PERBAIKI
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent History Section -->
             <div class="mt-8">
-                <h3 class="text-xl font-bold text-gray-800 mb-6">Report Activity</h3>
+                <h3 class="text-xl font-bold text-gray-800 mb-6">Riwayat Pengajuan Terakhir</h3>
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                    <table class="w-full text-left">
-                        <thead>
-                            <tr class="text-[12px] font-bold text-gray-400 border-b border-gray-50">
-                                <th class="px-6 py-4 uppercase tracking-wider">Aksi</th>
-                                <th class="px-6 py-4 uppercase tracking-wider">No</th>
-                                <th class="px-6 py-4 uppercase tracking-wider">Tanggal Pengajuan</th>
-                                <th class="px-6 py-4 uppercase tracking-wider">Status Pengajuan</th>
-                                <th class="px-6 py-4 uppercase tracking-wider">Catatan</th>
-                                <th class="px-6 py-4 uppercase tracking-wider">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-50">
-                            ${[1, 2, 3, 4].map(i => `
-                                <tr class="hover:bg-gray-50 transition-colors">
-                                    <td class="px-6 py-4">
-                                        <div class="w-8 h-8 bg-[#3D4E4E] text-white rounded-lg flex items-center justify-center">
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                                        </div>
-                                    </td>
-                                    <td class="px-6 py-4 text-sm text-gray-600">${i}</td>
-                                    <td class="px-6 py-4 text-sm text-gray-600">30 - 04 - 2024</td>
-                                    <td class="px-6 py-4 text-sm text-gray-600">Sedang dalam proses Review</td>
-                                    <td class="px-6 py-4 text-sm text-gray-500 italic max-w-xs truncate">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor</td>
-                                    <td class="px-6 py-4 text-sm">
-                                        ${i === 4 ? `
-                                            <span class="font-bold text-[#3D4E4E]">Selesai</span>
-                                        ` : `
-                                            <button class="w-8 h-8 bg-teal-100 text-teal-600 rounded-lg flex items-center justify-center hover:bg-teal-200 transition-colors">
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                                            </button>
-                                        `}
-                                    </td>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left ">
+                            <thead>
+                                <tr class="text-[13px] font-bold text-black border-b border-gray-50">
+                                    <th class="px-8 py-5 text-center">Tanggal</th>
+                                    <th class="px-8 py-5 text-center">Jenis Surat</th>
+                                    <th class="px-8 py-5 text-center">Status</th>
+                                    <th class="px-8 py-5 text-center">Aksi</th>
                                 </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody class="divide-y divide-gray-50">
+                                ${Array.from({ length: 3 }).map((_, i) => `
+                                    <tr class="hover:bg-gray-50/50 transition-colors group">
+                                        <td class="px-8 py-5 text-sm font-semibold text-gray-600 italic text-center">30 - 04 - 2024</td>
+                                        <td class="px-8 py-5 text-sm font-bold text-gray-800 text-center">Surat Pengantar Magang</td>
+                                        <td class="px-8 py-5 text-sm text-center">
+                                            <span class="${i === 0 ? 'bg-teal-50 text-teal-600' : 'bg-gray-100 text-gray-500'} px-4 py-1.5 rounded-full font-bold text-[11px] uppercase tracking-wider">
+                                                ${i === 0 ? 'Selesai' : 'Review'}
+                                            </span>
+                                        </td>
+                                        <td class="px-8 py-5">
+                                            <div class="flex items-center justify-center gap-3 group-hover:opacity-100 transition-opacity">
+                                                <button class="p-2 text-gray-400 hover:text-primary-teal transition-colors" title="Download">
+                                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                                </button>
+                                                <button class="p-2 text-gray-400 hover:text-primary-teal transition-colors" title="Detail">
+                                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>

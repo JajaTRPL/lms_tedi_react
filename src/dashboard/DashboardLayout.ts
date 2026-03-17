@@ -1,5 +1,6 @@
 import { renderLogin } from '../login/Login';
-import { renderSidebar } from '../components/Sidebar';
+import { renderSidebar } from '../components/SidebarMahasiswa';
+import Toastify from 'toastify-js';
 
 export const renderDashboardLayout = (title: string, content: string, role: string) => {
     const app = document.querySelector<HTMLDivElement>('#app')!;
@@ -26,7 +27,7 @@ export const renderDashboardLayout = (title: string, content: string, role: stri
                             
                             <div class="flex items-center gap-3">
                                 <div class="text-right">
-                                    <p class="text-sm font-semibold text-gray-900 leading-none">ACyTest</p>
+                                    <p class="text-sm font-semibold text-gray-900 leading-none">${localStorage.getItem('auth_name') || 'User'}</p>
                                     <p class="text-[10px] text-gray-500 font-medium uppercase mt-1 tracking-wider">${role.replace('_', ' ')}</p>
                                 </div>
                                 <div class="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center border-2 border-white shadow-sm overflow-hidden text-teal-700 font-bold">
@@ -54,9 +55,37 @@ export const renderDashboardLayout = (title: string, content: string, role: stri
         </div>
     `;
 
-    document.getElementById('logout-btn')?.addEventListener('click', () => {
+    document.getElementById('logout-btn')?.addEventListener('click', async () => {
+        const token = localStorage.getItem('auth_token');
+        if (token) {
+            try {
+                await fetch('/api/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+            } catch (error) {
+                console.error('Logout error:', error);
+            }
+        }
+
         localStorage.removeItem('auth_token');
         localStorage.removeItem('auth_role');
-        renderLogin();
+
+        Toastify({
+            text: "Berhasil keluar!",
+            duration: 2000,
+            gravity: "top",
+            position: "right",
+            style: {
+                background: "#10B981",
+            }
+        }).showToast();
+
+        setTimeout(() => {
+            renderLogin();
+        }, 500);
     });
 };
