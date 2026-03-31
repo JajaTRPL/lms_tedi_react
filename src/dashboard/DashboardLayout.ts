@@ -25,21 +25,35 @@ export const renderDashboardLayout = (title: string, content: string, role: stri
                                 <span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
                             </button>
                             
-                            <div class="flex items-center gap-3">
-                                <div class="text-right">
-                                    <p class="text-sm font-semibold text-gray-900 leading-none">${localStorage.getItem('auth_name') || 'User'}</p>
-                                    <p class="text-[10px] text-gray-500 font-medium uppercase mt-1 tracking-wider">${role.replace('_', ' ')}</p>
+                            <div class="relative group">
+                                <div class="flex items-center gap-3 cursor-pointer p-2 rounded-lg hover:bg-gray-50 transition-colors">
+                                    <div class="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center border-2 border-white shadow-sm overflow-hidden text-teal-700 font-bold shrink-0">
+                                        <img id="header-user-avatar" src="${localStorage.getItem('auth_photo') || '/ugm-logo.png'}" alt="Profile" class="w-full h-full ${localStorage.getItem('auth_photo') ? 'object-cover' : 'w-8 h-8 object-contain'}">
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-sm font-semibold text-gray-900 leading-none">${localStorage.getItem('auth_name') || 'User'}</p>
+                                        <p class="text-[10px] text-gray-500 font-medium uppercase mt-1 tracking-wider">${role.replace('_', ' ')}</p>
+                                    </div>
                                 </div>
-                                <div class="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center border-2 border-white shadow-sm overflow-hidden text-teal-700 font-bold">
-                                    <img src="/ugm-logo.png" alt="Profile" class="w-8 h-8 object-contain">
+                                
+                                <div class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-100 py-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                                    <a href="#/profile" id="profile-btn" class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-teal-600 transition-colors">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                            <circle cx="12" cy="7" r="4"></circle>
+                                        </svg>
+                                        Profil
+                                    </a>
+                                    <div class="h-px bg-gray-100 my-1"></div>
+                                    <button id="logout-btn" class="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                            <polyline points="16 17 21 12 16 7"></polyline>
+                                            <line x1="21" y1="12" x2="9" y2="12"></line>
+                                        </svg>
+                                        Keluar
+                                    </button>
                                 </div>
-                                <button id="logout-btn" class="p-2 text-gray-400 hover:text-red-500 transition-colors" title="Keluar">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                                        <polyline points="16 17 21 12 16 7"></polyline>
-                                        <line x1="21" y1="12" x2="9" y2="12"></line>
-                                    </svg>
-                                </button>
                             </div>
                         </div>
                     </div>
@@ -54,6 +68,39 @@ export const renderDashboardLayout = (title: string, content: string, role: stri
             </div>
         </div>
     `;
+
+    document.getElementById('profile-btn')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (role === 'mahasiswa') {
+            import('../Profil/ProfilMahasiswa').then(({ renderProfilMahasiswa }) => {
+                renderProfilMahasiswa();
+            });
+        } else {
+            Toastify({
+                text: "Profil untuk role ini belum tersedia",
+                duration: 2000,
+                gravity: "top",
+                position: "right",
+                style: { background: "#F59E0B" }
+            }).showToast();
+        }
+    });
+
+    document.getElementById('sidebar-dashboard-link')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (role === 'mahasiswa') {
+            import('../dashboard/MahasiswaDashboard').then(({ renderMahasiswaDashboard }) => {
+                renderMahasiswaDashboard();
+            });
+        }
+    });
+
+    document.getElementById('sidebar-dokumen-link')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        import('../Dokumen/DokumenMahasiswa').then(({ renderDokumenMahasiswa }) => {
+            renderDokumenMahasiswa();
+        });
+    });
 
     document.getElementById('logout-btn')?.addEventListener('click', async () => {
         const token = localStorage.getItem('auth_token');

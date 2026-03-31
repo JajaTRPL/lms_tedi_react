@@ -8,7 +8,7 @@ export const renderSidebar = (currentRole: string) => {
             </div>
 
             <nav class="flex-1 mt-6 px-4 space-y-2">
-                <a href="#" class="flex items-center gap-3 px-4 py-3 bg-white/10 rounded-xl text-white transition-all duration-200">
+                <a href="#" id="sidebar-dashboard-link" class="flex items-center gap-3 px-4 py-3 bg-white/10 rounded-xl text-white transition-all duration-200">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
                         <polyline points="9 22 9 12 15 12 15 22"></polyline>
@@ -27,16 +27,13 @@ export const renderSidebar = (currentRole: string) => {
                 </a>
 
                 <div class="relative group">
-                    <button class="w-full flex items-center justify-between px-4 py-3 text-white/70 hover:bg-white/5 hover:text-white rounded-xl transition-all duration-200">
+                    <button id="sidebar-dokumen-link" class="w-full flex items-center justify-between px-4 py-3 text-white/70 hover:bg-white/5 hover:text-white rounded-xl transition-all duration-200">
                         <div class="flex items-center gap-3">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
                             </svg>
                             <span class="font-medium">Dokumen</span>
                         </div>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="6 9 12 15 18 9"></polyline>
-                        </svg>
                     </button>
                 </div>
 

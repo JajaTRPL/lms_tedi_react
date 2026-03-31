@@ -1,24 +1,29 @@
 import { renderDashboardLayout } from './DashboardLayout';
+import { renderProfilMahasiswa } from '../Profil/ProfilMahasiswa';
 
 export const renderMahasiswaDashboard = () => {
     const content = `
         <div class="space-y-8">
             <!-- Greeting Banner -->
             <div class="bg-primary-teal rounded-[24px] p-8 text-white relative overflow-hidden shadow-lg border border-teal-800/30">
-                <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div class="flex-1">
-                        <h2 class="text-3xl font-bold mb-2 tracking-tight">Halo, ${localStorage.getItem('auth_name')?.split(' ')[0] || 'User'}! 👋</h2>
-                        <p class="text-teal-50/90 text-sm mb-6">Profil kamu baru terisi 60%. Lengkapi sekarang!</p>
-                        <div class="max-w-md">
-                            <div class="h-2.5 w-full bg-white/20 rounded-full overflow-hidden">
-                                <div class="h-full bg-white rounded-full w-[60%] shadow-[0_0_10px_rgba(255,255,255,0.4)]"></div>
-                            </div>
+                <div class="relative z-10 flex flex-col gap-4">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                        <div class="flex-1">
+                            <h2 class="text-3xl font-bold tracking-tight">Halo, ${localStorage.getItem('auth_name')?.split(' ')[0] || 'User'}! 👋</h2>
+                        </div>
+                        <div>
+                            <button id="btn-lengkapi-profil" class="hidden px-6 py-2.5 bg-white text-primary-teal font-bold rounded-xl hover:bg-teal-50 transition-all duration-200 shadow-sm whitespace-nowrap">
+                                Lengkapi Profil
+                            </button>
                         </div>
                     </div>
-                    <div>
-                        <button class="px-6 py-2.5 bg-white text-primary-teal font-bold rounded-xl hover:bg-teal-50 transition-all duration-200 shadow-sm whitespace-nowrap">
-                            Lengkapi Profil
-                        </button>
+                    <div id="profile-reminder-section" class="hidden transition-all duration-300">
+                        <p id="profile-progress-text" class="text-teal-50/90 text-sm mb-3">Profil kamu baru terisi 0%. Lengkapi sekarang!</p>
+                        <div class="w-full">
+                            <div class="h-2.5 w-full bg-white/20 rounded-full overflow-hidden">
+                                <div id="profile-progress-bar" class="h-full bg-white rounded-full w-[0%] shadow-[0_0_10px_rgba(255,255,255,0.4)] transition-all duration-500"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <!-- Decorative Elements -->
@@ -72,7 +77,7 @@ export const renderMahasiswaDashboard = () => {
             </div>
 
             <!-- Ajukan Surat Button -->
-            <button class="w-full py-4 bg-primary-teal text-white rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-teal-800 transition-all duration-200 shadow-sm border border-teal-700/20">
+            <button id="btn-ajukan-surat" class="w-full py-4 bg-primary-teal text-white rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-teal-800 transition-all duration-200 shadow-sm border border-teal-700/20">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="12" y1="5" x2="12" y2="19"></line>
                     <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -243,4 +248,84 @@ export const renderMahasiswaDashboard = () => {
         </div>
     `;
     renderDashboardLayout('Dashboard', content, 'mahasiswa');
+
+    setTimeout(() => {
+        const btnLengkapi = document.getElementById('btn-lengkapi-profil');
+        if (btnLengkapi) {
+            btnLengkapi.addEventListener('click', () => {
+                renderProfilMahasiswa();
+            });
+        }
+
+        const btnAjukan = document.getElementById('btn-ajukan-surat');
+        if (btnAjukan) {
+            btnAjukan.addEventListener('click', () => {
+                import('../Dokumen/DokumenMahasiswa').then(({ renderDokumenMahasiswa }) => {
+                    renderDokumenMahasiswa();
+                });
+            });
+        }
+
+        async function fetchProfileProgress() {
+            const token = localStorage.getItem('auth_token');
+            if(!token) return;
+            try {
+                const res = await fetch('/api/profile', { 
+                    headers: { 'Authorization': 'Bearer ' + token },
+                    cache: 'no-store'
+                });
+                if(res.ok) {
+                    const data = await res.json();
+                    const profile = data.profile;
+                    if(profile) {
+                        const requiredDetail = [
+                            profile.tempat_lahir,
+                            profile.tanggal_lahir,
+                            profile.jenis_kelamin,
+                            profile.no_hp,
+                            profile.alamat_asal,
+                            profile.alamat_domisili,
+                            profile.pas_foto_path,
+                            profile.tanda_tangan_path
+                        ];
+                        
+                        const ayah = profile.keluarga?.find((k: any) => k.jenis_relasi === 'ayah') || {};
+                        const ibu = profile.keluarga?.find((k: any) => k.jenis_relasi === 'ibu') || {};
+                        
+                        const requiredAyah = [ayah.nama_lengkap, ayah.pekerjaan, ayah.penghasilan, ayah.status_hidup];
+                        const requiredIbu = [ibu.nama_lengkap, ibu.pekerjaan, ibu.penghasilan, ibu.status_hidup];
+
+                        const allFields = [...requiredDetail, ...requiredAyah, ...requiredIbu];
+                        const filledCount = allFields.filter(f => f && f.toString().trim() !== '').length;
+                        const percent = Math.round((filledCount / allFields.length) * 100);
+
+                        const txt = document.getElementById('profile-progress-text');
+                        const bar = document.getElementById('profile-progress-bar');
+                        const section = document.getElementById('profile-reminder-section');
+
+                        if(txt) txt.innerText = `Profil kamu baru terisi ${percent}%. Lengkapi sekarang!`;
+                        if(bar) bar.style.width = `${percent}%`;
+
+                        if(profile.pas_foto_path) {
+                            localStorage.setItem('auth_photo', profile.pas_foto_path);
+                            const headerAvatar = document.getElementById('header-user-avatar') as HTMLImageElement;
+                            if(headerAvatar) {
+                                headerAvatar.src = profile.pas_foto_path;
+                                headerAvatar.className = 'w-full h-full object-cover';
+                            }
+                        }
+
+                        if(percent < 100) {
+                            if(section) section.classList.remove('hidden');
+                            if(btnLengkapi) btnLengkapi.classList.remove('hidden');
+                        } else {
+                            if(section) section.classList.add('hidden');
+                            if(btnLengkapi) btnLengkapi.classList.add('hidden');
+                        }
+                    }
+                }
+            } catch (e) { console.error(e); }
+        }
+        fetchProfileProgress();
+    }, 100);
 };
