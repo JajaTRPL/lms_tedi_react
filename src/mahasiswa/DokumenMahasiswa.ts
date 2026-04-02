@@ -1,5 +1,6 @@
 import { renderDashboardLayout } from '../dashboard/DashboardLayout';
 import { renderMahasiswaDashboard } from '../dashboard/MahasiswaDashboard';
+import { renderScholarshipForm } from './ScholarshipForm';
 
 export const renderDokumenMahasiswa = () => {
     const content = `
@@ -53,16 +54,16 @@ export const renderDokumenMahasiswa = () => {
                     </span>
                 </div>
 
-                <!-- Surat Rekomendasi Beasiswa -->
-                <div class="bg-white rounded-[24px] p-6 shadow-sm border border-gray-100 hover:shadow-md hover:border-teal-200 transition-all duration-200 cursor-pointer group">
+                <!-- Surat Permohonan Beasiswa -->
+                <div id="card-beasiswa" class="bg-white rounded-[24px] p-6 shadow-sm border border-gray-100 hover:shadow-md hover:border-teal-200 transition-all duration-200 cursor-pointer group">
                     <div class="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center mb-4 group-hover:bg-amber-100 transition-colors">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="12" cy="8" r="6"></circle>
                             <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"></path>
                         </svg>
                     </div>
-                    <h3 class="text-base font-bold text-gray-800 mb-1">Surat Rekomendasi Beasiswa</h3>
-                    <p class="text-sm text-gray-500 mb-4">Surat rekomendasi dari departemen untuk pengajuan beasiswa.</p>
+                    <h3 class="text-base font-bold text-gray-800 mb-1">Surat Permohonan Beasiswa</h3>
+                    <p class="text-sm text-gray-500 mb-4">Surat permohonan dari departemen untuk pengajuan beasiswa.</p>
                     <span class="inline-flex items-center gap-1 text-xs font-bold text-amber-600 bg-amber-50 px-3 py-1 rounded-full">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
                         3-7 Hari Kerja
@@ -127,6 +128,10 @@ export const renderDokumenMahasiswa = () => {
     setTimeout(() => {
         document.getElementById('btn-back-dashboard-dokumen')?.addEventListener('click', () => {
             renderMahasiswaDashboard();
+        });
+
+        document.getElementById('card-beasiswa')?.addEventListener('click', () => {
+            renderScholarshipForm();
         });
     }, 100);
 };

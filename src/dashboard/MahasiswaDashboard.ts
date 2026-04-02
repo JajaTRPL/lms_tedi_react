@@ -1,5 +1,5 @@
 import { renderDashboardLayout } from './DashboardLayout';
-import { renderProfilMahasiswa } from '../Profil/ProfilMahasiswa';
+import { renderProfilMahasiswa } from '../mahasiswa/ProfilMahasiswa';
 
 export const renderMahasiswaDashboard = () => {
     const content = `
@@ -260,7 +260,7 @@ export const renderMahasiswaDashboard = () => {
         const btnAjukan = document.getElementById('btn-ajukan-surat');
         if (btnAjukan) {
             btnAjukan.addEventListener('click', () => {
-                import('../Dokumen/DokumenMahasiswa').then(({ renderDokumenMahasiswa }) => {
+                import('../mahasiswa/DokumenMahasiswa').then(({ renderDokumenMahasiswa }) => {
                     renderDokumenMahasiswa();
                 });
             });
@@ -268,16 +268,16 @@ export const renderMahasiswaDashboard = () => {
 
         async function fetchProfileProgress() {
             const token = localStorage.getItem('auth_token');
-            if(!token) return;
+            if (!token) return;
             try {
-                const res = await fetch('/api/profile', { 
+                const res = await fetch('/api/profile', {
                     headers: { 'Authorization': 'Bearer ' + token },
                     cache: 'no-store'
                 });
-                if(res.ok) {
+                if (res.ok) {
                     const data = await res.json();
                     const profile = data.profile;
-                    if(profile) {
+                    if (profile) {
                         const requiredDetail = [
                             profile.tempat_lahir,
                             profile.tanggal_lahir,
@@ -288,10 +288,10 @@ export const renderMahasiswaDashboard = () => {
                             profile.pas_foto_path,
                             profile.tanda_tangan_path
                         ];
-                        
+
                         const ayah = profile.keluarga?.find((k: any) => k.jenis_relasi === 'ayah') || {};
                         const ibu = profile.keluarga?.find((k: any) => k.jenis_relasi === 'ibu') || {};
-                        
+
                         const requiredAyah = [ayah.nama_lengkap, ayah.pekerjaan, ayah.penghasilan, ayah.status_hidup];
                         const requiredIbu = [ibu.nama_lengkap, ibu.pekerjaan, ibu.penghasilan, ibu.status_hidup];
 
@@ -303,24 +303,24 @@ export const renderMahasiswaDashboard = () => {
                         const bar = document.getElementById('profile-progress-bar');
                         const section = document.getElementById('profile-reminder-section');
 
-                        if(txt) txt.innerText = `Profil kamu baru terisi ${percent}%. Lengkapi sekarang!`;
-                        if(bar) bar.style.width = `${percent}%`;
+                        if (txt) txt.innerText = `Profil kamu baru terisi ${percent}%. Lengkapi sekarang!`;
+                        if (bar) bar.style.width = `${percent}%`;
 
-                        if(profile.pas_foto_path) {
+                        if (profile.pas_foto_path) {
                             localStorage.setItem('auth_photo', profile.pas_foto_path);
                             const headerAvatar = document.getElementById('header-user-avatar') as HTMLImageElement;
-                            if(headerAvatar) {
+                            if (headerAvatar) {
                                 headerAvatar.src = profile.pas_foto_path;
                                 headerAvatar.className = 'w-full h-full object-cover';
                             }
                         }
 
-                        if(percent < 100) {
-                            if(section) section.classList.remove('hidden');
-                            if(btnLengkapi) btnLengkapi.classList.remove('hidden');
+                        if (percent < 100) {
+                            if (section) section.classList.remove('hidden');
+                            if (btnLengkapi) btnLengkapi.classList.remove('hidden');
                         } else {
-                            if(section) section.classList.add('hidden');
-                            if(btnLengkapi) btnLengkapi.classList.add('hidden');
+                            if (section) section.classList.add('hidden');
+                            if (btnLengkapi) btnLengkapi.classList.add('hidden');
                         }
                     }
                 }

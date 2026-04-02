@@ -1,5 +1,5 @@
 import { renderLogin } from '../login/Login';
-import { renderSidebar } from '../components/SidebarMahasiswa';
+import { renderSidebar } from '../components/Sidebar';
 import Toastify from 'toastify-js';
 
 export const renderDashboardLayout = (title: string, content: string, role: string) => {
@@ -28,7 +28,7 @@ export const renderDashboardLayout = (title: string, content: string, role: stri
                             <div class="relative group">
                                 <div class="flex items-center gap-3 cursor-pointer p-2 rounded-lg hover:bg-gray-50 transition-colors">
                                     <div class="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center border-2 border-white shadow-sm overflow-hidden text-teal-700 font-bold shrink-0">
-                                        <img id="header-user-avatar" src="${localStorage.getItem('auth_photo') || '/ugm-logo.png'}" alt="Profile" class="w-full h-full ${localStorage.getItem('auth_photo') ? 'object-cover' : 'w-8 h-8 object-contain'}">
+                                        <img id="header-user-avatar" src="${(role === 'mahasiswa' && localStorage.getItem('auth_photo')) || '/ugm-logo.png'}" alt="Profile" class="w-full h-full ${(role === 'mahasiswa' && localStorage.getItem('auth_photo')) ? 'object-cover' : 'w-8 h-8 object-contain'}">
                                     </div>
                                     <div class="text-right">
                                         <p class="text-sm font-semibold text-gray-900 leading-none">${localStorage.getItem('auth_name') || 'User'}</p>
@@ -72,7 +72,7 @@ export const renderDashboardLayout = (title: string, content: string, role: stri
     document.getElementById('profile-btn')?.addEventListener('click', (e) => {
         e.preventDefault();
         if (role === 'mahasiswa') {
-            import('../Profil/ProfilMahasiswa').then(({ renderProfilMahasiswa }) => {
+            import('../mahasiswa/ProfilMahasiswa').then(({ renderProfilMahasiswa }) => {
                 renderProfilMahasiswa();
             });
         } else {
@@ -88,21 +88,44 @@ export const renderDashboardLayout = (title: string, content: string, role: stri
 
     document.getElementById('sidebar-dashboard-link')?.addEventListener('click', (e) => {
         e.preventDefault();
+        (window as any).clearDashboardInterval?.();
         if (role === 'mahasiswa') {
             import('../dashboard/MahasiswaDashboard').then(({ renderMahasiswaDashboard }) => {
                 renderMahasiswaDashboard();
             });
+        } else if (role === 'super_admin') {
+            import('../dashboard/AdminDashboard').then(({ renderAdminDashboard }) => {
+                renderAdminDashboard();
+            });
         }
+    });
+
+    document.getElementById('sidebar-users-link')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        (window as any).clearDashboardInterval?.();
+        import('../superadmin/UserManagement').then(({ renderUserManagement }) => {
+            renderUserManagement();
+        });
+    });
+
+    document.getElementById('sidebar-logs-link')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        (window as any).clearDashboardInterval?.();
+        import('../superadmin/LogReport').then(({ renderLogReport }) => {
+            renderLogReport();
+        });
     });
 
     document.getElementById('sidebar-dokumen-link')?.addEventListener('click', (e) => {
         e.preventDefault();
-        import('../Dokumen/DokumenMahasiswa').then(({ renderDokumenMahasiswa }) => {
+        (window as any).clearDashboardInterval?.();
+        import('../mahasiswa/DokumenMahasiswa').then(({ renderDokumenMahasiswa }) => {
             renderDokumenMahasiswa();
         });
     });
 
     document.getElementById('logout-btn')?.addEventListener('click', async () => {
+        (window as any).clearDashboardInterval?.();
         const token = localStorage.getItem('auth_token');
         if (token) {
             try {
@@ -120,6 +143,8 @@ export const renderDashboardLayout = (title: string, content: string, role: stri
 
         localStorage.removeItem('auth_token');
         localStorage.removeItem('auth_role');
+        localStorage.removeItem('auth_name');
+        localStorage.removeItem('auth_photo');
 
         Toastify({
             text: "Berhasil keluar!",

@@ -11,9 +11,9 @@ export const handleRedirection = (role: string) => {
     renderAdminDashboard()
   } else if (role === 'mahasiswa') {
     renderMahasiswaDashboard()
-  } else if (role.startsWith('tendik_')) {
+  } else if (role === 'tendik') {
     renderTendikDashboard(role)
-  } else if (['kadep', 'kaprodi', 'sekprodi', 'sekdep'].includes(role)) {
+  } else if (role === 'akademik') {
     renderAkademikDashboard(role)
   } else {
     Toastify({
