@@ -41,7 +41,7 @@ export const renderSidebar = (currentRole: string) => {
                 <span class="font-medium">System Management</span>
             </a>
         `;
-    } else if (currentRole === 'tendik' || currentRole === 'akademik') {
+    } else if (currentRole.startsWith('tendik') || ['kadep', 'kaprodi', 'sekdep', 'sekprodi', 'akademik'].includes(currentRole)) {
         menuItems = `
             <a href="#" id="sidebar-dashboard-link" class="flex items-center gap-3 px-4 py-3 bg-white/10 rounded-xl text-white transition-all duration-200">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>

@@ -97,6 +97,14 @@ export const renderDashboardLayout = (title: string, content: string, role: stri
             import('../dashboard/AdminDashboard').then(({ renderAdminDashboard }) => {
                 renderAdminDashboard();
             });
+        } else if (role.startsWith('tendik')) {
+            import('../dashboard/TendikDashboard').then(({ renderTendikDashboard }) => {
+                renderTendikDashboard(role);
+            });
+        } else if (['kadep', 'kaprodi', 'sekdep', 'sekprodi', 'akademik'].includes(role)) {
+            import('../dashboard/AkademikDashboard').then(({ renderAkademikDashboard }) => {
+                renderAkademikDashboard(role);
+            });
         }
     });
 

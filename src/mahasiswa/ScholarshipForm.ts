@@ -307,6 +307,49 @@ export const renderScholarshipForm = () => {
         });
     };
 
+    const mapApplicationToFormData = (app: any) => {
+        const profile = app.mahasiswa_profile || {};
+        const keluarga = profile.keluarga || [];
+        const father = keluarga.find((k: any) => k.jenis_relasi === 'ayah') || {};
+        const mother = keluarga.find((k: any) => k.jenis_relasi === 'ibu') || {};
+        const guardian = keluarga.find((k: any) => k.jenis_relasi === 'wali') || {};
+        const siblings = keluarga.filter((k: any) => k.jenis_relasi === 'saudara').map((s: any) => ({
+            name: s.nama_lengkap,
+            job_or_school: s.pekerjaan,
+            marital_status: s.status_kawin,
+            relation: s.keterangan
+        }));
+
+        return {
+            ...formData,
+            ...app,
+            nim: profile.nim,
+            faculty: profile.fakultas,
+            study_program: profile.program_studi,
+            pob: profile.tempat_lahir,
+            dob: profile.tanggal_lahir,
+            gender: profile.jenis_kelamin === 'L' ? 'Laki-laki' : (profile.jenis_kelamin === 'P' ? 'Perempuan' : ''),
+            origin_address: profile.alamat_asal,
+            jogja_address: profile.alamat_domisili,
+            father_name: father.nama_lengkap,
+            father_job: father.pekerjaan,
+            father_income: father.penghasilan,
+            father_status: father.status_hidup ? father.status_hidup.charAt(0).toUpperCase() + father.status_hidup.slice(1) : 'Hidup',
+            father_death_date: father.tanggal_meninggal,
+            mother_name: mother.nama_lengkap,
+            mother_job: mother.pekerjaan,
+            mother_income: mother.penghasilan,
+            mother_status: mother.status_hidup ? mother.status_hidup.charAt(0).toUpperCase() + mother.status_hidup.slice(1) : 'Hidup',
+            mother_death_date: mother.tanggal_meninggal,
+            guardian_name: guardian.nama_lengkap,
+            guardian_job: guardian.pekerjaan,
+            guardian_income: guardian.penghasilan,
+            guardian_status: guardian.status_hidup ? guardian.status_hidup.charAt(0).toUpperCase() + guardian.status_hidup.slice(1) : 'Hidup',
+            guardian_death_date: guardian.tanggal_meninggal,
+            siblings: siblings.length > 0 ? siblings : formData.siblings
+        };
+    };
+
     const fetchDraft = async () => {
         const token = localStorage.getItem('auth_token');
         try {
@@ -316,7 +359,7 @@ export const renderScholarshipForm = () => {
             if (res.ok) {
                 const data = await res.json();
                 if (data.application) {
-                    formData = { ...formData, ...data.application };
+                    formData = mapApplicationToFormData(data.application);
                     render();
                 }
             }
@@ -359,7 +402,7 @@ export const renderScholarshipForm = () => {
 
             if (res.ok) {
                 const result = await res.json();
-                formData = { ...formData, ...result.application };
+                formData = mapApplicationToFormData(result.application);
                 return true;
             } else {
                 const err = await res.json();

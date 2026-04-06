@@ -39,8 +39,11 @@ export const renderUserManagement = async () => {
                              <select id="role-filter" class="text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500">
                                 <option value="">Semua Role</option>
                                 <option value="mahasiswa">Mahasiswa</option>
-                                <option value="tendik">Tenaga Pendidik</option>
-                                <option value="akademik">Akademik</option>
+                                <option value="tendik_1">Tendik</option>
+                                <option value="kadep">Kadep</option>
+                                <option value="kaprodi">Kaprodi</option>
+                                <option value="sekdep">Sekdep</option>
+                                <option value="sekprodi">Sekprodi</option>
                              </select>
                         </div>
                     </div>
@@ -99,7 +102,7 @@ const renderUserRow = (user: any) => {
             </td>
             <td class="px-6 py-4">
                 <span class="px-2 py-1 rounded-lg bg-gray-100 text-gray-600 text-[10px] font-bold uppercase tracking-wider">
-                    ${user.role.replace('_', ' ')}
+                    ${user.role === 'tendik_1' ? 'TENDIK' : user.role.replace('_', ' ')}
                 </span>
             </td>
             <td class="px-6 py-4">
@@ -239,8 +242,11 @@ const renderUserModal = (user: any = null) => {
                         <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Role</label>
                         <select name="role" required class="w-full px-4 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-teal-500 outline-none transition-all">
                             <option value="mahasiswa" ${user?.role === 'mahasiswa' ? 'selected' : ''}>Mahasiswa</option>
-                            <option value="tendik_1" ${user?.role === 'tendik_1' ? 'selected' : ''}>Tendik 1 (Verifikator)</option>
-                            <option value="akademik" ${user?.role === 'akademik' ? 'selected' : ''}>Akademik (Pejabat)</option>
+                            <option value="tendik_1" ${user?.role === 'tendik_1' ? 'selected' : ''}>Tendik</option>
+                            <option value="kadep" ${user?.role === 'kadep' ? 'selected' : ''}>Ketua Departemen (Kadep)</option>
+                            <option value="kaprodi" ${user?.role === 'kaprodi' ? 'selected' : ''}>Ketua Program Studi (Kaprodi)</option>
+                            <option value="sekdep" ${user?.role === 'sekdep' ? 'selected' : ''}>Sekretaris Departemen (Sekdep)</option>
+                            <option value="sekprodi" ${user?.role === 'sekprodi' ? 'selected' : ''}>Sekretaris Program Studi (Sekprodi)</option>
                         </select>
                     </div>
                     <div class="pt-4">
