@@ -27,23 +27,23 @@ export const renderProfilMahasiswa = () => {
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="space-y-2">
                             <label class="block text-sm font-semibold text-gray-700">Nama Lengkap</label>
-                            <input type="text" readonly value="${localStorage.getItem('auth_name') || 'Mahasiswa UGM'}" class="w-full px-4 py-3 bg-gray-100 border border-gray-200 rounded-xl text-gray-600 cursor-not-allowed font-medium">
+                            <input type="text" id="sso_nama" readonly class="w-full px-4 py-3 bg-gray-100 border border-gray-200 rounded-xl text-gray-600 cursor-not-allowed font-medium">
                         </div>
                         <div class="space-y-2">
                             <label class="block text-sm font-semibold text-gray-700">NIM</label>
-                            <input type="text" readonly value="21/471234/TK/52345" class="w-full px-4 py-3 bg-gray-100 border border-gray-200 rounded-xl text-gray-600 cursor-not-allowed font-medium">
+                            <input type="text" id="sso_nim" readonly class="w-full px-4 py-3 bg-gray-100 border border-gray-200 rounded-xl text-gray-600 cursor-not-allowed font-medium">
                         </div>
                         <div class="space-y-2">
                             <label class="block text-sm font-semibold text-gray-700">Fakultas</label>
-                            <input type="text" readonly value="Teknik" class="w-full px-4 py-3 bg-gray-100 border border-gray-200 rounded-xl text-gray-600 cursor-not-allowed font-medium">
+                            <input type="text" id="sso_fakultas" readonly class="w-full px-4 py-3 bg-gray-100 border border-gray-200 rounded-xl text-gray-600 cursor-not-allowed font-medium">
                         </div>
                         <div class="space-y-2">
                             <label class="block text-sm font-semibold text-gray-700">Program Studi</label>
-                            <input type="text" readonly value="Teknologi Informasi" class="w-full px-4 py-3 bg-gray-100 border border-gray-200 rounded-xl text-gray-600 cursor-not-allowed font-medium">
+                            <input type="text" id="sso_program_studi" readonly class="w-full px-4 py-3 bg-gray-100 border border-gray-200 rounded-xl text-gray-600 cursor-not-allowed font-medium">
                         </div>
                         <div class="space-y-2 md:col-span-2">
                             <label class="block text-sm font-semibold text-gray-700">Email UGM</label>
-                            <input type="text" readonly value="mahasiswa@mail.ugm.ac.id" class="w-full px-4 py-3 bg-gray-100 border border-gray-200 rounded-xl text-gray-600 cursor-not-allowed font-medium">
+                            <input type="text" id="sso_email" readonly class="w-full px-4 py-3 bg-gray-100 border border-gray-200 rounded-xl text-gray-600 cursor-not-allowed font-medium">
                         </div>
                     </div>
                 </div>
@@ -296,7 +296,7 @@ export const renderProfilMahasiswa = () => {
             </form>
         </div>
     `;
-    
+
     renderDashboardLayout('Detail & Update Profil', content, 'mahasiswa');
 
     // Add interceptors and logic
@@ -384,46 +384,57 @@ export const renderProfilMahasiswa = () => {
 
         async function loadProfile() {
             const token = localStorage.getItem('auth_token');
-            if(!token) return;
+            if (!token) return;
             try {
-                const res = await fetch('/api/profile', { 
+                const res = await fetch('/api/profile', {
                     headers: { 'Authorization': 'Bearer ' + token },
                     cache: 'no-store'
                 });
-                if(res.ok) {
+                if (res.ok) {
                     const data = await res.json();
                     const profile = data.profile;
-                    if(profile) {
-                        if(document.getElementById('tempat_lahir')) (document.getElementById('tempat_lahir') as HTMLInputElement).value = profile.tempat_lahir || '';
-                        if(document.getElementById('tanggal_lahir')) (document.getElementById('tanggal_lahir') as HTMLInputElement).value = profile.tanggal_lahir?.split('T')[0] || '';
-                        if(document.getElementById('jenis_kelamin')) (document.getElementById('jenis_kelamin') as HTMLSelectElement).value = profile.jenis_kelamin || '';
-                        if(document.getElementById('no_hp')) (document.getElementById('no_hp') as HTMLInputElement).value = profile.no_hp || '';
-                        if(document.getElementById('alamat_asal')) (document.getElementById('alamat_asal') as HTMLTextAreaElement).value = profile.alamat_asal || '';
-                        if(document.getElementById('alamat_domisili')) (document.getElementById('alamat_domisili') as HTMLTextAreaElement).value = profile.alamat_domisili || '';
+                    const user = data.user;
 
-                        if(profile.keluarga && Array.isArray(profile.keluarga)) {
+                    if (user) {
+                        if (document.getElementById('sso_nama')) (document.getElementById('sso_nama') as HTMLInputElement).value = user.name || '';
+                        if (document.getElementById('sso_email')) (document.getElementById('sso_email') as HTMLInputElement).value = user.email || '';
+                    }
+
+                    if (profile) {
+                        if (document.getElementById('sso_nim')) (document.getElementById('sso_nim') as HTMLInputElement).value = profile.nim || '';
+                        if (document.getElementById('sso_fakultas')) (document.getElementById('sso_fakultas') as HTMLInputElement).value = profile.fakultas || '';
+                        if (document.getElementById('sso_program_studi')) (document.getElementById('sso_program_studi') as HTMLInputElement).value = profile.program_studi || '';
+
+                        if (document.getElementById('tempat_lahir')) (document.getElementById('tempat_lahir') as HTMLInputElement).value = profile.tempat_lahir || '';
+                        if (document.getElementById('tanggal_lahir')) (document.getElementById('tanggal_lahir') as HTMLInputElement).value = profile.tanggal_lahir?.split('T')[0] || '';
+                        if (document.getElementById('jenis_kelamin')) (document.getElementById('jenis_kelamin') as HTMLSelectElement).value = profile.jenis_kelamin || '';
+                        if (document.getElementById('no_hp')) (document.getElementById('no_hp') as HTMLInputElement).value = profile.no_hp || '';
+                        if (document.getElementById('alamat_asal')) (document.getElementById('alamat_asal') as HTMLTextAreaElement).value = profile.alamat_asal || '';
+                        if (document.getElementById('alamat_domisili')) (document.getElementById('alamat_domisili') as HTMLTextAreaElement).value = profile.alamat_domisili || '';
+
+                        if (profile.keluarga && Array.isArray(profile.keluarga)) {
                             const tbody = document.getElementById('saudara-tbody');
-                            if(tbody) tbody.innerHTML = '';
+                            if (tbody) tbody.innerHTML = '';
 
                             profile.keluarga.forEach((k: any) => {
-                                if(k.jenis_relasi === 'ayah') {
-                                    if(document.getElementById('ayah_nama')) (document.getElementById('ayah_nama') as HTMLInputElement).value = k.nama_lengkap || '';
-                                    if(document.getElementById('ayah_pekerjaan')) (document.getElementById('ayah_pekerjaan') as HTMLInputElement).value = k.pekerjaan || '';
-                                    if(document.getElementById('ayah_penghasilan')) (document.getElementById('ayah_penghasilan') as HTMLSelectElement).value = k.penghasilan || '';
-                                    if(document.getElementById('ayah_status')) (document.getElementById('ayah_status') as HTMLSelectElement).value = k.status_hidup || 'hidup';
-                                    if(document.getElementById('ayah_tgl_meninggal')) (document.getElementById('ayah_tgl_meninggal') as HTMLInputElement).value = k.tanggal_meninggal?.split('T')[0] || '';
-                                } else if(k.jenis_relasi === 'ibu') {
-                                    if(document.getElementById('ibu_nama')) (document.getElementById('ibu_nama') as HTMLInputElement).value = k.nama_lengkap || '';
-                                    if(document.getElementById('ibu_pekerjaan')) (document.getElementById('ibu_pekerjaan') as HTMLInputElement).value = k.pekerjaan || '';
-                                    if(document.getElementById('ibu_penghasilan')) (document.getElementById('ibu_penghasilan') as HTMLSelectElement).value = k.penghasilan || '';
-                                    if(document.getElementById('ibu_status')) (document.getElementById('ibu_status') as HTMLSelectElement).value = k.status_hidup || 'hidup';
-                                    if(document.getElementById('ibu_tgl_meninggal')) (document.getElementById('ibu_tgl_meninggal') as HTMLInputElement).value = k.tanggal_meninggal?.split('T')[0] || '';
-                                } else if(k.jenis_relasi === 'wali') {
-                                    if(document.getElementById('wali_nama')) (document.getElementById('wali_nama') as HTMLInputElement).value = k.nama_lengkap || '';
-                                    if(document.getElementById('wali_pekerjaan')) (document.getElementById('wali_pekerjaan') as HTMLInputElement).value = k.pekerjaan || '';
-                                    if(document.getElementById('wali_penghasilan')) (document.getElementById('wali_penghasilan') as HTMLSelectElement).value = k.penghasilan || '';
-                                    if(document.getElementById('wali_status')) (document.getElementById('wali_status') as HTMLSelectElement).value = k.status_hidup || 'hidup';
-                                } else if(k.jenis_relasi === 'saudara' && tbody) {
+                                if (k.jenis_relasi === 'ayah') {
+                                    if (document.getElementById('ayah_nama')) (document.getElementById('ayah_nama') as HTMLInputElement).value = k.nama_lengkap || '';
+                                    if (document.getElementById('ayah_pekerjaan')) (document.getElementById('ayah_pekerjaan') as HTMLInputElement).value = k.pekerjaan || '';
+                                    if (document.getElementById('ayah_penghasilan')) (document.getElementById('ayah_penghasilan') as HTMLSelectElement).value = k.penghasilan || '';
+                                    if (document.getElementById('ayah_status')) (document.getElementById('ayah_status') as HTMLSelectElement).value = k.status_hidup || 'hidup';
+                                    if (document.getElementById('ayah_tgl_meninggal')) (document.getElementById('ayah_tgl_meninggal') as HTMLInputElement).value = k.tanggal_meninggal?.split('T')[0] || '';
+                                } else if (k.jenis_relasi === 'ibu') {
+                                    if (document.getElementById('ibu_nama')) (document.getElementById('ibu_nama') as HTMLInputElement).value = k.nama_lengkap || '';
+                                    if (document.getElementById('ibu_pekerjaan')) (document.getElementById('ibu_pekerjaan') as HTMLInputElement).value = k.pekerjaan || '';
+                                    if (document.getElementById('ibu_penghasilan')) (document.getElementById('ibu_penghasilan') as HTMLSelectElement).value = k.penghasilan || '';
+                                    if (document.getElementById('ibu_status')) (document.getElementById('ibu_status') as HTMLSelectElement).value = k.status_hidup || 'hidup';
+                                    if (document.getElementById('ibu_tgl_meninggal')) (document.getElementById('ibu_tgl_meninggal') as HTMLInputElement).value = k.tanggal_meninggal?.split('T')[0] || '';
+                                } else if (k.jenis_relasi === 'wali') {
+                                    if (document.getElementById('wali_nama')) (document.getElementById('wali_nama') as HTMLInputElement).value = k.nama_lengkap || '';
+                                    if (document.getElementById('wali_pekerjaan')) (document.getElementById('wali_pekerjaan') as HTMLInputElement).value = k.pekerjaan || '';
+                                    if (document.getElementById('wali_penghasilan')) (document.getElementById('wali_penghasilan') as HTMLSelectElement).value = k.penghasilan || '';
+                                    if (document.getElementById('wali_status')) (document.getElementById('wali_status') as HTMLSelectElement).value = k.status_hidup || 'hidup';
+                                } else if (k.jenis_relasi === 'saudara' && tbody) {
                                     const tr = document.createElement('tr');
                                     tr.innerHTML = `
                                         <td class="px-6 py-4 font-medium text-gray-800"><input type="text" value="${k.nama_lengkap || ''}" placeholder="Nama saudara" class="w-full p-2 border border-gray-200 rounded focus:border-teal-500 outline-none text-sm bg-white text-gray-700"></td>
@@ -447,21 +458,21 @@ export const renderProfilMahasiswa = () => {
                         }
 
                         // Preview images if paths exist
-                        if(profile.pas_foto_path) {
+                        if (profile.pas_foto_path) {
                             console.log('Loading Pas Foto:', profile.pas_foto_path);
                             const container = document.getElementById('preview-foto-container');
-                            if(container) container.innerHTML = `<img src="${profile.pas_foto_path}?t=${new Date().getTime()}" class="h-10 w-10 object-cover rounded-lg border border-gray-200"> <span class="text-xs text-teal-600 font-bold italic">Tersimpan</span>`;
+                            if (container) container.innerHTML = `<img src="${profile.pas_foto_path}?t=${new Date().getTime()}" class="h-10 w-10 object-cover rounded-lg border border-gray-200"> <span class="text-xs text-teal-600 font-bold italic">Tersimpan</span>`;
                         }
-                        if(profile.tanda_tangan_path) {
+                        if (profile.tanda_tangan_path) {
                             console.log('Loading TTD:', profile.tanda_tangan_path);
                             const container = document.getElementById('preview-ttd-container');
-                            if(container) container.innerHTML = `<img src="${profile.tanda_tangan_path}?t=${new Date().getTime()}" class="h-10 w-20 object-contain rounded-lg border border-gray-200 bg-gray-50"> <span class="text-xs text-teal-600 font-bold italic">Tersimpan</span>`;
+                            if (container) container.innerHTML = `<img src="${profile.tanda_tangan_path}?t=${new Date().getTime()}" class="h-10 w-20 object-contain rounded-lg border border-gray-200 bg-gray-50"> <span class="text-xs text-teal-600 font-bold italic">Tersimpan</span>`;
                         }
 
-                        if(profile.pas_foto_path) {
+                        if (profile.pas_foto_path) {
                             localStorage.setItem('auth_photo', profile.pas_foto_path);
                             const headerAvatar = document.getElementById('header-user-avatar') as HTMLImageElement;
-                            if(headerAvatar) {
+                            if (headerAvatar) {
                                 headerAvatar.src = `${profile.pas_foto_path}?t=${new Date().getTime()}`;
                                 headerAvatar.className = 'w-full h-full object-cover';
                             }
@@ -469,7 +480,7 @@ export const renderProfilMahasiswa = () => {
                         checkWaliVisibility();
                     }
                 }
-            } catch(e) { console.error('Fetch profile error:', e); }
+            } catch (e) { console.error('Fetch profile error:', e); }
             toggleEditMode(false); // Ensure sync
             bindHapusButtons();
         }
@@ -478,7 +489,7 @@ export const renderProfilMahasiswa = () => {
             const ayahStatus = (document.getElementById('ayah_status') as HTMLSelectElement)?.value;
             const ibuStatus = (document.getElementById('ibu_status') as HTMLSelectElement)?.value;
             const sectionWali = document.getElementById('section-wali');
-            
+
             if (sectionWali) {
                 if (ayahStatus === 'meninggal' && ibuStatus === 'meninggal') {
                     sectionWali.classList.remove('hidden');
@@ -490,9 +501,9 @@ export const renderProfilMahasiswa = () => {
 
         const statusAyah = document.getElementById('ayah_status');
         const statusIbu = document.getElementById('ibu_status');
-        if(statusAyah) statusAyah.addEventListener('change', checkWaliVisibility);
-        if(statusIbu) statusIbu.addEventListener('change', checkWaliVisibility);
-        
+        if (statusAyah) statusAyah.addEventListener('change', checkWaliVisibility);
+        if (statusIbu) statusIbu.addEventListener('change', checkWaliVisibility);
+
         loadProfile();
 
         // Image Preview Handler
@@ -500,9 +511,9 @@ export const renderProfilMahasiswa = () => {
             const input = document.getElementById(inputId) as HTMLInputElement;
             const container = document.getElementById(containerId);
             const label = document.getElementById(labelId);
-            if(input && container && label) {
+            if (input && container && label) {
                 input.addEventListener('change', () => {
-                    if(input.files && input.files[0]) {
+                    if (input.files && input.files[0]) {
                         const reader = new FileReader();
                         reader.onload = (e) => {
                             container.innerHTML = `<img src="${e.target?.result}" class="h-10 w-auto max-w-[100px] object-contain rounded-lg border border-teal-500 shadow-sm animate-pulse">`;
@@ -521,7 +532,7 @@ export const renderProfilMahasiswa = () => {
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const token = localStorage.getItem('auth_token');
-                
+
                 const formData = new FormData();
                 formData.append('_method', 'PUT');
                 formData.append('tempat_lahir', (document.getElementById('tempat_lahir') as HTMLInputElement)?.value || '');
@@ -533,13 +544,13 @@ export const renderProfilMahasiswa = () => {
 
                 const inputFoto = document.getElementById('input-foto') as HTMLInputElement;
                 const inputTtd = document.getElementById('input-ttd') as HTMLInputElement;
-                if(inputFoto?.files?.[0]) formData.append('pas_foto', inputFoto.files[0]);
-                if(inputTtd?.files?.[0]) formData.append('tanda_tangan', inputTtd.files[0]);
+                if (inputFoto?.files?.[0]) formData.append('pas_foto', inputFoto.files[0]);
+                if (inputTtd?.files?.[0]) formData.append('tanda_tangan', inputTtd.files[0]);
 
                 let kelIndex = 0;
                 const pushKel = (rel: string, n: string, p: string, ph: string, s: string, t: string) => {
                     const nama = (document.getElementById(n) as HTMLInputElement)?.value;
-                    if(nama) {
+                    if (nama) {
                         formData.append(`keluarga[${kelIndex}][jenis_relasi]`, rel);
                         formData.append(`keluarga[${kelIndex}][nama_lengkap]`, nama);
                         formData.append(`keluarga[${kelIndex}][pekerjaan]`, (document.getElementById(p) as HTMLInputElement)?.value || '');
@@ -552,27 +563,27 @@ export const renderProfilMahasiswa = () => {
 
                 pushKel('ayah', 'ayah_nama', 'ayah_pekerjaan', 'ayah_penghasilan', 'ayah_status', 'ayah_tgl_meninggal');
                 pushKel('ibu', 'ibu_nama', 'ibu_pekerjaan', 'ibu_penghasilan', 'ibu_status', 'ibu_tgl_meninggal');
-                
+
                 const waliNama = (document.getElementById('wali_nama') as HTMLInputElement)?.value;
-                if(waliNama) {
-                     formData.append(`keluarga[${kelIndex}][jenis_relasi]`, 'wali');
-                     formData.append(`keluarga[${kelIndex}][nama_lengkap]`, waliNama);
-                     formData.append(`keluarga[${kelIndex}][pekerjaan]`, (document.getElementById('wali_pekerjaan') as HTMLInputElement)?.value || '');
-                     formData.append(`keluarga[${kelIndex}][penghasilan]`, (document.getElementById('wali_penghasilan') as HTMLSelectElement)?.value || '');
-                     formData.append(`keluarga[${kelIndex}][status_hidup]`, (document.getElementById('wali_status') as HTMLSelectElement)?.value || 'hidup');
-                     kelIndex++;
+                if (waliNama) {
+                    formData.append(`keluarga[${kelIndex}][jenis_relasi]`, 'wali');
+                    formData.append(`keluarga[${kelIndex}][nama_lengkap]`, waliNama);
+                    formData.append(`keluarga[${kelIndex}][pekerjaan]`, (document.getElementById('wali_pekerjaan') as HTMLInputElement)?.value || '');
+                    formData.append(`keluarga[${kelIndex}][penghasilan]`, (document.getElementById('wali_penghasilan') as HTMLSelectElement)?.value || '');
+                    formData.append(`keluarga[${kelIndex}][status_hidup]`, (document.getElementById('wali_status') as HTMLSelectElement)?.value || 'hidup');
+                    kelIndex++;
                 }
 
                 const rows = document.getElementById('saudara-tbody')?.querySelectorAll('tr') || [];
                 rows.forEach(tr => {
                     const inputs = tr.querySelectorAll('input, select') as NodeListOf<HTMLInputElement | HTMLSelectElement>;
-                    if(inputs.length >= 4 && inputs[0].value) {
-                         formData.append(`keluarga[${kelIndex}][jenis_relasi]`, 'saudara');
-                         formData.append(`keluarga[${kelIndex}][nama_lengkap]`, inputs[0].value);
-                         formData.append(`keluarga[${kelIndex}][pekerjaan]`, inputs[1].value || '');
-                         formData.append(`keluarga[${kelIndex}][status_kawin]`, inputs[2].value || '');
-                         formData.append(`keluarga[${kelIndex}][keterangan]`, inputs[3].value || '');
-                         kelIndex++;
+                    if (inputs.length >= 4 && inputs[0].value) {
+                        formData.append(`keluarga[${kelIndex}][jenis_relasi]`, 'saudara');
+                        formData.append(`keluarga[${kelIndex}][nama_lengkap]`, inputs[0].value);
+                        formData.append(`keluarga[${kelIndex}][pekerjaan]`, inputs[1].value || '');
+                        formData.append(`keluarga[${kelIndex}][status_kawin]`, inputs[2].value || '');
+                        formData.append(`keluarga[${kelIndex}][keterangan]`, inputs[3].value || '');
+                        kelIndex++;
                     }
                 });
 
@@ -584,8 +595,8 @@ export const renderProfilMahasiswa = () => {
                         },
                         body: formData
                     });
-                    
-                    if(res.ok) {
+
+                    if (res.ok) {
                         Toastify({
                             text: 'Data profil berhasil disimpan secara permanen!',
                             duration: 3000, gravity: 'top', position: 'right', style: { background: '#10B981' }
@@ -598,7 +609,7 @@ export const renderProfilMahasiswa = () => {
                             duration: 3000, gravity: 'top', position: 'right', style: { background: '#EF4444' }
                         }).showToast();
                     }
-                } catch(e) {
+                } catch (e) {
                     Toastify({
                         text: 'Terjadi kesalahan saat menghubungi API.',
                         duration: 3000, gravity: 'top', position: 'right', style: { background: '#EF4444' }

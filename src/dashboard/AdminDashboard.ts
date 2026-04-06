@@ -1,4 +1,5 @@
 import { renderDashboardLayout } from './DashboardLayout';
+import { getGreetingName } from '../utils/nameHelper';
 
 let refreshInterval: any = null;
 
@@ -35,7 +36,7 @@ export const renderAdminDashboard = async () => {
                     <!-- Welcome Section -->
                     <div class="flex justify-between items-center">
                         <div>
-                            <h2 class="text-2xl font-bold text-gray-800">Halo, ${localStorage.getItem('auth_name')}!</h2>
+                            <h2 class="text-2xl font-bold text-gray-800">Halo, ${getGreetingName(localStorage.getItem('auth_name'))}!</h2>
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 mt-2">
                                 Super Admin
                             </span>

@@ -1,5 +1,6 @@
 import { renderDashboardLayout } from './DashboardLayout';
 import { renderProfilMahasiswa } from '../mahasiswa/ProfilMahasiswa';
+import { getGreetingName } from '../utils/nameHelper';
 
 export const renderMahasiswaDashboard = () => {
     const content = `
@@ -9,7 +10,7 @@ export const renderMahasiswaDashboard = () => {
                 <div class="relative z-10 flex flex-col gap-4">
                     <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
                         <div class="flex-1">
-                            <h2 class="text-3xl font-bold tracking-tight">Halo, ${localStorage.getItem('auth_name')?.split(' ')[0] || 'User'}! 👋</h2>
+                            <h2 class="text-3xl font-bold tracking-tight">Halo, ${getGreetingName(localStorage.getItem('auth_name'))}! 👋</h2>
                         </div>
                         <div>
                             <button id="btn-lengkapi-profil" class="hidden px-6 py-2.5 bg-white text-primary-teal font-bold rounded-xl hover:bg-teal-50 transition-all duration-200 shadow-sm whitespace-nowrap">

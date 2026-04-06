@@ -1,5 +1,6 @@
 import { renderLogin } from '../login/Login';
 import { renderSidebar } from '../components/Sidebar';
+import { getGreetingName } from '../utils/nameHelper';
 import Toastify from 'toastify-js';
 
 export const renderDashboardLayout = (title: string, content: string, role: string) => {
@@ -31,7 +32,7 @@ export const renderDashboardLayout = (title: string, content: string, role: stri
                                         <img id="header-user-avatar" src="${(role === 'mahasiswa' && localStorage.getItem('auth_photo')) || '/ugm-logo.png'}" alt="Profile" class="w-full h-full ${(role === 'mahasiswa' && localStorage.getItem('auth_photo')) ? 'object-cover' : 'w-8 h-8 object-contain'}">
                                     </div>
                                     <div class="text-right">
-                                        <p class="text-sm font-semibold text-gray-900 leading-none">${localStorage.getItem('auth_name') || 'User'}</p>
+                                        <p class="text-sm font-semibold text-gray-900 leading-none">${getGreetingName(localStorage.getItem('auth_name'))}</p>
                                         <p class="text-[10px] text-gray-500 font-medium uppercase mt-1 tracking-wider">${role.replace('_', ' ')}</p>
                                     </div>
                                 </div>
