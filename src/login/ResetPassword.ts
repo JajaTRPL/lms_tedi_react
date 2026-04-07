@@ -31,7 +31,8 @@ export const renderForgotPassword = () => {
     <div class="min-h-screen w-full flex items-center justify-center bg-cover bg-center bg-no-repeat relative overflow-hidden font-['Inter']" style="background-image: url('/bc-login.png');">
       <div class="absolute inset-0 bg-[#002d2d]/40 pointer-events-none"></div>
 
-      <div class="container mx-auto px-4 flex flex-col lg:flex-row items-center justify-around gap-12 relative z-10">
+      <div class="container mx-auto px-6 py-8 relative z-10">
+        <div class="flex flex-col lg:flex-row items-center justify-around gap-12 w-full rounded-3xl p-8 lg:p-14" style="background: rgba(255,255,255,0.08); border: 1.5px solid #BFBFBF; backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);">
         <div class="flex flex-col items-center text-center lg:items-center lg:text-center max-w-xl text-white">
           <div class="mb-6 animate-fade-in ">
             <img src="/ugm-logo.png" alt="University Logo" class="w-32 h-32 object-contain drop-shadow-2xl">
@@ -74,17 +75,36 @@ export const renderForgotPassword = () => {
               </div>
 
               <button 
-                type="submit" 
-                class="w-full flex justify-center py-3.5 px-4 border border-transparent rounded-xl shadow-sm text-base font-bold text-white bg-secondary-teal hover:bg-secondary-teal/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary-teal transition-all transform active:scale-[0.98]"
+                type="submit"
+                id="generate-token-btn"
+                class="w-full flex justify-center py-3.5 px-4 border-0 rounded-xl shadow-sm text-base font-bold text-white transition-all transform active:scale-[0.98] focus:outline-none"
+                style="background-color: #8E8E93; cursor: not-allowed;"
               >
                 Generate Token
               </button>
             </form>
           </div>
         </div>
+        </div>
       </div>
     </div>
   `
+
+  const fpEmailInput = document.getElementById('email') as HTMLInputElement
+  const generateTokenBtn = document.getElementById('generate-token-btn') as HTMLButtonElement
+
+  const updateGenerateBtn = () => {
+    const filled = fpEmailInput.value.trim() !== ''
+    generateTokenBtn.style.backgroundColor = filled ? '' : '#8E8E93'
+    generateTokenBtn.style.cursor = filled ? 'pointer' : 'not-allowed'
+    if (filled) {
+      generateTokenBtn.classList.add('bg-secondary-teal', 'hover:bg-secondary-teal/90')
+    } else {
+      generateTokenBtn.classList.remove('bg-secondary-teal', 'hover:bg-secondary-teal/90')
+    }
+  }
+
+  fpEmailInput.addEventListener('input', updateGenerateBtn)
 
   document.getElementById('forgot-password-form')?.addEventListener('submit', async (e) => {
     e.preventDefault()
@@ -163,7 +183,8 @@ export const renderVerifyToken = () => {
     <div class="min-h-screen w-full flex items-center justify-center bg-cover bg-center bg-no-repeat relative overflow-hidden font-['Inter']" style="background-image: url('/bc-login.png');">
       <div class="absolute inset-0 bg-[#002d2d]/40 pointer-events-none"></div>
 
-      <div class="container mx-auto px-4 flex flex-col lg:flex-row items-center justify-around gap-12 relative z-10">
+      <div class="container mx-auto px-6 py-8 relative z-10">
+        <div class="flex flex-col lg:flex-row items-center justify-around gap-12 w-full rounded-3xl p-10 lg:p-14" style="background: rgba(255,255,255,0.08); border: 1.5px solid #BFBFBF; backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);">
         <div class="flex flex-col items-center text-center lg:items-center lg:text-center max-w-xl text-white">
           <div class="mb-6 animate-fade-in ">
             <img src="/ugm-logo.png" alt="University Logo" class="w-32 h-32 object-contain drop-shadow-2xl">
@@ -207,6 +228,7 @@ export const renderVerifyToken = () => {
               </button>
             </form>
           </div>
+        </div>
         </div>
       </div>
     </div>
@@ -366,7 +388,8 @@ export const renderResetPassword = () => {
     <div class="min-h-screen w-full flex items-center justify-center bg-cover bg-center bg-no-repeat relative overflow-hidden font-['Inter']" style="background-image: url('/bc-login.png');">
       <div class="absolute inset-0 bg-[#002d2d]/40 pointer-events-none"></div>
 
-      <div class="container mx-auto px-4 flex flex-col lg:flex-row items-center justify-around gap-12 relative z-10">
+      <div class="container mx-auto px-6 py-8 relative z-10">
+        <div class="flex flex-col lg:flex-row items-center justify-around gap-12 w-full rounded-3xl p-10 lg:p-14" style="background: rgba(255,255,255,0.08); border: 1.5px solid #BFBFBF; backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);">
         <div class="flex flex-col items-center text-center lg:items-center lg:text-center max-w-xl text-white">
           <div class="mb-6 animate-fade-in ">
             <img src="/ugm-logo.png" alt="University Logo" class="w-32 h-32 object-contain drop-shadow-2xl">
@@ -442,6 +465,7 @@ export const renderResetPassword = () => {
               </button>
             </form>
           </div>
+        </div>
         </div>
       </div>
     </div>

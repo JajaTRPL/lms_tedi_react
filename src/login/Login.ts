@@ -33,7 +33,8 @@ export const renderLogin = () => {
     <div class="min-h-screen w-full flex items-center justify-center bg-cover bg-center bg-no-repeat relative overflow-hidden font-['Inter']" style="background-image: url('/bc-login.png');">
       <div class="absolute inset-0 bg-[#002d2d]/40 pointer-events-none"></div>
 
-      <div class="container mx-auto px-4 flex flex-col lg:flex-row items-center justify-around gap-12 relative z-10">
+      <div class="container mx-auto px-6 py-8 relative z-10">
+        <div class="flex flex-col lg:flex-row items-center justify-around gap-12 w-full rounded-3xl p-10 lg:p-14" style="background: rgba(255,255,255,0.08); border: 1.5px solid #BFBFBF; backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);">
         <div class="flex flex-col items-center text-center lg:items-center lg:text-center max-w-xl text-white">
           <div class="mb-6 animate-fade-in ">
             <img src="/ugm-logo.png" alt="University Logo" class="w-32 h-32 object-contain drop-shadow-2xl">
@@ -113,11 +114,15 @@ export const renderLogin = () => {
               </div>
 
               <button 
-                type="submit" 
-                class="w-full flex justify-center py-3.5 px-4 border border-transparent rounded-xl shadow-sm text-base font-bold text-white bg-secondary-teal hover:bg-secondary-teal/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary-teal transition-all transform active:scale-[0.98]"
+                type="submit"
+                id="submit-btn"
+                class="w-full flex justify-center py-3.5 px-4 border-0 rounded-xl shadow-sm text-base font-bold text-white transition-all transform active:scale-[0.98] focus:outline-none"
+                style="background-color: #8E8E93; cursor: not-allowed;"
               >
                 Masuk
               </button>
+
+              <div id="login-error" class="hidden w-full rounded-xl px-4 py-3 text-center text-sm font-medium" style="background-color: #FEE2E2; color: #FF383C; border: none;"></div>
             </form>
           </div>
         </div>
@@ -126,8 +131,41 @@ export const renderLogin = () => {
   `
 
   const passwordInput = document.getElementById('password') as HTMLInputElement
+  const emailInput = document.getElementById('email') as HTMLInputElement
   const toggleBtn = document.getElementById('toggle-password') as HTMLButtonElement
   const eyeIcon = document.getElementById('eye-icon') as any
+  const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement
+
+  const updateSubmitBtn = () => {
+    const filled = emailInput.value.trim() !== '' && passwordInput.value !== ''
+    submitBtn.style.backgroundColor = filled ? '' : '#8E8E93'
+    submitBtn.style.cursor = filled ? 'pointer' : 'not-allowed'
+    if (filled) {
+      submitBtn.classList.add('bg-secondary-teal', 'hover:bg-secondary-teal/90')
+      submitBtn.classList.remove('bg-[#8E8E93]')
+    } else {
+      submitBtn.classList.remove('bg-secondary-teal', 'hover:bg-secondary-teal/90')
+    }
+  }
+
+  emailInput.addEventListener('input', updateSubmitBtn)
+  passwordInput.addEventListener('input', updateSubmitBtn)
+
+  const showLoginError = (message: string) => {
+    const errorEl = document.getElementById('login-error')
+    if (errorEl) {
+      errorEl.textContent = message
+      errorEl.classList.remove('hidden')
+    }
+  }
+
+  const hideLoginError = () => {
+    const errorEl = document.getElementById('login-error')
+    if (errorEl) {
+      errorEl.classList.add('hidden')
+      errorEl.textContent = ''
+    }
+  }
 
   toggleBtn?.addEventListener('click', () => {
     const isPassword = passwordInput.type === 'password'
@@ -148,6 +186,7 @@ export const renderLogin = () => {
 
   document.getElementById('login-form')?.addEventListener('submit', async (e) => {
     e.preventDefault()
+    hideLoginError()
     const email = (document.getElementById('email') as HTMLInputElement).value
     const password = passwordInput.value
     try {
@@ -167,38 +206,17 @@ export const renderLogin = () => {
       if (response.ok) {
         localStorage.setItem('auth_token', data.token)
         localStorage.setItem('auth_name', data.user.name)
-        Toastify({
-          text: 'Berhasil masuk! Mengalihkan...',
-          duration: 1500, close: false, gravity: "top", position: "right",
-          style: { background: "#10B981" } // Green
-        }).showToast()
-
-        // Delay redirection slightly so the toast has time to be seen
-        setTimeout(() => {
-          handleRedirection(data.user.role)
-        }, 800)
+        handleRedirection(data.user.role)
       } else {
         if (response.status === 404) {
-          Toastify({
-            text: 'Endpoint API tidak ditemukan (404). Pastikan backend Laravel sudah jalan di port 8000.',
-            duration: 5000, close: true, gravity: "top", position: "right",
-            style: { background: "#EF4444" }
-          }).showToast()
+          showLoginError('Endpoint API tidak ditemukan (404). Pastikan backend Laravel sudah jalan di port 8000.')
         } else {
-          Toastify({
-            text: data.message || `Login gagal (Status: ${response.status})`,
-            duration: 3000, close: true, gravity: "top", position: "right",
-            style: { background: "#EF4444" }
-          }).showToast()
+          showLoginError('Email atau kata sandi yang Anda masukkan tidak sesuai. Silakan coba lagi.')
         }
       }
     } catch (error) {
       console.error('Error:', error)
-      Toastify({
-        text: 'Tidak dapat terhubung ke server. Pastikan backend Laravel aktif.',
-        duration: 5000, close: true, gravity: "top", position: "right",
-        style: { background: "#EF4444" }
-      }).showToast()
+      showLoginError('Tidak dapat terhubung ke server. Pastikan backend Laravel aktif.')
     }
   })
 
