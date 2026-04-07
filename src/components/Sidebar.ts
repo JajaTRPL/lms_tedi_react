@@ -20,25 +20,25 @@ export const renderSidebar = (currentRole: string) => {
         `;
     } else if (currentRole === 'super_admin') {
         menuItems = `
-            <a href="#" id="sidebar-dashboard-link" class="flex items-center gap-3 px-4 py-3 bg-white/10 rounded-xl text-white transition-all duration-200">
+            <a href="#" id="sidebar-dashboard-link" class="flex items-center gap-3 px-4 py-3 bg-white/20 rounded-xl text-white font-semibold transition-all duration-200">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
                 <span class="font-medium">Dashboard</span>
             </a>
-            <a href="#" id="sidebar-users-link" class="flex items-center gap-3 px-4 py-3 text-white/70 hover:bg-white/5 hover:text-white rounded-xl transition-all duration-200">
+            <a href="#" id="sidebar-users-link" class="flex items-center gap-3 px-4 py-3 text-white/70 hover:bg-white/10 hover:text-white rounded-xl transition-all duration-200">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
                 <span class="font-medium">Manajemen Akun</span>
             </a>
-            <a href="#" class="flex items-center gap-3 px-4 py-3 text-white/70 hover:bg-white/5 hover:text-white rounded-xl transition-all duration-200">
+            <a href="#" class="flex items-center gap-3 px-4 py-3 text-white/70 hover:bg-white/10 hover:text-white rounded-xl transition-all duration-200">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
-                <span class="font-medium">Monitoring Workflow</span>
+                <span class="font-medium">Monitoring Surat</span>
             </a>
-            <a href="#" id="sidebar-logs-link" class="flex items-center gap-3 px-4 py-3 text-white/70 hover:bg-white/5 hover:text-white rounded-xl transition-all duration-200">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                <span class="font-medium">Log Report</span>
+            <a href="#" class="flex items-center gap-3 px-4 py-3 text-white/70 hover:bg-white/10 hover:text-white rounded-xl transition-all duration-200">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                <span class="font-medium">Template Dokumen</span>
             </a>
-            <a href="#" class="flex items-center gap-3 px-4 py-3 text-white/70 hover:bg-white/5 hover:text-white rounded-xl transition-all duration-200">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-                <span class="font-medium">System Management</span>
+            <a href="#" id="sidebar-logs-link" class="flex items-center gap-3 px-4 py-3 text-white/70 hover:bg-white/10 hover:text-white rounded-xl transition-all duration-200">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                <span class="font-medium">Riwayat Aktivitas</span>
             </a>
         `;
     } else if (currentRole.startsWith('tendik') || ['kadep', 'kaprodi', 'sekdep', 'sekprodi', 'akademik'].includes(currentRole)) {
@@ -55,15 +55,26 @@ export const renderSidebar = (currentRole: string) => {
     }
 
     return `
-        <aside class="w-64 bg-primary-teal text-white min-h-screen flex flex-col sticky top-0 h-screen overflow-y-auto">
-            <div class="p-6 flex items-center gap-4">
-                <img src="/ugm-logo.png" alt="UGM Logo" class="w-10 h-10 object-contain brightness-0 invert">
-                <span class="text-xl font-bold tracking-tight">Surat DTEDI</span>
+        <aside class="w-64 bg-primary-teal text-white min-h-screen flex flex-col sticky top-0 h-screen overflow-y-auto" style="background: linear-gradient(180deg, #006666 0%, #004d4d 60%, #003333 100%)">
+            <div class="p-5 border-b border-white/10">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
+                        <img src="/ugm-logo.png" alt="UGM Logo" class="w-7 h-7 object-contain brightness-0 invert">
+                    </div>
+                    <div>
+                        <p class="text-white text-sm font-bold leading-tight">Sistem Persuratan</p>
+                        <p class="text-white/60 text-[9px] leading-tight mt-0.5">Departemen Teknik<br>Elektro dan Informatika</p>
+                    </div>
+                </div>
             </div>
 
-            <nav class="flex-1 mt-6 px-4 space-y-2">
+            <nav class="flex-1 mt-4 px-3 space-y-1">
                 ${menuItems}
             </nav>
+
+            <div class="p-4 border-t border-white/10">
+                <p class="text-white/30 text-[9px] text-center">Sistem Persuratan v1.0</p>
+            </div>
         </aside>
     `;
 };

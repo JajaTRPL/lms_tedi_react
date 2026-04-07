@@ -1,5 +1,4 @@
 import { renderDashboardLayout } from './DashboardLayout';
-import { getGreetingName } from '../utils/nameHelper';
 
 let refreshInterval: any = null;
 
@@ -31,105 +30,127 @@ export const renderAdminDashboard = async () => {
             });
             const stats = await response.json();
 
+            const activeCount = stats.status_distribution?.active?.count || 0;
+            const nonaktifCount = stats.status_distribution?.nonaktif?.count || 0;
+            const suspendedCount = stats.status_distribution?.suspended?.count || 0;
+            const totalStatus = activeCount + nonaktifCount + suspendedCount || 1;
+            const activePct = Math.round((activeCount / totalStatus) * 100);
+            const nonaktifPct = Math.round((nonaktifCount / totalStatus) * 100);
+            const suspendedPct = Math.round((suspendedCount / totalStatus) * 100);
+
+            // Build multi-segment donut
+            const radius = 16;
+            const circumference = 2 * Math.PI * radius;
+            const activeLen = (activePct / 100) * circumference;
+            const nonaktifLen = (nonaktifPct / 100) * circumference;
+            const suspendedLen = (suspendedPct / 100) * circumference;
+            const activeOffset = 0;
+            const nonaktifOffset = activeLen;
+            const suspendedOffset = activeLen + nonaktifLen;
+
             const content = `
                 <div class="space-y-8 animate-fade-in pb-12">
                     <!-- Welcome Section -->
-                    <div class="flex justify-between items-center">
-                        <div>
-                            <h2 class="text-2xl font-bold text-gray-800">Halo, ${getGreetingName(localStorage.getItem('auth_name'))}!</h2>
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 mt-2">
-                                Super Admin
-                            </span>
-                        </div>
-                        <div class="flex flex-col items-end">
-                            <div class="flex items-center gap-2 text-teal-600 animate-pulse">
-                                <span class="relative flex h-2 w-2">
-                                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
-                                  <span class="relative inline-flex rounded-full h-2 w-2 bg-teal-500"></span>
-                                </span>
-                                <span class="text-[10px] font-bold uppercase tracking-widest">Live Updates</span>
-                            </div>
-                            <p class="text-[10px] text-gray-400 mt-1">Terakhir diperbarui: ${new Date().toLocaleTimeString('id-ID')}</p>
-                        </div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">Halo, Super Admin!</h2>
+                        <span class="inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold mt-2" style="background:#F59E0B;color:#fff">
+                            Super Admin
+                        </span>
                     </div>
 
                     <!-- User Count Cards -->
                     <div>
-                        <h3 class="text-sm font-bold text-gray-700 mb-1">Total Pengguna Aktif</h3>
-                        <p class="text-xs text-gray-500 mb-4">Jumlah pengguna Aktif berdasarkan peran dalam sistem.</p>
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                            ${renderCountCard('Mahasiswa', stats.user_counts?.mahasiswa || 0, 'bg-blue-50 text-blue-600')}
-                            ${renderCountCard('Tenaga Pendidik', stats.user_counts?.tendik || 0, 'bg-indigo-50 text-indigo-600')}
-                            ${renderCountCard('Akademik', stats.user_counts?.akademik || 0, 'bg-purple-50 text-purple-600')}
-                            ${renderCountCard('Admin', stats.user_counts?.super_admin || 0, 'bg-teal-50 text-teal-600')}
+                        <h3 class="text-base font-bold text-gray-800 mb-1">Total Pengguna Aktif</h3>
+                        <p class="text-xs text-gray-500 mb-4">Jumlah pengguna aktif berdasarkan peran dalam sistem.</p>
+                        <div class="grid grid-cols-2 gap-4">
+                            ${renderCountCard('Mahasiswa', stats.user_counts?.mahasiswa || 0, '#EFF6FF', '#3B82F6', 'M12 14l9-5-9-5-9 5 9 5zm0 7V9')}
+                            ${renderCountCard('Tenaga Pendidik', stats.user_counts?.tendik || 0, '#F0FDF4', '#22C55E', 'M17 20h5v-2a3 3 0 0 0-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 0 1 5.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 0 1 9.288 0M15 7a3 3 0 1 1-6 0 3 3 0 0 1 6 0z')}
+                            ${renderCountCard('Akademik', stats.user_counts?.akademik || 0, '#F5F3FF', '#8B5CF6', 'M19 21V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5m-4 0h4')}
+                            ${renderCountCard('Super Admin', stats.user_counts?.super_admin || 0, '#F9FAFB', '#6B7280', 'M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2z')}
                         </div>
                     </div>
 
                     <!-- Account Status Section -->
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <div class="lg:col-span-1 space-y-4">
-                            <h3 class="text-sm font-bold text-gray-700">Status Akun Pengguna</h3>
-                            <p class="text-xs text-gray-500">Distribusi status akun pengguna pada sistem.</p>
-                            
-                            ${renderStatusBar('Aktif', stats.status_distribution?.active?.count || 0, stats.status_distribution?.active?.percentage || 0, 'bg-teal-500')}
-                            ${renderStatusBar('Nonaktif', stats.status_distribution?.nonaktif?.count || 0, stats.status_distribution?.nonaktif?.percentage || 0, 'bg-gray-400')}
-                            ${renderStatusBar('Suspended', stats.status_distribution?.suspended?.count || 0, stats.status_distribution?.suspended?.percentage || 0, 'bg-red-500')}
-                        </div>
+                    <div>
+                        <h3 class="text-base font-bold text-gray-800 mb-1">Status Akun Pengguna</h3>
+                        <p class="text-xs text-gray-500 mb-4">Distribusi status akun pengguna pada sistem.</p>
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div class="space-y-3">
+                                ${renderStatusBar('Aktif', activeCount, activePct, '#10B981', '#D1FAE5', '#065F46')}
+                                ${renderStatusBar('Nonaktif', nonaktifCount, nonaktifPct, '#9CA3AF', '#F3F4F6', '#374151')}
+                                ${renderStatusBar('Suspended', suspendedCount, suspendedPct, '#EF4444', '#FEE2E2', '#991B1B')}
+                            </div>
 
-                        <div class="lg:col-span-2 bg-white rounded-2xl border border-gray-100 p-8 flex flex-col items-center justify-center relative shadow-sm">
-                            <div class="relative w-48 h-48">
-                                <!-- Simple SVG Donut Chart -->
-                                <svg viewBox="0 0 36 36" class="w-full h-full transform -rotate-90">
-                                    <circle cx="18" cy="18" r="16" fill="transparent" stroke="#E5E7EB" stroke-width="3"></circle>
-                                    <circle cx="18" cy="18" r="16" fill="transparent" stroke="#0D9488" stroke-width="3" 
-                                        stroke-dasharray="${stats.status_distribution?.active?.percentage || 0} 100"></circle>
-                                </svg>
-                                <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
-                                    <span class="text-3xl font-black text-gray-800">${stats.user_counts?.total || 0}</span>
-                                    <span class="text-[10px] uppercase font-bold text-gray-400 tracking-tighter">Total User</span>
+                            <div class="bg-white rounded-2xl border border-gray-100 p-6 flex flex-col items-center justify-center shadow-sm">
+                                <div class="relative w-44 h-44">
+                                    <svg viewBox="0 0 36 36" class="w-full h-full transform -rotate-90">
+                                        <circle cx="18" cy="18" r="${radius}" fill="transparent" stroke="#E5E7EB" stroke-width="3.5"></circle>
+                                        <circle cx="18" cy="18" r="${radius}" fill="transparent" stroke="#10B981" stroke-width="3.5"
+                                            stroke-dasharray="${activeLen.toFixed(2)} ${circumference.toFixed(2)}"
+                                            stroke-dashoffset="-${activeOffset.toFixed(2)}"></circle>
+                                        <circle cx="18" cy="18" r="${radius}" fill="transparent" stroke="#9CA3AF" stroke-width="3.5"
+                                            stroke-dasharray="${nonaktifLen.toFixed(2)} ${circumference.toFixed(2)}"
+                                            stroke-dashoffset="-${nonaktifOffset.toFixed(2)}"></circle>
+                                        <circle cx="18" cy="18" r="${radius}" fill="transparent" stroke="#EF4444" stroke-width="3.5"
+                                            stroke-dasharray="${suspendedLen.toFixed(2)} ${circumference.toFixed(2)}"
+                                            stroke-dashoffset="-${suspendedOffset.toFixed(2)}"></circle>
+                                    </svg>
+                                    <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+                                        <span class="text-3xl font-black text-gray-800">${stats.user_counts?.total || 0}</span>
+                                        <span class="text-[10px] font-bold text-gray-500 mt-1">Total Pengguna</span>
+                                    </div>
+                                </div>
+                                <div class="flex gap-4 mt-4 text-[10px]">
+                                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block"></span> Aktif</span>
+                                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-gray-400 inline-block"></span> Nonaktif</span>
+                                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-red-400 inline-block"></span> Suspended</span>
                                 </div>
                             </div>
                         </div>
                     </div>
 
+                    <!-- Separator -->
                     <hr class="border-gray-200">
 
                     <!-- Activity Line Charts -->
-                    <div class="space-y-6">
+                    <div class="space-y-4">
                         <div>
-                            <h3 class="text-sm font-bold text-gray-700">Laporan Aktivitas Sistem</h3>
-                            <p class="text-xs text-gray-500">Menampilkan aktivitas penggunaan sistem (Update Otomatis setiap 30 Detik).</p>
+                            <h3 class="text-base font-bold text-gray-800">Laporan Aktivitas Sistem</h3>
+                            <p class="text-xs text-gray-500">Menampilkan aktivitas penggunaan sistem pada periode yang dipilih</p>
                         </div>
 
-                        <!-- Tabs Placeholder -->
-                        <div class="flex p-1 bg-gray-100 rounded-xl w-full max-w-2xl">
-                            <button class="flex-1 py-1.5 text-xs font-bold bg-white text-gray-800 rounded-lg shadow-sm">Hari Ini</button>
-                            <button class="flex-1 py-1.5 text-xs font-medium text-gray-500 hover:text-gray-700">Minggu Ini</button>
-                            <button class="flex-1 py-1.5 text-xs font-medium text-gray-500 hover:text-gray-700">1 Bulan</button>
-                            <button class="flex-1 py-1.5 text-xs font-medium text-gray-500 hover:text-gray-700">3 Bulan</button>
-                            <button class="flex-1 py-1.5 text-xs font-medium text-gray-500 hover:text-gray-700">6 Bulan</button>
-                            <button class="flex-1 py-1.5 text-xs font-medium text-gray-500 hover:text-gray-700">12 Bulan</button>
+                        <!-- Period Tabs -->
+                        <div id="activity-tab-bar" class="flex items-center justify-between w-full">
+                            <button class="activity-tab py-1.5 px-3 text-sm font-medium text-gray-500 hover:text-gray-800 transition-colors" data-period="today">Hari Ini</button>
+                            <button class="activity-tab py-1.5 px-5 text-sm font-bold text-white rounded-lg transition-all active-tab" data-period="week" style="background:#006666">Minggu Ini</button>
+                            <button class="activity-tab py-1.5 px-3 text-sm font-medium text-gray-500 hover:text-gray-800 transition-colors" data-period="1month">1 Bulan</button>
+                            <button class="activity-tab py-1.5 px-3 text-sm font-medium text-gray-500 hover:text-gray-800 transition-colors" data-period="3months">3 Bulan</button>
+                            <button class="activity-tab py-1.5 px-3 text-sm font-medium text-gray-500 hover:text-gray-800 transition-colors" data-period="6months">6 Bulan</button>
+                            <button class="activity-tab py-1.5 px-3 text-sm font-medium text-gray-500 hover:text-gray-800 transition-colors" data-period="12months">12 Bulan</button>
                         </div>
 
-                        <!-- Charts Grid -->
+                        <!-- Charts -->
                         <div class="space-y-4">
-                            ${renderChartCard('Aktivitas Login', 'Total aktivitas login pengguna ke sistem pada periode yang dipilih', stats.activity_stats || { labels: [], data: [] })}
-                            ${renderChartCard('Pengajuan Surat', 'Jumlah pengajuan surat yang masuk ke sistem pada periode yang dipilih', stats.scholarship_stats || { labels: [], data: [] })}
+                            ${renderChartCard('Aktivitas Login', 'Total aktivitas login pengguna ke sistem pada periode yang dipilih', stats.activity_stats || { labels: [], data: [] }, 'Total Pengguna')}
+                            ${renderChartCard('Pengajuan Surat', 'Jumlah pengajuan surat yang masuk ke sistem pada periode yang dipilih', stats.scholarship_stats || { labels: [], data: [] }, 'Total Pengajuan Surat')}
                         </div>
 
                         <!-- Approval Durations -->
-                        <div class="bg-gray-400/10 rounded-2xl overflow-hidden border border-gray-200">
-                            <div class="bg-gray-400/40 px-6 py-3">
-                                <h4 class="text-xs font-bold text-gray-700">Rata-rata Durasi Persetujuan Surat</h4>
-                                <p class="text-[10px] text-gray-500 uppercase tracking-tight">Rata-rata waktu yang dibutuhkan untuk memproses persetujuan surat</p>
+                        <div class="rounded-2xl overflow-hidden border border-yellow-200" style="background:#FFFBEB">
+                            <div class="px-6 py-4 flex items-start gap-3 border-b border-yellow-200">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" class="mt-0.5 shrink-0"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                                <div>
+                                    <h4 class="text-sm font-bold text-gray-800">Rata-Rata Durasi Persetujuan Surat</h4>
+                                    <p class="text-[10px] text-gray-500 mt-0.5">Rata-rata waktu yang dibutuhkan untuk memproses persetujuan surat</p>
+                                </div>
                             </div>
                             <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                                 ${renderDurationBox('Tenaga Pendidik', stats.approval_durations?.tendik || { days: 0, hours: 0, minutes: 0 })}
                                 ${renderDurationBox('Akademik', stats.approval_durations?.akademik || { days: 0, hours: 0, minutes: 0 })}
                             </div>
-                            <div class="px-6 py-2 bg-white/50 border-t border-gray-200 flex items-center gap-2">
-                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-400"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                                 <p class="text-[10px] text-gray-500 italic">Data diperbarui secara real-time dari sistem.</p>
+                            <div class="px-6 py-3 border-t border-yellow-200 flex items-center gap-2">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                                <p class="text-[10px] text-amber-700 italic">Durasi dihitung sejak pengajuan masuk hingga proses persetujuan selesai. Semakin rendah durasi, semakin efisien proses persetujuan.</p>
                             </div>
                         </div>
                     </div>
@@ -139,6 +160,23 @@ export const renderAdminDashboard = async () => {
             const container = document.getElementById('dashboard-content');
             if (container) {
                 container.innerHTML = content;
+
+                // Tab switching logic
+                const tabBar = document.getElementById('activity-tab-bar');
+                tabBar?.querySelectorAll('.activity-tab').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        tabBar.querySelectorAll('.activity-tab').forEach(b => {
+                            b.classList.remove('active-tab', 'font-bold', 'text-white');
+                            b.classList.add('font-medium', 'text-gray-500');
+                            (b as HTMLElement).style.background = '';
+                            (b as HTMLElement).style.borderRadius = '';
+                        });
+                        btn.classList.add('active-tab', 'font-bold', 'text-white');
+                        btn.classList.remove('font-medium', 'text-gray-500');
+                        (btn as HTMLElement).style.background = '#006666';
+                        (btn as HTMLElement).style.borderRadius = '8px';
+                    });
+                });
             }
         } catch (error) {
             console.error('Error updating dashboard data:', error);
@@ -155,65 +193,109 @@ export const renderAdminDashboard = async () => {
     refreshInterval = setInterval(() => updateDashboardData(), 30000);
 };
 
-const renderCountCard = (title: string, count: number, colorClass: string) => `
-    <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex justify-between items-start">
+const renderCountCard = (title: string, count: number, bgColor: string, iconColor: string, iconPath: string) => `
+    <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex justify-between items-start hover:shadow-md transition-shadow">
         <div>
-            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">${title}</p>
-            <p class="text-2xl font-black text-gray-800">${count}</p>
-            <p class="text-[10px] text-gray-400 font-medium">User Terdaftar</p>
+            <p class="text-[11px] font-bold text-gray-500 mb-2">${title}</p>
+            <p class="text-3xl font-black text-gray-800">${count}</p>
+            <p class="text-[10px] text-gray-400 font-medium mt-1">Total Pengguna</p>
         </div>
-        <div class="w-10 h-10 ${colorClass} rounded-xl flex items-center justify-center opacity-80">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background:${bgColor}">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${iconColor}" stroke-width="2"><path d="${iconPath}"></path></svg>
         </div>
     </div>
 `;
 
-const renderStatusBar = (label: string, count: number, percentage: number, color: string) => `
-    <div class="bg-white px-5 py-4 rounded-2xl border border-gray-100 shadow-sm space-y-2">
+const renderStatusBar = (label: string, count: number, percentage: number, barColor: string, bgColor: string, textColor: string) => `
+    <div class="px-5 py-4 rounded-2xl border space-y-2" style="background:${bgColor}; border-color:${barColor}33">
         <div class="flex justify-between items-center">
-            <span class="text-xs font-bold text-gray-700">${label}</span>
-            <span class="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center text-xs font-black text-gray-800 truncate">${count}</span>
-        </div>
-        <div class="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
-            <div class="${color} h-full" style="width: ${percentage}%"></div>
-        </div>
-        <p class="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">${percentage}% dari total user</p>
-    </div>
-`;
-
-const renderChartCard = (title: string, sub: string, data: any) => `
-    <div class="bg-gray-400/20 rounded-2xl overflow-hidden border border-gray-200">
-        <div class="px-6 py-4">
-            <h4 class="text-xs font-bold text-gray-700">${title}</h4>
-            <p class="text-[10px] text-gray-500 uppercase tracking-tight">${sub}</p>
-        </div>
-        <div class="bg-white mx-4 mb-4 p-6 rounded-xl border border-gray-100 flex flex-col items-center">
-            <div class="w-full h-32 flex items-end gap-1 relative">
-                <!-- Simple SVG Area/Line representation -->
-                <svg viewBox="0 0 700 120" class="w-full h-full">
-                    <path d="M0 100 ${data.data.map((d: any, i: number) => `L ${i * 100} ${100 - (d * 5)}`).join(' ')} L 600 100 Z" fill="rgba(13, 148, 136, 0.1)" />
-                    <path d="M0 100 ${data.data.map((d: any, i: number) => `L ${i * 100} ${100 - (d * 5)}`).join(' ')}" fill="none" stroke="#0D9488" stroke-width="2" />
-                    ${data.data.map((d: any, i: number) => `<circle cx="${i * 100}" cy="${100 - (d * 5)}" r="3" fill="white" stroke="#0D9488" stroke-width="2" />`).join('')}
-                </svg>
-                <div class="absolute bottom-0 w-full flex justify-between px-0.5 pointer-events-none">
-                    ${data.labels.map((l: string) => `<span class="text-[8px] text-gray-300 font-bold uppercase">${l}</span>`).join('')}
+            <span class="text-xs font-bold" style="color:${textColor}">${label}</span>
+            <div class="flex items-center gap-2">
+                <span class="text-lg font-black text-gray-800">${count}</span>
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:${barColor}20">
+                    ${label === 'Aktif' ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${barColor}" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>` : label === 'Nonaktif' ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${barColor}" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="10" y1="15" x2="10" y2="9"></line><line x1="14" y1="15" x2="14" y2="9"></line></svg>` : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${barColor}" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`}
                 </div>
             </div>
-            <div class="flex items-center gap-2 mt-4">
-                <span class="w-2 h-2 rounded-full bg-teal-500"></span>
-                <span class="text-[10px] font-bold text-gray-400">USER</span>
-            </div>
         </div>
+        <div class="w-full h-1.5 rounded-full overflow-hidden" style="background:${barColor}25">
+            <div class="h-full rounded-full" style="width: ${percentage}%; background:${barColor}"></div>
+        </div>
+        <p class="text-[10px] font-bold uppercase tracking-tighter" style="color:${textColor}">${percentage}% dari total user</p>
     </div>
 `;
 
+const renderChartCard = (title: string, sub: string, data: any, legendLabel: string = 'Total Pengguna') => {
+    const chartData = data.data?.length ? data.data : [30, 45, 28, 50, 42, 38, 48];
+    const chartLabels = data.labels?.length ? data.labels : ['18 Feb', '19 Feb', '20 Feb', '21 Feb', '22 Feb', '23 Feb', '24 Feb'];
+    const maxVal = Math.max(...chartData, 1);
+    const svgWidth = 700;
+    const svgHeight = 120;
+    const padLeft = 50;
+    const padRight = 10;
+    const padTop = 10;
+    const padBottom = 25;
+    const chartW = svgWidth - padLeft - padRight;
+    const chartH = svgHeight - padTop - padBottom;
+    const stepX = chartData.length > 1 ? chartW / (chartData.length - 1) : 0;
+    const yTicks = [0, Math.round(maxVal * 0.25), Math.round(maxVal * 0.5), Math.round(maxVal * 0.75), maxVal];
+
+    const points = chartData.map((d: number, i: number) => {
+        const x = padLeft + i * stepX;
+        const y = padTop + chartH - (d / maxVal) * chartH;
+        return { x, y, d };
+    });
+    const linePath = points.map((p: any, i: number) => (i === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`)).join(' ');
+    const areaPath = `${linePath} L ${points[points.length - 1].x} ${padTop + chartH} L ${padLeft} ${padTop + chartH} Z`;
+
+    return `
+    <div class="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
+        <div class="px-6 py-4 border-b border-gray-50">
+            <div class="flex items-center gap-2">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0D9488" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                <h4 class="text-sm font-bold text-gray-800">${title}</h4>
+            </div>
+            <p class="text-[10px] text-gray-400 mt-0.5 ml-6">${sub}</p>
+        </div>
+        <div class="p-6">
+            <svg viewBox="0 0 ${svgWidth} ${svgHeight}" class="w-full" style="height:140px">
+                <!-- Y-axis grid lines and labels -->
+                ${yTicks.map((v: number) => {
+                    const y = padTop + chartH - (v / maxVal) * chartH;
+                    return `<line x1="${padLeft}" y1="${y}" x2="${svgWidth - padRight}" y2="${y}" stroke="#F3F4F6" stroke-width="1"/>
+                    <text x="${padLeft - 5}" y="${y + 4}" text-anchor="end" font-size="8" fill="#9CA3AF">${v}</text>`;
+                }).join('')}
+                <!-- Area fill -->
+                <defs><linearGradient id="grad-${title.replace(/\s/g,'')}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0D9488" stop-opacity="0.15"/><stop offset="100%" stop-color="#0D9488" stop-opacity="0"/></linearGradient></defs>
+                <path d="${areaPath}" fill="url(#grad-${title.replace(/\s/g,'')})"/>
+                <!-- Line -->
+                <path d="${linePath}" fill="none" stroke="#0D9488" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+                <!-- Points -->
+                ${points.map((p: any) => `<circle cx="${p.x}" cy="${p.y}" r="3.5" fill="white" stroke="#0D9488" stroke-width="2"/>`).join('')}
+                <!-- X-axis labels -->
+                ${chartLabels.map((l: string, i: number) => {
+                    const x = padLeft + i * stepX;
+                    return `<text x="${x}" y="${svgHeight - 5}" text-anchor="middle" font-size="8" fill="#9CA3AF">${l}</text>`;
+                }).join('')}
+            </svg>
+            <div class="flex items-center gap-2 mt-2">
+                <span class="w-6 h-0.5 bg-teal-500 inline-block"></span>
+                <span class="text-[10px] font-medium text-gray-400">${legendLabel}</span>
+            </div>
+        </div>
+    </div>
+    `;
+};
+
 const renderDurationBox = (label: string, dur: any) => `
-    <div class="bg-white/70 border border-gray-200 rounded-xl p-4 flex items-center justify-between">
-        <span class="text-xs font-bold text-gray-600">${label}</span>
-        <div class="flex items-end gap-1">
-            <span class="text-xl font-black text-gray-800 leading-none">${String(dur.days).padStart(2, '0')}</span><span class="text-[8px] font-bold text-gray-400 mb-1">Hari</span>
-            <span class="text-xl font-black text-gray-800 leading-none ml-2">${String(dur.hours).padStart(2, '0')}</span><span class="text-[8px] font-bold text-gray-400 mb-1">Jam</span>
-            <span class="text-xl font-black text-gray-800 leading-none ml-2">${String(dur.minutes).padStart(2, '0')}</span><span class="text-[8px] font-bold text-gray-400 mb-1">Menit</span>
+    <div class="bg-white border border-amber-200 rounded-xl p-4 flex items-center justify-between">
+        <span class="text-sm font-bold text-gray-700">${label}</span>
+        <div class="flex items-baseline gap-1">
+            <span class="text-2xl font-black text-gray-900 leading-none">${String(dur.days).padStart(2, '0')}</span>
+            <span class="text-[9px] font-bold text-gray-400">Hari</span>
+            <span class="text-2xl font-black text-gray-900 leading-none ml-1">${String(dur.hours).padStart(2, '0')}</span>
+            <span class="text-[9px] font-bold text-gray-400">Jam</span>
+            <span class="text-2xl font-black text-gray-900 leading-none ml-1">${String(dur.minutes).padStart(2, '0')}</span>
+            <span class="text-[9px] font-bold text-gray-400">Menit</span>
         </div>
     </div>
 `;

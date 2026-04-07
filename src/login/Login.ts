@@ -86,7 +86,9 @@ export const renderLogin = () => {
                     id="password" 
                     placeholder="Masukkan kata sandi" 
                     required
+                    autocomplete="current-password"
                     class="block w-full pl-10 pr-12 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-secondary-teal/20 focus:border-secondary-teal outline-none transition-all placeholder-gray-400 text-gray-700"
+                    style="-webkit-appearance: none; appearance: none;"
                   >
                   <button type="button" id="toggle-password" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors focus:outline-none">
                     <svg id="eye-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
