@@ -1,6 +1,7 @@
 import { renderDashboardLayout } from './DashboardLayout';
 
 let refreshInterval: any = null;
+let activePeriod: string = 'week';
 
 export const renderAdminDashboard = async () => {
     // Clear existing interval if any
@@ -163,18 +164,30 @@ export const renderAdminDashboard = async () => {
 
                 // Tab switching logic
                 const tabBar = document.getElementById('activity-tab-bar');
+
+                const setActiveTab = (period: string) => {
+                    tabBar?.querySelectorAll('.activity-tab').forEach(b => {
+                        b.classList.remove('active-tab', 'font-bold', 'text-white');
+                        b.classList.add('font-medium', 'text-gray-500');
+                        (b as HTMLElement).style.background = '';
+                        (b as HTMLElement).style.borderRadius = '';
+                    });
+                    const activeBtn = tabBar?.querySelector(`.activity-tab[data-period="${period}"]`) as HTMLElement | null;
+                    if (activeBtn) {
+                        activeBtn.classList.add('active-tab', 'font-bold', 'text-white');
+                        activeBtn.classList.remove('font-medium', 'text-gray-500');
+                        activeBtn.style.background = '#006666';
+                        activeBtn.style.borderRadius = '8px';
+                    }
+                };
+
+                // Restore previously selected tab after re-render
+                setActiveTab(activePeriod);
+
                 tabBar?.querySelectorAll('.activity-tab').forEach(btn => {
                     btn.addEventListener('click', () => {
-                        tabBar.querySelectorAll('.activity-tab').forEach(b => {
-                            b.classList.remove('active-tab', 'font-bold', 'text-white');
-                            b.classList.add('font-medium', 'text-gray-500');
-                            (b as HTMLElement).style.background = '';
-                            (b as HTMLElement).style.borderRadius = '';
-                        });
-                        btn.classList.add('active-tab', 'font-bold', 'text-white');
-                        btn.classList.remove('font-medium', 'text-gray-500');
-                        (btn as HTMLElement).style.background = '#006666';
-                        (btn as HTMLElement).style.borderRadius = '8px';
+                        activePeriod = (btn as HTMLElement).dataset.period || 'week';
+                        setActiveTab(activePeriod);
                     });
                 });
             }

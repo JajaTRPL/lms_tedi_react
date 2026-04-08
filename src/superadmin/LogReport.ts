@@ -1,7 +1,7 @@
 import { renderDashboardLayout } from '../dashboard/DashboardLayout';
 
 export const renderLogReport = async (page: number = 1) => {
-    renderDashboardLayout('Log Report', '<div class="flex items-center justify-center h-64"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div></div>', 'super_admin');
+    renderDashboardLayout('Log Report', '<div class="flex items-center justify-center h-64"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div></div>', 'super_admin', 'logs');
 
     try {
         const response = await fetch(`/api/super-admin/reports/admin-logs?page=${page}`, {
@@ -83,7 +83,7 @@ export const renderLogReport = async (page: number = 1) => {
             </div>
         `;
 
-        renderDashboardLayout('Log Report', content, 'super_admin');
+        renderDashboardLayout('Log Report', content, 'super_admin', 'logs');
 
         document.getElementById('prev-page')?.addEventListener('click', () => {
             if (pagination.current_page > 1) renderLogReport(pagination.current_page - 1);
@@ -95,6 +95,6 @@ export const renderLogReport = async (page: number = 1) => {
 
     } catch (error) {
         console.error('Error fetching logs:', error);
-        renderDashboardLayout('Log Report', '<div class="p-8 text-center text-red-600 bg-red-50 rounded-2xl">Gagal memuat log aktivitas.</div>', 'super_admin');
+        renderDashboardLayout('Log Report', '<div class="p-8 text-center text-red-600 bg-red-50 rounded-2xl">Gagal memuat log aktivitas.</div>', 'super_admin', 'logs');
     }
 };

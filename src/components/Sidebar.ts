@@ -1,4 +1,4 @@
-export const renderSidebar = (currentRole: string) => {
+export const renderSidebar = (currentRole: string, activePage: string = 'dashboard') => {
     let menuItems = '';
 
     if (currentRole === 'mahasiswa') {
@@ -19,24 +19,26 @@ export const renderSidebar = (currentRole: string) => {
             </button>
         `;
     } else if (currentRole === 'super_admin') {
+        const activeClass = 'bg-white/20 text-white font-semibold';
+        const inactiveClass = 'text-white/70 hover:bg-white/10 hover:text-white';
         menuItems = `
-            <a href="#" id="sidebar-dashboard-link" class="flex items-center gap-3 px-4 py-3 bg-white/20 rounded-xl text-white font-semibold transition-all duration-200">
+            <a href="#" id="sidebar-dashboard-link" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${activePage === 'dashboard' ? activeClass : inactiveClass}">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
                 <span class="font-medium">Dashboard</span>
             </a>
-            <a href="#" id="sidebar-users-link" class="flex items-center gap-3 px-4 py-3 text-white/70 hover:bg-white/10 hover:text-white rounded-xl transition-all duration-200">
+            <a href="#" id="sidebar-users-link" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${activePage === 'users' ? activeClass : inactiveClass}">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
                 <span class="font-medium">Manajemen Akun</span>
             </a>
-            <a href="#" class="flex items-center gap-3 px-4 py-3 text-white/70 hover:bg-white/10 hover:text-white rounded-xl transition-all duration-200">
+            <a href="#" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 text-white/70 hover:bg-white/10 hover:text-white">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
                 <span class="font-medium">Monitoring Surat</span>
             </a>
-            <a href="#" class="flex items-center gap-3 px-4 py-3 text-white/70 hover:bg-white/10 hover:text-white rounded-xl transition-all duration-200">
+            <a href="#" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 text-white/70 hover:bg-white/10 hover:text-white">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
                 <span class="font-medium">Template Dokumen</span>
             </a>
-            <a href="#" id="sidebar-logs-link" class="flex items-center gap-3 px-4 py-3 text-white/70 hover:bg-white/10 hover:text-white rounded-xl transition-all duration-200">
+            <a href="#" id="sidebar-logs-link" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${activePage === 'logs' ? activeClass : inactiveClass}">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
                 <span class="font-medium">Riwayat Aktivitas</span>
             </a>

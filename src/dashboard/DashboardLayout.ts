@@ -3,12 +3,12 @@ import { renderSidebar } from '../components/Sidebar';
 import { getGreetingName } from '../utils/nameHelper';
 import Toastify from 'toastify-js';
 
-export const renderDashboardLayout = (title: string, content: string, role: string) => {
+export const renderDashboardLayout = (title: string, content: string, role: string, activePage: string = 'dashboard') => {
     const app = document.querySelector<HTMLDivElement>('#app')!;
     app.innerHTML = `
         <div class="flex min-h-screen bg-[#F5F7F9] font-['Inter']">
             <!-- Sidebar -->
-            ${renderSidebar(role)}
+            ${renderSidebar(role, activePage)}
 
             <!-- Main Content -->
             <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
