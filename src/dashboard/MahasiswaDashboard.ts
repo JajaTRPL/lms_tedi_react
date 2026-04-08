@@ -6,23 +6,23 @@ export const renderMahasiswaDashboard = () => {
     const content = `
         <div class="space-y-8">
             <!-- Greeting Banner -->
-            <div class="bg-primary-teal rounded-[24px] p-8 text-white relative overflow-hidden shadow-lg border border-teal-800/30">
+            <div class="bg-white rounded-[24px] p-8 text-white relative overflow-hidden shadow-lg border border-teal-800/30">
                 <div class="relative z-10 flex flex-col gap-4">
                     <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
                         <div class="flex-1">
-                            <h2 class="text-3xl font-bold tracking-tight">Halo, ${getGreetingName(localStorage.getItem('auth_name'))}! 👋</h2>
+                            <h2 class="text-[32px] font-semibold text-gray-900 font-['Inter']">Halo, ${getGreetingName(localStorage.getItem('auth_name'))}! </h2>
                         </div>
                         <div>
-                            <button id="btn-lengkapi-profil" class="hidden px-6 py-2.5 bg-white text-primary-teal font-bold rounded-xl hover:bg-teal-50 transition-all duration-200 shadow-sm whitespace-nowrap">
+                            <button id="btn-lengkapi-profil" class="font-['Inter'] hidden px-6 py-2.5 bg-primary-teal text-white font-semibold rounded-xl hover:bg-black hover:text-white transition-all duration-200 shadow-sm whitespace-nowrap">
                                 Lengkapi Profil
                             </button>
                         </div>
                     </div>
                     <div id="profile-reminder-section" class="hidden transition-all duration-300">
-                        <p id="profile-progress-text" class="text-teal-50/90 text-sm mb-3">Profil kamu baru terisi 0%. Lengkapi sekarang!</p>
+                        <p id="profile-progress-text" class="font-['Inter'] font-normal text-sm text-gray-900 mb-3">Profil kamu baru terisi 0%. Lengkapi profil untuk mempercepat proses pengajuan surat.</p>
                         <div class="w-full">
-                            <div class="h-2.5 w-full bg-white/20 rounded-full overflow-hidden">
-                                <div id="profile-progress-bar" class="h-full bg-white rounded-full w-[0%] shadow-[0_0_10px_rgba(255,255,255,0.4)] transition-all duration-500"></div>
+                            <div class="h-2.5 w-full bg-gray-300 rounded-full overflow-hidden">
+                                <div id="profile-progress-bar" class="h-full bg-primary-teal rounded-full w-[0%] shadow-[0_0_10px_rgba(255,255,255,0.4)] transition-all duration-500"></div>
                             </div>
                         </div>
                     </div>
@@ -35,44 +35,35 @@ export const renderMahasiswaDashboard = () => {
             <!-- Summary Status Cards -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <!-- Diproses -->
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-6 hover:shadow-md transition-shadow">
+                <div class="bg-[#F0F7F6] p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-6 hover:shadow-md transition-shadow">
                     <div class="w-14 h-14 bg-[#3D4E4E]/5 rounded-xl flex items-center justify-center text-[#3D4E4E]">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M12 2v6M12 22v-6M12 12c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"></path>
-                            <circle cx="12" cy="12" r="10"></circle>
-                        </svg>
+                        <img src="proses-logo.png" class="w-14 h-14" />
                     </div>
                     <div>
-                        <p class="text-3xl font-black text-gray-900 leading-tight">2</p>
-                        <p class="text-sm font-semibold text-gray-500">Surat Diproses</p>
+                        <p class="text-3xl font-black text-green-800 leading-tight">2</p>
+                        <p class="text-sm font-['Inter'] text-gray-500 font-normal">Sedang Diproses</p>
                     </div>
                 </div>
 
                 <!-- Butuh Revisi -->
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-6 hover:shadow-md transition-shadow">
+                <div class="bg-[#FFF7ED] p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-6 hover:shadow-md transition-shadow">
                     <div class="w-14 h-14 bg-amber-50 rounded-xl flex items-center justify-center text-amber-500">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-                            <line x1="12" y1="9" x2="12" y2="13"></line>
-                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                        </svg>
+                        <img src="revisi-logo.png" class="w-14 h-14" />
                     </div>
                     <div>
-                        <p class="text-3xl font-black text-gray-900 leading-tight">1</p>
-                        <p class="text-sm font-semibold text-gray-500">Surat Butuh Revisi</p>
+                        <p class="text-3xl font-black text-[#F59E0B] leading-tight">1</p>
+                        <p class="text-sm font-['Inter'] text-gray-500 font-normal">Surat Butuh Revisi</p>
                     </div>
                 </div>
 
                 <!-- Selesai -->
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-6 hover:shadow-md transition-shadow">
+                <div class="bg-[#ECFDF5] p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-6 hover:shadow-md transition-shadow">
                     <div class="w-14 h-14 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-500">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                            <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
+                        <img src="selesai-logo.png" class="w-14 h-14" />
                     </div>
                     <div>
-                        <p class="text-3xl font-black text-gray-900 leading-tight">5</p>
-                        <p class="text-sm font-semibold text-gray-500">Surat Selesai</p>
+                        <p class="text-3xl font-black text-[#10B981] leading-tight">5</p>
+                        <p class="text-sm font-['Inter'] text-gray-500 font-normal">Surat Selesai</p>
                     </div>
                 </div>
             </div>
@@ -88,14 +79,14 @@ export const renderMahasiswaDashboard = () => {
 
             <!-- Active Tracking Section -->
             <div>
-                <h3 class="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                    Active Tracking
+                <h3 class="text-2xl font-normal text-gray-800 mb-6 flex items-center gap-2">
+                    Pelacakan Pengajuan Aktif
                 </h3>
                 <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
                     <!-- Tracking Card 1 -->
                     <div class="bg-white rounded-[24px] shadow-sm border border-gray-100 overflow-hidden flex flex-col">
-                        <div class="bg-[#FBC02D] px-6 py-4">
-                            <h4 class="font-bold text-gray-900">Surat Rekomendasi Beasiswa Djarum</h4>
+                        <div class="bg-primary-teal px-6 py-4">
+                            <h4 class="font-['Inter'] font-normal text-white text-xl">Surat Rekomendasi - Beasiswa Djarum</h4>
                         </div>
                         <div class="p-8 flex-1">
                             <div class="relative flex justify-between items-start mb-12 px-2">
@@ -147,8 +138,8 @@ export const renderMahasiswaDashboard = () => {
 
                     <!-- Tracking Card 2 -->
                     <div class="bg-white rounded-[24px] shadow-sm border border-gray-100 overflow-hidden flex flex-col">
-                        <div class="bg-[#E53935] px-6 py-4 text-white">
-                            <h4 class="font-bold">Surat Pengantar Magang</h4>
+                        <div class="bg-primary-teal px-6 py-4 text-white">
+                            <h4 class="font-['Inter'] font-normal text-white text-xl">Surat Rekomendasi Magang - Shopee</h4>
                         </div>
                         <div class="p-8 flex-1">
                             <div class="relative flex justify-between items-start mb-8 px-2">
@@ -207,26 +198,26 @@ export const renderMahasiswaDashboard = () => {
 
             <!-- Recent History Section -->
             <div class="mt-8">
-                <h3 class="text-xl font-bold text-gray-800 mb-6">Riwayat Pengajuan Terakhir</h3>
+                <h3 class="text-2xl font-normal text-gray-800 mb-6 flex items-center gap-2">Riwayat Pengajuan</h3>
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                     <div class="overflow-x-auto">
                         <table class="w-full text-left ">
                             <thead>
-                                <tr class="text-[13px] font-bold text-black border-b border-gray-50">
-                                    <th class="px-8 py-5 text-center">Tanggal</th>
-                                    <th class="px-8 py-5 text-center">Jenis Surat</th>
+                                <tr class="text-[13px] font-['Inter'] font-medium text-gray-900 border-b border-gray-500">
+                                    <th class="px-8 py-5 text-center">Tanggal Unggah</th>
+                                    <th class="px-8 py-5 text-center">Nama Dokumen</th>
                                     <th class="px-8 py-5 text-center">Status</th>
-                                    <th class="px-8 py-5 text-center">Aksi</th>
+                                    <th class="px-8 py-5 text-center">Detail</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-50">
-                                ${Array.from({ length: 3 }).map((_, i) => `
+                                ${Array.from({ length: 4 }).map((_, i) => `
                                     <tr class="hover:bg-gray-50/50 transition-colors group">
-                                        <td class="px-8 py-5 text-sm font-semibold text-gray-600 italic text-center">30 - 04 - 2024</td>
-                                        <td class="px-8 py-5 text-sm font-bold text-gray-800 text-center">Surat Pengantar Magang</td>
+                                        <td class="px-8 py-5 text-sm text-gray-400 font-['Inter'] font-normal text-center">Selasa, 24 Feb 2024</td>
+                                        <td class="px-8 py-5 text-sm text-gray-900 font-['Inter'] font-normal text-center">Surat Rekomendasi Magang - Shopee</td>
                                         <td class="px-8 py-5 text-sm text-center">
-                                            <span class="${i === 0 ? 'bg-teal-50 text-teal-600' : 'bg-gray-100 text-gray-500'} px-4 py-1.5 rounded-full font-bold text-[11px] uppercase tracking-wider">
-                                                ${i === 0 ? 'Selesai' : 'Review'}
+                                            <span class="${i === 0 ? 'bg-teal-50 text-teal-600' : i === 1 ? 'bg-[#E0F2FE] text-[#0369A1]' : 'bg-[#FEE2E2] text-red-900'} px-4 py-1.5 rounded-full font-bold text-[11px] uppercase tracking-wider">
+                                                ${i === 0 ? 'Selesai' : i === 1 ? 'Diproses' : 'Ditolak'}
                                             </span>
                                         </td>
                                         <td class="px-8 py-5">
@@ -304,7 +295,7 @@ export const renderMahasiswaDashboard = () => {
                         const bar = document.getElementById('profile-progress-bar');
                         const section = document.getElementById('profile-reminder-section');
 
-                        if (txt) txt.innerText = `Profil kamu baru terisi ${percent}%. Lengkapi sekarang!`;
+                        if (txt) txt.innerText = `Profil kamu baru terisi ${percent}%. Lengkapi profil untuk mempercepat proses pengajuan surat.`;
                         if (bar) bar.style.width = `${percent}%`;
 
                         if (profile.pas_foto_path) {

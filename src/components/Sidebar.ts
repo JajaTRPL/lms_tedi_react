@@ -4,17 +4,17 @@ export const renderSidebar = (currentRole: string) => {
     if (currentRole === 'mahasiswa') {
         menuItems = `
             <a href="#" id="sidebar-dashboard-link" class="flex items-center gap-3 px-4 py-3 bg-white/10 rounded-xl text-white transition-all duration-200">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                <img src="dashboard-logo.png" class="w-5 h-5" />
                 <span class="font-medium">Dashboard</span>
             </a>
             <a href="#" class="flex items-center gap-3 px-4 py-3 text-white/70 hover:bg-white/5 hover:text-white rounded-xl transition-all duration-200">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+                <img src="panduan-logo.png" class="w-5 h-5" />
                 <span class="font-medium">Panduan</span>
             </a>
             <button id="sidebar-dokumen-link" class="w-full flex items-center justify-between px-4 py-3 text-white/70 hover:bg-white/5 hover:text-white rounded-xl transition-all duration-200">
                 <div class="flex items-center gap-3">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-                    <span class="font-medium">Dokumen</span>
+                    <img src="pengajuan-logo.png" class="w-5 h-5" />
+                    <span class="font-medium">Pengajuan Surat</span>
                 </div>
             </button>
         `;
@@ -55,11 +55,17 @@ export const renderSidebar = (currentRole: string) => {
     }
 
     return `
-        <aside class="w-64 bg-primary-teal text-white min-h-screen flex flex-col sticky top-0 h-screen overflow-y-auto" style="background: linear-gradient(180deg, #006666 0%, #004d4d 60%, #003333 100%)">
+        <aside class="w-64 bg-primary-teal text-white min-h-screen flex flex-col sticky top-0 h-screen overflow-y-auto" 
+            style="
+                background-image: url('sidebar.png');
+                background-size: cover;
+                background-position: center;
+            "
+        >
             <div class="p-5 border-b border-white/10">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
-                        <img src="/ugm-logo.png" alt="UGM Logo" class="w-7 h-7 object-contain brightness-0 invert">
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0">
+                        <img src="/ugm-logo.png" alt="UGM Logo" class="w-15 h-15 object-contain brightness-0 invert">
                     </div>
                     <div>
                         <p class="text-white text-sm font-bold leading-tight">Sistem Persuratan</p>
@@ -71,10 +77,6 @@ export const renderSidebar = (currentRole: string) => {
             <nav class="flex-1 mt-4 px-3 space-y-1">
                 ${menuItems}
             </nav>
-
-            <div class="p-4 border-t border-white/10">
-                <p class="text-white/30 text-[9px] text-center">Sistem Persuratan v1.0</p>
-            </div>
         </aside>
     `;
 };
