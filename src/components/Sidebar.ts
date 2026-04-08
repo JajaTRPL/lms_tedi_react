@@ -55,11 +55,17 @@ export const renderSidebar = (currentRole: string) => {
     }
 
     return `
-        <aside class="w-64 bg-primary-teal text-white min-h-screen flex flex-col sticky top-0 h-screen overflow-y-auto" style="background: linear-gradient(180deg, #006666 0%, #004d4d 60%, #003333 100%)">
+        <aside class="w-64 bg-primary-teal text-white min-h-screen flex flex-col sticky top-0 h-screen overflow-y-auto" 
+            style="
+                background-image: url('sidebar.png');
+                background-size: cover;
+                background-position: center;
+            "
+        >
             <div class="p-5 border-b border-white/10">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
-                        <img src="/ugm-logo.png" alt="UGM Logo" class="w-7 h-7 object-contain brightness-0 invert">
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0">
+                        <img src="/ugm-logo.png" alt="UGM Logo" class="w-15 h-15 object-contain brightness-0 invert">
                     </div>
                     <div>
                         <p class="text-white text-sm font-bold leading-tight">Sistem Persuratan</p>
@@ -71,10 +77,6 @@ export const renderSidebar = (currentRole: string) => {
             <nav class="flex-1 mt-4 px-3 space-y-1">
                 ${menuItems}
             </nav>
-
-            <div class="p-4 border-t border-white/10">
-                <p class="text-white/30 text-[9px] text-center">Sistem Persuratan v1.0</p>
-            </div>
         </aside>
     `;
 };

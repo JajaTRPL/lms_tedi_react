@@ -2,7 +2,7 @@ import { renderDashboardLayout } from '../dashboard/DashboardLayout';
 import Toastify from 'toastify-js';
 
 export const renderUserManagement = async () => {
-    renderDashboardLayout('Manajemen Akun', '<div class="flex items-center justify-center h-64"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div></div>', 'super_admin');
+    renderDashboardLayout('Manajemen Akun', '<div class="flex items-center justify-center h-64"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div></div>', 'super_admin', 'users');
 
     try {
         const response = await fetch('/api/super-admin/users', {
@@ -71,12 +71,12 @@ export const renderUserManagement = async () => {
             <div id="modal-container"></div>
         `;
 
-        renderDashboardLayout('Manajemen Akun', content, 'super_admin');
+        renderDashboardLayout('Manajemen Akun', content, 'super_admin', 'users');
         setupUserManagementListeners(users);
 
     } catch (error) {
         console.error('Error fetching users:', error);
-        renderDashboardLayout('Manajemen Akun', '<div class="p-8 text-center text-red-600 bg-red-50 rounded-2xl">Gagal memuat data pengguna.</div>', 'super_admin');
+        renderDashboardLayout('Manajemen Akun', '<div class="p-8 text-center text-red-600 bg-red-50 rounded-2xl">Gagal memuat data pengguna.</div>', 'super_admin', 'users');
     }
 };
 
