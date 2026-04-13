@@ -30,7 +30,7 @@ export const renderSidebar = (currentRole: string, activePage: string = 'dashboa
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
                 <span class="font-medium">Manajemen Akun</span>
             </a>
-            <a href="#" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 text-white/70 hover:bg-white/10 hover:text-white">
+            <a href="#" id="sidebar-monitoring-link" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${activePage === 'monitoring' ? activeClass : inactiveClass}">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
                 <span class="font-medium">Monitoring Surat</span>
             </a>
@@ -44,14 +44,20 @@ export const renderSidebar = (currentRole: string, activePage: string = 'dashboa
             </a>
         `;
     } else if (currentRole.startsWith('tendik') || ['kadep', 'kaprodi', 'sekdep', 'sekprodi', 'akademik'].includes(currentRole)) {
+        const activeClass2 = 'bg-white/10 text-white font-semibold';
+        const inactiveClass2 = 'text-white/70 hover:bg-white/5 hover:text-white';
         menuItems = `
-            <a href="#" id="sidebar-dashboard-link" class="flex items-center gap-3 px-4 py-3 bg-white/10 rounded-xl text-white transition-all duration-200">
+            <a href="#" id="sidebar-dashboard-link" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${activePage === 'dashboard' ? activeClass2 : inactiveClass2}">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
                 <span class="font-medium">Dashboard</span>
             </a>
-            <a href="#" class="flex items-center gap-3 px-4 py-3 text-white/70 hover:bg-white/5 hover:text-white rounded-xl transition-all duration-200">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-                <span class="font-medium">Verifikasi Berkas</span>
+            <a href="#" id="sidebar-dokumen-tendik-link" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${activePage === 'dokumen' ? activeClass2 : inactiveClass2}">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                <span class="font-medium">Dokumen</span>
+            </a>
+            <a href="#" id="sidebar-riwayat-tendik-link" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${activePage === 'riwayat' ? activeClass2 : inactiveClass2}">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                <span class="font-medium">Riwayat</span>
             </a>
         `;
     }
