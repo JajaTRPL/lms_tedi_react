@@ -2,21 +2,25 @@ export const renderSidebar = (currentRole: string, activePage: string = 'dashboa
     let menuItems = '';
 
     if (currentRole === 'mahasiswa') {
+        const activeClass = 'bg-white/20 text-white font-semibold shadow-sm';
+        const inactiveClass = 'text-white/70 hover:bg-white/5 hover:text-white';
         menuItems = `
-            <a href="#" id="sidebar-dashboard-link" class="flex items-center gap-3 px-4 py-3 bg-white/10 rounded-xl text-white transition-all duration-200">
-                <img src="dashboard-logo.png" class="w-5 h-5" />
-                <span class="font-medium">Dashboard</span>
+            <a href="#" id="sidebar-dashboard-link" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${activePage === 'dashboard' ? activeClass : inactiveClass}">
+                <img src="dashboard-logo.png" class="w-5 h-5 object-contain" />
+                <span class="font-medium text-sm">Dashboard</span>
             </a>
-            <a href="#" class="flex items-center gap-3 px-4 py-3 text-white/70 hover:bg-white/5 hover:text-white rounded-xl transition-all duration-200">
-                <img src="panduan-logo.png" class="w-5 h-5" />
-                <span class="font-medium">Panduan</span>
+            <a href="#" id="sidebar-panduan-link" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${activePage === 'panduan' ? activeClass : inactiveClass}">
+                <img src="panduan-logo.png" class="w-5 h-5 object-contain" />
+                <span class="font-medium text-sm">Panduan</span>
             </a>
-            <button id="sidebar-dokumen-link" class="w-full flex items-center justify-between px-4 py-3 text-white/70 hover:bg-white/5 hover:text-white rounded-xl transition-all duration-200">
-                <div class="flex items-center gap-3">
-                    <img src="pengajuan-logo.png" class="w-5 h-5" />
-                    <span class="font-medium">Pengajuan Surat</span>
-                </div>
-            </button>
+            <a href="#" id="sidebar-dokumen-link" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${activePage === 'pengajuan' ? activeClass : inactiveClass}">
+                <img src="pengajuan-logo.png" class="w-5 h-5 object-contain" />
+                <span class="font-medium text-sm">Pengajuan Surat</span>
+            </a>
+            <a href="#" id="sidebar-history-link" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${activePage === 'history' ? activeClass : inactiveClass}">
+                <img src="history.png" class="w-5 h-5 object-contain" />
+                <span class="font-medium text-sm truncate">Riwayat Pengajuan</span>
+            </a>
         `;
     } else if (currentRole === 'super_admin') {
         const activeClass = 'bg-white/20 text-white font-semibold';
@@ -34,7 +38,7 @@ export const renderSidebar = (currentRole: string, activePage: string = 'dashboa
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
                 <span class="font-medium">Monitoring Surat</span>
             </a>
-            <a href="#" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 text-white/70 hover:bg-white/10 hover:text-white">
+            <a href="#" id="sidebar-template-link" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${activePage === 'template' ? activeClass : inactiveClass}">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
                 <span class="font-medium">Template Dokumen</span>
             </a>

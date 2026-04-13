@@ -125,11 +125,27 @@ export const renderDashboardLayout = (title: string, content: string, role: stri
         });
     });
 
+    document.getElementById('sidebar-history-link')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        (window as any).clearDashboardInterval?.();
+        import('../mahasiswa/RiwayatPengajuan').then(({ renderRiwayatPengajuan }) => {
+            renderRiwayatPengajuan();
+        });
+    });
+
     document.getElementById('sidebar-dokumen-link')?.addEventListener('click', (e) => {
         e.preventDefault();
         (window as any).clearDashboardInterval?.();
         import('../mahasiswa/DokumenMahasiswa').then(({ renderDokumenMahasiswa }) => {
             renderDokumenMahasiswa();
+        });
+    });
+
+    document.getElementById('sidebar-template-link')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        (window as any).clearDashboardInterval?.();
+        import('../superadmin/templates/TemplateDokumen').then(({ renderTemplateDokumen }) => {
+            renderTemplateDokumen();
         });
     });
 

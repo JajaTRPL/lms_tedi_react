@@ -53,21 +53,21 @@ export const renderAdminDashboard = async () => {
                 <div class="space-y-8 animate-fade-in pb-12">
                     <!-- Welcome Section -->
                     <div>
-                        <h2 class="text-2xl font-bold text-gray-800">Halo, Super Admin!</h2>
-                        <span class="inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold mt-2" style="background:#F59E0B;color:#fff">
+                        <h2 class="text-2xl font-semibold text-gray-800 font-['Inter']">Halo, Super Admin!</h2>
+                        <span class="inline-flex items-center px-3 py-1 rounded-lg text-xs font-semibold font-['Inter'] mt-2" style="background:#F59E0B;color:#fff">
                             Super Admin
                         </span>
                     </div>
 
                     <!-- User Count Cards -->
                     <div>
-                        <h3 class="text-base font-bold text-gray-800 mb-1">Total Pengguna Aktif</h3>
-                        <p class="text-xs text-gray-500 mb-4">Jumlah pengguna aktif berdasarkan peran dalam sistem.</p>
+                        <h3 class="text-base font-semibold text-gray-800 mb-1 font-['Inter']">Total Pengguna Aktif</h3>
+                        <p class="text-xs text-gray-500 mb-4 font-['Inter']">Jumlah pengguna aktif berdasarkan peran dalam sistem.</p>
                         <div class="grid grid-cols-2 gap-4">
-                            ${renderCountCard('Mahasiswa', stats.user_counts?.mahasiswa || 0, '#EFF6FF', '#3B82F6', 'M12 14l9-5-9-5-9 5 9 5zm0 7V9')}
-                            ${renderCountCard('Tenaga Pendidik', stats.user_counts?.tendik || 0, '#F0FDF4', '#22C55E', 'M17 20h5v-2a3 3 0 0 0-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 0 1 5.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 0 1 9.288 0M15 7a3 3 0 1 1-6 0 3 3 0 0 1 6 0z')}
-                            ${renderCountCard('Akademik', stats.user_counts?.akademik || 0, '#F5F3FF', '#8B5CF6', 'M19 21V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5m-4 0h4')}
-                            ${renderCountCard('Super Admin', stats.user_counts?.super_admin || 0, '#F9FAFB', '#6B7280', 'M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2z')}
+                            ${renderCountCard('Mahasiswa', stats.user_counts?.mahasiswa || 0, '#DCEFFF', '/mahasiswa-logo.png')}
+                            ${renderCountCard('Tenaga Pendidik', stats.user_counts?.tendik || 0, '#ECFDF5', '/tendik-logo.png')}
+                            ${renderCountCard('Akademik', stats.user_counts?.akademik || 0, '#E4DCFF', '/akademik-logo.png')}
+                            ${renderCountCard('Super Admin', stats.user_counts?.super_admin || 0, '#F5F5F5', '/admin-logo.png')}
                         </div>
                     </div>
 
@@ -102,9 +102,9 @@ export const renderAdminDashboard = async () => {
                                     </div>
                                 </div>
                                 <div class="flex gap-4 mt-4 text-[10px]">
-                                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block"></span> Aktif</span>
-                                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-gray-400 inline-block"></span> Nonaktif</span>
-                                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-red-400 inline-block"></span> Suspended</span>
+                                    <span class="flex items-center gap-1"><img src="/aktif-logo.png" class="w-3 h-3 object-contain" /> Aktif</span>
+                                    <span class="flex items-center gap-1"><img src="/nonaktif-logo.png" class="w-3 h-3 object-contain" /> Nonaktif</span>
+                                    <span class="flex items-center gap-1"><img src="/suspended-logo.png" class="w-3 h-3 object-contain" /> Suspended</span>
                                 </div>
                             </div>
                         </div>
@@ -206,34 +206,58 @@ export const renderAdminDashboard = async () => {
     refreshInterval = setInterval(() => updateDashboardData(), 30000);
 };
 
-const renderCountCard = (title: string, count: number, bgColor: string, iconColor: string, iconPath: string) => `
-    <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex justify-between items-start hover:shadow-md transition-shadow">
+const renderCountCard = (title: string, count: number, bgColor: string, iconUrl: string) => `
+    <div class="p-5 rounded-2xl border border-gray-100 shadow-sm flex justify-between items-center hover:shadow-md transition-shadow" style="background:${bgColor}">
         <div>
-            <p class="text-[11px] font-bold text-gray-500 mb-2">${title}</p>
-            <p class="text-3xl font-black text-gray-800">${count}</p>
-            <p class="text-[10px] text-gray-400 font-medium mt-1">Total Pengguna</p>
+            <p class="text-[11px] font-bold text-gray-800 mb-2 font-['Inter']">${title}</p>
+            <p class="text-3xl font-black text-gray-800 font-['Inter']">${count}</p>
+            <p class="text-[10px] text-gray-600 font-medium mt-1 font-['Inter']">Total Pengguna</p>
         </div>
-        <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background:${bgColor}">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${iconColor}" stroke-width="2"><path d="${iconPath}"></path></svg>
+        <div class="w-14 h-14 rounded-xl flex items-center justify-center" style="background:${bgColor}">
+            <img src="${iconUrl}" class="w-14 h-14 object-contain" />
         </div>
     </div>
 `;
 
 const renderStatusBar = (label: string, count: number, percentage: number, barColor: string, bgColor: string, textColor: string) => `
-    <div class="px-5 py-4 rounded-2xl border space-y-2" style="background:${bgColor}; border-color:${barColor}33">
+    <div class="px-5 py-4 rounded-2xl border space-y-3"
+         style="background:${bgColor}; border-color:${barColor}33">
+
+        <!-- ATAS -->
         <div class="flex justify-between items-center">
-            <span class="text-xs font-bold" style="color:${textColor}">${label}</span>
-            <div class="flex items-center gap-2">
-                <span class="text-lg font-black text-gray-800">${count}</span>
-                <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:${barColor}20">
-                    ${label === 'Aktif' ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${barColor}" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>` : label === 'Nonaktif' ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${barColor}" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="10" y1="15" x2="10" y2="9"></line><line x1="14" y1="15" x2="14" y2="9"></line></svg>` : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${barColor}" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`}
-                </div>
+            
+            <!-- KIRI -->
+            <div class="flex flex-col">
+                <span class="text-xs font-bold" style="color:${textColor}">
+                    ${label}
+                </span>
+                <span class="text-lg font-black text-gray-800 mt-1">
+                    ${count}
+                </span>
             </div>
+
+            <!-- KANAN (ICON sejajar dengan COUNT) -->
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center"
+                 style="background:${barColor}20">
+                ${label === 'Aktif'
+        ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${barColor}" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>`
+        : label === 'Nonaktif'
+            ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${barColor}" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="10" y1="15" x2="10" y2="9"></line><line x1="14" y1="15" x2="14" y2="9"></line></svg>`
+            : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${barColor}" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`
+    }
+            </div>
+
         </div>
+
+        <!-- PROGRESS -->
         <div class="w-full h-1.5 rounded-full overflow-hidden" style="background:${barColor}25">
             <div class="h-full rounded-full" style="width: ${percentage}%; background:${barColor}"></div>
         </div>
-        <p class="text-[10px] font-bold uppercase tracking-tighter" style="color:${textColor}">${percentage}% dari total user</p>
+
+        <!-- TEXT -->
+        <p class="text-[10px] font-bold uppercase tracking-tighter" style="color:${textColor}">
+            ${percentage}% dari total user
+        </p>
     </div>
 `;
 
@@ -273,22 +297,22 @@ const renderChartCard = (title: string, sub: string, data: any, legendLabel: str
             <svg viewBox="0 0 ${svgWidth} ${svgHeight}" class="w-full" style="height:140px">
                 <!-- Y-axis grid lines and labels -->
                 ${yTicks.map((v: number) => {
-                    const y = padTop + chartH - (v / maxVal) * chartH;
-                    return `<line x1="${padLeft}" y1="${y}" x2="${svgWidth - padRight}" y2="${y}" stroke="#F3F4F6" stroke-width="1"/>
+        const y = padTop + chartH - (v / maxVal) * chartH;
+        return `<line x1="${padLeft}" y1="${y}" x2="${svgWidth - padRight}" y2="${y}" stroke="#F3F4F6" stroke-width="1"/>
                     <text x="${padLeft - 5}" y="${y + 4}" text-anchor="end" font-size="8" fill="#9CA3AF">${v}</text>`;
-                }).join('')}
+    }).join('')}
                 <!-- Area fill -->
-                <defs><linearGradient id="grad-${title.replace(/\s/g,'')}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0D9488" stop-opacity="0.15"/><stop offset="100%" stop-color="#0D9488" stop-opacity="0"/></linearGradient></defs>
-                <path d="${areaPath}" fill="url(#grad-${title.replace(/\s/g,'')})"/>
+                <defs><linearGradient id="grad-${title.replace(/\s/g, '')}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0D9488" stop-opacity="0.15"/><stop offset="100%" stop-color="#0D9488" stop-opacity="0"/></linearGradient></defs>
+                <path d="${areaPath}" fill="url(#grad-${title.replace(/\s/g, '')})"/>
                 <!-- Line -->
                 <path d="${linePath}" fill="none" stroke="#0D9488" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
                 <!-- Points -->
                 ${points.map((p: any) => `<circle cx="${p.x}" cy="${p.y}" r="3.5" fill="white" stroke="#0D9488" stroke-width="2"/>`).join('')}
                 <!-- X-axis labels -->
                 ${chartLabels.map((l: string, i: number) => {
-                    const x = padLeft + i * stepX;
-                    return `<text x="${x}" y="${svgHeight - 5}" text-anchor="middle" font-size="8" fill="#9CA3AF">${l}</text>`;
-                }).join('')}
+        const x = padLeft + i * stepX;
+        return `<text x="${x}" y="${svgHeight - 5}" text-anchor="middle" font-size="8" fill="#9CA3AF">${l}</text>`;
+    }).join('')}
             </svg>
             <div class="flex items-center gap-2 mt-2">
                 <span class="w-6 h-0.5 bg-teal-500 inline-block"></span>
