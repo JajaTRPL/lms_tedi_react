@@ -1,5 +1,4 @@
 @import "tailwindcss";
-
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 @theme {
@@ -15,6 +14,7 @@
 
 @layer base {
   body {
+    font-family: 'Inter', sans-serif;
     @apply antialiased text-gray-900;
   }
 }

@@ -1,8 +1,8 @@
 import { renderDashboardLayout } from '../dashboard/DashboardLayout';
 import { state, tabConfig } from './users/types';
-import { renderFilteredRows } from './users/ui-utils';
 import { setupListeners } from './users/listeners';
 import { refreshUsers } from './users/api';
+import { renderFilteredRows } from './users/ui-utils';
 
 export const renderUserManagement = async () => {
     // Show loading state
@@ -34,15 +34,15 @@ function renderContent() {
                         >${val.label}</button>
                     `).join('')}
                 </div>
-                <div class="pb-3 relative ml-4" id="io-dropdown-wrapper">
-                    <button id="io-dropdown-btn" class="px-4 py-2 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all flex items-center gap-1.5">
-                        Lainnya
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                <div class="pb-3 flex items-center gap-2 ml-4">
+                    <button id="export-btn" class="px-4 py-2 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-teal-700 transition-all flex items-center gap-1.5 shadow-sm">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        Ekspor
                     </button>
-                    <div id="io-dropdown-menu" class="hidden absolute right-0 top-full mt-1 w-36 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50">
-                        <button id="export-btn" class="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-teal-700 transition-colors">Ekspor</button>
-                        <button id="import-btn" class="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-teal-700 transition-colors">Impor</button>
-                    </div>
+                    <button id="import-btn" class="px-4 py-2 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-teal-700 transition-all flex items-center gap-1.5 shadow-sm">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                        Impor
+                    </button>
                 </div>
             </div>
 

@@ -21,10 +21,13 @@ export const renderDashboardLayout = (title: string, content: string, role: stri
                         
                         <div class="flex items-center gap-6">
                             <button class="relative p-2 text-gray-400 hover:text-gray-600 transition-colors">
-                                <img src="notif-logo.png" class="w-6 h-6" />
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                                </svg>
                                 <span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
                             </button>
-                            <div class="w-px h-10 bg-gray-400"></div>
+                            
                             <div class="relative group">
                                 <div class="flex items-center gap-3 cursor-pointer p-2 rounded-lg hover:bg-gray-50 transition-colors">
                                     <div class="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center border-2 border-white shadow-sm overflow-hidden text-teal-700 font-bold shrink-0">
@@ -76,6 +79,10 @@ export const renderDashboardLayout = (title: string, content: string, role: stri
             import('../mahasiswa/ProfilMahasiswa').then(({ renderProfilMahasiswa }) => {
                 renderProfilMahasiswa();
             });
+        } else if (role.startsWith('tendik')) {
+            import('../tendik/ProfilTendik').then(({ renderProfilTendik }) => {
+                renderProfilTendik(role);
+            });
         } else {
             Toastify({
                 text: "Profil untuk role ini belum tersedia",
@@ -109,11 +116,27 @@ export const renderDashboardLayout = (title: string, content: string, role: stri
         }
     });
 
+    document.getElementById('notif-btn')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        (window as any).clearDashboardInterval?.();
+        import('./Notifikasi').then(({ renderNotifikasi }) => {
+            renderNotifikasi(role);
+        });
+    });
+
     document.getElementById('sidebar-users-link')?.addEventListener('click', (e) => {
         e.preventDefault();
         (window as any).clearDashboardInterval?.();
         import('../superadmin/UserManagement').then(({ renderUserManagement }) => {
             renderUserManagement();
+        });
+    });
+
+    document.getElementById('sidebar-monitoring-link')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        (window as any).clearDashboardInterval?.();
+        import('../superadmin/LetterMonitoring').then(({ renderLetterMonitoring }) => {
+            renderLetterMonitoring();
         });
     });
 
@@ -138,14 +161,6 @@ export const renderDashboardLayout = (title: string, content: string, role: stri
         (window as any).clearDashboardInterval?.();
         import('../mahasiswa/DokumenMahasiswa').then(({ renderDokumenMahasiswa }) => {
             renderDokumenMahasiswa();
-        });
-    });
-
-    document.getElementById('sidebar-template-link')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        (window as any).clearDashboardInterval?.();
-        import('../superadmin/templates/TemplateDokumen').then(({ renderTemplateDokumen }) => {
-            renderTemplateDokumen();
         });
     });
 
