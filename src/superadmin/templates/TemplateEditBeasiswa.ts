@@ -2,11 +2,10 @@ import { renderDashboardLayout } from '../../dashboard/DashboardLayout';
 import Quill from 'quill';
 import 'quill/dist/quill.snow.css';
 import * as pdfjsLib from 'pdfjs-dist';
+// @ts-ignore
+import pdfWorker from 'pdfjs-dist/build/pdf.worker.mjs?url';
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-    'pdfjs-dist/build/pdf.worker.mjs',
-    import.meta.url
-).toString();
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 
 interface TemplateInfo {
     name: string;
@@ -24,8 +23,13 @@ interface TextItem {
 
 const extractHtmlFromPdf = async (url: string): Promise<string> => {
     try {
-        const pdf = await pdfjsLib.getDocument(url).promise;
+        console.log('Fetching PDF from:', url);
+        const loadingTask = pdfjsLib.getDocument(url);
+        const pdf = await loadingTask.promise;
+        console.log(`PDF loaded. Pages: ${pdf.numPages}`);
+        
         let fullHtml = '';
+        let totalItemsFound = 0;
 
         for (let i = 1; i <= pdf.numPages; i++) {
             const page = await pdf.getPage(i);
@@ -36,6 +40,7 @@ const extractHtmlFromPdf = async (url: string): Promise<string> => {
             const items: TextItem[] = [];
             for (const item of textContent.items as any[]) {
                 if (!item.str || item.str.trim() === '') continue;
+                totalItemsFound++;
                 const tx = item.transform;
                 items.push({
                     str: item.str,
@@ -47,7 +52,10 @@ const extractHtmlFromPdf = async (url: string): Promise<string> => {
                 });
             }
 
-            if (items.length === 0) continue;
+            if (items.length === 0) {
+                console.warn(`Page ${i} has no text items.`);
+                continue;
+            }
 
             // Sort top-to-bottom, left-to-right
             items.sort((a, b) => a.y - b.y || a.x - b.x);
@@ -138,9 +146,17 @@ const extractHtmlFromPdf = async (url: string): Promise<string> => {
             fullHtml += pageHtml;
         }
 
+        if (totalItemsFound === 0) {
+            console.warn('No text items found in the entire PDF. This might be a scanned document.');
+            return 'SCANNED_PDF_DETECTED';
+        }
+
         return fullHtml;
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error extracting PDF:', error);
+        if (error.name === 'MissingPDFException' || error.status === 404) {
+            return 'OFFLINE_OR_NOT_FOUND';
+        }
         return '';
     }
 };
@@ -224,11 +240,13 @@ export const renderTemplateEditBeasiswa = async (template: TemplateInfo) => {
     if (loadingEl) loadingEl.classList.add('hidden');
     if (wrapperEl) wrapperEl.classList.remove('hidden');
 
-    if (pdfHtml) {
+    if (pdfHtml === 'SCANNED_PDF_DETECTED') {
+        quill.setText('Dokumen ini tampaknya berupa gambar (hasil scan). Tidak dapat mengekstrak teks secara otomatis. Silakan ketik atau tempel konten template di sini manually.');
+    } else if (pdfHtml === 'OFFLINE_OR_NOT_FOUND' || !pdfHtml) {
+        quill.setText('Gagal memuat file PDF. Pastikan file tersedia di server atau periksa koneksi internet Anda.');
+    } else {
         quill.clipboard.dangerouslyPasteHTML(pdfHtml);
         quill.setSelection(0, 0); // Move cursor to top
-    } else {
-        quill.setText('Gagal memuat konten PDF. Silakan tulis konten template di sini.');
     }
 
     // Cancel button
@@ -237,23 +255,68 @@ export const renderTemplateEditBeasiswa = async (template: TemplateInfo) => {
     });
 
     // Save button
-    document.getElementById('btn-save-edit')?.addEventListener('click', () => {
-        // TODO: Save to backend
-        const _content = quill.root.innerHTML;
-        void _content;
-        import('toastify-js').then((Toastify) => {
-            Toastify.default({
-                text: "Perubahan berhasil disimpan!",
-                duration: 2000,
-                gravity: "top",
-                position: "right",
-                style: { background: "#10B981" }
-            }).showToast();
-        });
+    document.getElementById('btn-save-edit')?.addEventListener('click', async (e) => {
+        const btn = e.target as HTMLButtonElement;
+        const originalText = btn.innerText;
+        btn.innerText = 'Menyimpan...';
+        btn.disabled = true;
 
-        setTimeout(() => {
-            navigateBackToDetail(template);
-        }, 1000);
+        const _content = quill.root.innerHTML;
+        
+        try {
+            const token = localStorage.getItem('auth_token');
+            const response = await fetch('/api/super-admin/templates/update-pdf', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    ...(token && { 'Authorization': `Bearer ${token}` })
+                },
+                body: JSON.stringify({
+                    name: template.name,
+                    html: _content
+                })
+            });
+
+            if (!response.ok) throw new Error('Gagal menyimpan PDF');
+
+            const result = await response.json();
+            
+            import('toastify-js').then((Toastify) => {
+                Toastify.default({
+                    text: "Perubahan template berhasil disimpan!",
+                    duration: 2000,
+                    gravity: "top",
+                    position: "right",
+                    style: { background: "#10B981" }
+                }).showToast();
+            });
+
+            // Navigate back with updated url to avoid cache
+            setTimeout(() => {
+                const refreshedTemplate = { ...template };
+                if (result.pdfUrl) {
+                    refreshedTemplate.pdfUrl = `${result.pdfUrl}?t=${new Date().getTime()}`;
+                } else if (refreshedTemplate.pdfUrl) {
+                    refreshedTemplate.pdfUrl = `${refreshedTemplate.pdfUrl.split('?')[0]}?t=${new Date().getTime()}`;
+                }
+                navigateBackToDetail(refreshedTemplate);
+            }, 1000);
+
+        } catch (error) {
+            console.error('Save error:', error);
+            import('toastify-js').then((Toastify) => {
+                Toastify.default({
+                    text: "Gagal menyimpan perubahan template",
+                    duration: 3000,
+                    gravity: "top",
+                    position: "right",
+                    style: { background: "#EF4444" }
+                }).showToast();
+            });
+            btn.innerText = originalText;
+            btn.disabled = false;
+        }
     });
 };
 

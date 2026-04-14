@@ -1,15 +1,15 @@
 import { renderDashboardLayout } from '../../dashboard/DashboardLayout';
 import * as pdfjsLib from 'pdfjs-dist';
+// @ts-ignore
+import pdfWorker from 'pdfjs-dist/build/pdf.worker.mjs?url';
 
 // Set the worker source
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-    'pdfjs-dist/build/pdf.worker.mjs',
-    import.meta.url
-).toString();
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 
 interface TemplateInfo {
     name: string;
     pdfUrl: string;
+    editUrl?: string;
     pageInfo: string;
 }
 
@@ -165,7 +165,11 @@ export const renderTemplateDetail = async (template: TemplateInfo) => {
 
     // Load PDF
     try {
-        pdfDoc = await pdfjsLib.getDocument(template.pdfUrl).promise;
+        // Append cache buster to URL to ensure we fetch the latest version
+        const cacheBuster = template.pdfUrl.includes('?') ? `&t=${Date.now()}` : `?t=${Date.now()}`;
+        const finalUrl = template.pdfUrl.startsWith('/') ? `${template.pdfUrl}${cacheBuster}` : template.pdfUrl;
+
+        pdfDoc = await pdfjsLib.getDocument(finalUrl).promise;
         totalPages = pdfDoc.numPages;
         currentPage = 1;
         currentScale = 1.0;
@@ -235,11 +239,15 @@ export const renderTemplateDetail = async (template: TemplateInfo) => {
 
     // Edit button
     document.getElementById('btn-edit-template')?.addEventListener('click', () => {
-        import('./TemplateEditBeasiswa').then(({ renderTemplateEditBeasiswa }) => {
-            renderTemplateEditBeasiswa({
-                name: template.name,
-                pdfUrl: template.pdfUrl
+        if (template.editUrl) {
+            window.open(template.editUrl, '_blank');
+        } else {
+            import('./TemplateEditBeasiswa').then(({ renderTemplateEditBeasiswa }) => {
+                renderTemplateEditBeasiswa({
+                    name: template.name,
+                    pdfUrl: template.pdfUrl
+                });
             });
-        });
+        }
     });
 };

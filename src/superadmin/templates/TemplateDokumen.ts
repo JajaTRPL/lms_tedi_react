@@ -20,6 +20,7 @@ interface Template {
     name: string;
     type: string;
     pdfUrl?: string;
+    editUrl?: string;
 }
 
 export const renderTemplateDokumen = () => {
@@ -27,16 +28,20 @@ export const renderTemplateDokumen = () => {
     const currentDate = now.toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace('.', ':');
 
     const templates: Template[] = [
-        { updated_at: currentDate, name: 'Surat Permohonan Beasiswa', type: 'Surat Beasiswa', pdfUrl: '/files/Formulir-Permohonan-Beasiswa.pdf' },
+        { 
+            updated_at: currentDate, 
+            name: 'Surat Permohonan Beasiswa', 
+            type: 'Surat Beasiswa', 
+            pdfUrl: '/api/templates/proxy-google-doc/1wnQYvwVO45M3LDDLEitsfjMFgkwj9S7f',
+            editUrl: 'https://docs.google.com/document/d/1wnQYvwVO45M3LDDLEitsfjMFgkwj9S7f/edit?usp=sharing'
+        },
+        { updated_at: currentDate, name: 'Formulir Beasiswa (Lokal)', type: 'Surat Beasiswa', pdfUrl: '/files/Formulir-Permohonan-Beasiswa.pdf' },
         { updated_at: currentDate, name: 'Surat Rekomendasi Magang', type: 'Surat Magang' },
         { updated_at: currentDate, name: 'Surat Keaktifan Mahasiswa', type: 'Surat Keaktifan' },
         { updated_at: currentDate, name: 'Surat Penundaan Pembayaran UKT', type: 'Surat Keuangan' },
         { updated_at: currentDate, name: 'Surat Peminjaman Ruang', type: 'Surat Fasilitas' },
         { updated_at: currentDate, name: 'Surat Proses Luar Negeri (Student Exchange)', type: 'Surat Luar Negeri' },
         { updated_at: currentDate, name: 'Surat Transkrip Nilai', type: 'Surat Akademik' },
-        { updated_at: currentDate, name: 'Surat Permohonan Magang', type: 'Surat Beasiswa' },
-        { updated_at: currentDate, name: 'Surat Permohonan Magang', type: 'Surat Beasiswa' },
-        { updated_at: currentDate, name: 'Surat Permohonan Magang', type: 'Surat Beasiswa' },
     ];
 
     const content = `
@@ -112,6 +117,7 @@ export const renderTemplateDokumen = () => {
                         renderTemplateDetail({
                             name: tpl.name,
                             pdfUrl: tpl.pdfUrl!,
+                            editUrl: tpl.editUrl,
                             pageInfo: ''
                         });
                     });
@@ -165,6 +171,7 @@ export const renderTemplateDokumen = () => {
                         renderTemplateDetail({
                             name: tpl.name,
                             pdfUrl: tpl.pdfUrl!,
+                            editUrl: tpl.editUrl,
                             pageInfo: ''
                         });
                     });
