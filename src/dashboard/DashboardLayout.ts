@@ -79,6 +79,10 @@ export const renderDashboardLayout = (title: string, content: string, role: stri
             import('../mahasiswa/ProfilMahasiswa').then(({ renderProfilMahasiswa }) => {
                 renderProfilMahasiswa();
             });
+        } else if (role === 'super_admin') {
+            import('../superadmin/ProfilSuperAdmin').then(({ renderProfilSuperAdmin }) => {
+                renderProfilSuperAdmin();
+            });
         } else if (role.startsWith('tendik')) {
             import('../tendik/ProfilTendik').then(({ renderProfilTendik }) => {
                 renderProfilTendik(role);
