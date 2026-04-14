@@ -140,6 +140,14 @@ export const renderDashboardLayout = (title: string, content: string, role: stri
         });
     });
 
+    document.getElementById('sidebar-template-link')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        (window as any).clearDashboardInterval?.();
+        import('../superadmin/templates/TemplateDokumen').then(({ renderTemplateDokumen }) => {
+            renderTemplateDokumen();
+        });
+    });
+
     document.getElementById('sidebar-logs-link')?.addEventListener('click', (e) => {
         e.preventDefault();
         (window as any).clearDashboardInterval?.();
@@ -161,6 +169,22 @@ export const renderDashboardLayout = (title: string, content: string, role: stri
         (window as any).clearDashboardInterval?.();
         import('../mahasiswa/DokumenMahasiswa').then(({ renderDokumenMahasiswa }) => {
             renderDokumenMahasiswa();
+        });
+    });
+
+    document.getElementById('sidebar-dokumen-tendik-link')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        (window as any).clearDashboardInterval?.();
+        import('../tendik/DokumenTendik').then(({ renderDokumenTendik }) => {
+            renderDokumenTendik(role);
+        });
+    });
+
+    document.getElementById('sidebar-riwayat-tendik-link')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        (window as any).clearDashboardInterval?.();
+        import('../tendik/RiwayatTendik').then(({ renderRiwayatTendik }) => {
+            renderRiwayatTendik(role);
         });
     });
 
