@@ -87,6 +87,10 @@ export const renderDashboardLayout = (title: string, content: string, role: stri
             import('../tendik/ProfilTendik').then(({ renderProfilTendik }) => {
                 renderProfilTendik(role);
             });
+        } else if (['kadep', 'kaprodi', 'sekprodi', 'sekdep', 'akademik'].includes(role)) {
+            import('../akademik/ProfilKaprodi').then(({ renderProfilKaprodi }) => {
+                renderProfilKaprodi(role);
+            });
         } else {
             Toastify({
                 text: "Profil untuk role ini belum tersedia",
