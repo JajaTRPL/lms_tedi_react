@@ -1,10 +1,10 @@
-export const findRelasi = (keluarga: any[], rel: string) => 
+export const findRelasi = (keluarga: any[], rel: string) =>
     keluarga.find((k: any) => k.jenis_relasi?.toLowerCase() === rel.toLowerCase()) || {};
 
 export const mapApplicationToFormData = (app: any, formData: any) => {
     const profile = app.mahasiswa_profile || app.mahasiswaProfile || {};
     const keluarga = profile.keluarga || [];
-    
+
     const father = findRelasi(keluarga, 'ayah');
     const mother = findRelasi(keluarga, 'ibu');
     const guardian = findRelasi(keluarga, 'wali');
@@ -47,7 +47,7 @@ export const mapApplicationToFormData = (app: any, formData: any) => {
         tanda_tangan_path: profile.tanda_tangan_path,
         siblings: siblings.length > 0 ? siblings : formData.siblings,
         scholarship_histories: scholarship_histories.length > 0 ? scholarship_histories : formData.scholarship_histories,
-        
+
         // Academic fields
         scholarship_name: app.scholarship_name,
         study_level: app.study_level || 'D4',
@@ -81,7 +81,7 @@ export const mapProfileToFormData = (profile: any, user: any = {}, formData: any
         marital_status: s.status_kawin,
         relation: s.keterangan
     }));
-    
+
     const scholarship_histories = profile.scholarship_histories || [];
 
     return {

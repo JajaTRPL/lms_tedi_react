@@ -23,16 +23,16 @@ export const renderStep3Akademik = (formData: any) => `
                 <input type="number" name="family_dependents" value="${formData.family_dependents || ''}" placeholder="Contoh: 3" class="w-full px-4 py-2 border border-gray-200 rounded-md text-sm outline-none focus:border-teal-500">
             </div>
             <div class="grid grid-cols-[200px_1fr] items-center gap-4">
-                <label class="text-sm font-bold text-gray-800">IP 2 Semester Terakhir</label>
-                <input type="number" step="0.01" name="gpa_last_2_semesters" value="${formData.gpa_last_2_semesters || ''}" placeholder="Contoh: 3.75" class="w-full px-4 py-2 border border-gray-200 rounded-md text-sm outline-none focus:border-teal-500">
+                <label class="text-sm font-bold text-gray-800">IP Semester Terakhir</label>
+                <input type="number" step="0.01" name="gpa_last_semesters" value="${formData.gpa_last_2_semesters || ''}" placeholder="Contoh: 3.75" class="w-full px-4 py-2 border border-gray-200 rounded-md text-sm outline-none focus:border-teal-500">
             </div>
             <div class="grid grid-cols-[200px_1fr] items-center gap-4">
                 <label class="text-sm font-bold text-gray-800">IPK</label>
                 <input type="number" step="0.01" name="ipk" value="${formData.ipk || ''}" placeholder="Contoh: 3.75" class="w-full px-4 py-2 border border-gray-200 rounded-md text-sm outline-none focus:border-teal-500">
             </div>
             <div class="grid grid-cols-[200px_1fr] items-center gap-4">
-                <label class="text-sm font-bold text-gray-800">Jumlah SKS 2 Semester Terakhir</label>
-                <input type="number" name="sks_last_2_semesters" value="${formData.sks_last_2_semesters || ''}" placeholder="Contoh: 24" class="w-full px-4 py-2 border border-gray-200 rounded-md text-sm outline-none focus:border-teal-500">
+                <label class="text-sm font-bold text-gray-800">Jumlah SKS Semester Terakhir</label>
+                <input type="number" name="sks_last_semesters" value="${formData.sks_last_2_semesters || ''}" placeholder="Contoh: 24" class="w-full px-4 py-2 border border-gray-200 rounded-md text-sm outline-none focus:border-teal-500">
             </div>
             <div class="grid grid-cols-[200px_1fr] items-center gap-4">
                 <label class="text-sm font-bold text-gray-800">Jumlah Beban SKS Lulus</label>
@@ -137,23 +137,23 @@ export const renderStep3Akademik = (formData: any) => `
             
             <div class="space-y-4">
                 <div class="grid grid-cols-[200px_1fr] items-start gap-4">
-                    <label class="text-sm font-bold text-gray-800 pt-2">Foto KTM</label>
+                    <label class="text-sm font-bold text-gray-800 pt-2">Transkrip Nilai</label>
                     <div class="space-y-1">
-                        <input type="file" id="ktm-upload" name="ktm" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200">
+                        <input type="file" id="transkrip-nilai-upload" name="transkrip-nilai" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200">
                         <p class="text-[10px] text-gray-400">Format: JPG, PNG, PDF (MAX 2MB)</p>
                     </div>
                 </div>
                 <div class="grid grid-cols-[200px_1fr] items-start gap-4">
-                    <label class="text-sm font-bold text-gray-800 pt-2">Transkrip Nilai</label>
+                    <label class="text-sm font-bold text-gray-800 pt-2">Slip Gaji Ayah</label>
                     <div class="space-y-1">
-                        <input type="file" id="transcript-upload" name="transcript" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200">
+                        <input type="file" id="slip-gaji-ayah-upload" name="slip-ayah" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200">
                         <p class="text-[10px] text-gray-400">Format: PDF (MAX 2MB)</p>
                     </div>
                 </div>
                 <div class="grid grid-cols-[200px_1fr] items-start gap-4">
-                    <label class="text-sm font-bold text-gray-800 pt-2">Surat Tawaran Beasiswa</label>
+                    <label class="text-sm font-bold text-gray-800 pt-2">Slip Gaji Ibu</label>
                     <div class="space-y-1">
-                        <input type="file" id="offer-letter-upload" name="offer_letter" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200">
+                        <input type="file" id="slip-gaji-ibu-upload" name="slip-ibu" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200">
                         <p class="text-[10px] text-gray-400">Format: PDF (MAX 2MB)</p>
                     </div>
                 </div>

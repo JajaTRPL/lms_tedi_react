@@ -143,7 +143,7 @@ export const renderScholarshipForm = () => {
 
         if (currentStep === 3) {
             // File upload previews for Step 3
-            ['ktm-upload', 'transcript-upload', 'offer-letter-upload'].forEach(id => {
+            ['transkrip-nilai-upload', 'slip-gaji-ayah-upload', 'slip-gaji-ibu-upload'].forEach(id => {
                 const input = document.getElementById(id) as HTMLInputElement;
                 input?.addEventListener('change', () => {
                     if (input.files && input.files[0]) {
@@ -162,7 +162,7 @@ export const renderScholarshipForm = () => {
     const fetchDraft = async () => {
         const token = localStorage.getItem('auth_token');
         console.log("Fetching initial data...");
-        
+
         try {
             // 1. Ambil data profil SSO (Utama)
             const resOpt = await fetch('/api/profile', {
@@ -172,9 +172,9 @@ export const renderScholarshipForm = () => {
                 const data = await resOpt.json();
                 console.log("SSO Profile received:", data.profile);
                 if (data.profile) {
-                   const profileData = mapProfileToFormData(data.profile, data.user || {}, formData);
-                   Object.assign(formData, profileData);
-                   console.log("Mapped SSO data to formData:", formData);
+                    const profileData = mapProfileToFormData(data.profile, data.user || {}, formData);
+                    Object.assign(formData, profileData);
+                    console.log("Mapped SSO data to formData:", formData);
                 }
             }
 
@@ -236,7 +236,7 @@ export const renderScholarshipForm = () => {
             data.guardian_status = formData.guardian_status;
             data.guardian_death_date = formData.guardian_death_date;
             data.siblings = formData.siblings || [];
-            
+
             delete data['pas_foto'];
         }
 
@@ -252,15 +252,15 @@ export const renderScholarshipForm = () => {
                     bodyFormData.append(key, data[key]);
                 }
             });
-            
+
             const ktmFile = (document.getElementById('ktm-upload') as HTMLInputElement).files?.[0];
             const transcriptFile = (document.getElementById('transcript-upload') as HTMLInputElement).files?.[0];
             const offerFile = (document.getElementById('offer-letter-upload') as HTMLInputElement).files?.[0];
-            
+
             if (ktmFile) bodyFormData.append('ktm', ktmFile);
             if (transcriptFile) bodyFormData.append('transcript', transcriptFile);
             if (offerFile) bodyFormData.append('offer_letter', offerFile);
-            
+
             body = bodyFormData;
         } else {
             body = JSON.stringify(data);
@@ -290,7 +290,7 @@ export const renderScholarshipForm = () => {
             } else {
                 let errorMsg = "Pastikan semua kolom terisi dengan benar.";
                 const contentType = res.headers.get("content-type");
-                
+
                 if (contentType && contentType.includes("application/json")) {
                     try {
                         const err = await res.json();
@@ -300,7 +300,7 @@ export const renderScholarshipForm = () => {
                         } else if (err.message) {
                             errorMsg = err.message;
                         }
-                    } catch(e) {
+                    } catch (e) {
                         console.error("Error parsing JSON failure", e);
                     }
                 } else {
@@ -337,7 +337,7 @@ export const renderScholarshipForm = () => {
             if (res.ok) {
                 const data = await res.json();
                 const assignedName = data.assigned_to || 'staf beasiswa';
-                
+
                 // @ts-ignore
                 Toastify({
                     text: `Berhasil! Pengajuan telah dikirim dan ditugaskan kepada ${assignedName}.`,
@@ -353,8 +353,8 @@ export const renderScholarshipForm = () => {
                     style: { background: "#EF4444" }
                 }).showToast();
             }
-        } catch (e) { 
-            console.error(e); 
+        } catch (e) {
+            console.error(e);
             // @ts-ignore
             Toastify({
                 text: "Terjadi kesalahan sistem.",
