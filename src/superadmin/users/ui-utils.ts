@@ -2,6 +2,20 @@ import { getAngkatan } from '../../shared/nim-utils';
 import { UserStatus, STATUS_BADGE_STYLES, STATUS_DETAIL_STYLES, getSuspendLabel } from '../../shared/user-status';
 import { state } from './types';
 
+/**
+ * Escape a user-controlled value before interpolating it into an HTML template
+ * string. Escaping & < > " ' makes the result safe in both text-node and
+ * double-quoted attribute contexts (neither can be broken out of). Use this for
+ * any value sourced from the API/user; never interpolate such values raw.
+ */
+export const escapeHtml = (value: unknown): string =>
+    String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+
 /** Check if current logged-in user is Primary Super Admin */
 const isPrimary = (): boolean => {
     return localStorage.getItem('auth_role_level') === 'primary';

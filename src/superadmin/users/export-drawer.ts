@@ -45,7 +45,22 @@ export function renderExportDrawer() {
                 </div>
                 <div class="bg-gray-50 rounded-xl p-4 space-y-2">
                     <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">Kolom yang Diekspor</p>
-                    <p class="text-xs text-gray-500 leading-relaxed">Nama, Email, NIM, Kode Prodi, Tanggal Lahir, Program Studi, Departemen, Fakultas, Angkatan, Role, Status, Dibuat Pada</p>
+                    <p class="text-xs text-gray-500 leading-relaxed">Nama, Email, NIM, Kode Prodi, Program Studi, Departemen, Fakultas, Angkatan, Role, Jabatan, Status, Dibuat Pada</p>
+                    <p class="text-[10px] text-gray-400">Password, token, dan data keamanan akun tidak pernah diekspor.</p>
+                </div>
+                <div class="bg-amber-50 border border-amber-100 rounded-xl p-3.5 space-y-2.5">
+                    <label class="flex items-start gap-2.5 cursor-pointer">
+                        <input type="checkbox" id="export-include-pii" class="mt-0.5 accent-teal-700">
+                        <span class="min-w-0">
+                            <span class="block text-sm font-semibold text-gray-700">Sertakan data pribadi tambahan</span>
+                            <span class="block text-[11px] leading-relaxed text-amber-700 mt-0.5">Menambahkan kolom Tanggal Lahir. Data pribadi hanya boleh diekspor untuk kebutuhan administrasi yang sah.</span>
+                        </span>
+                    </label>
+                    <div id="export-reason-wrap" class="hidden">
+                        <label for="export-reason-input" class="block text-xs font-semibold text-gray-600 mb-1">Alasan ekspor data pribadi <span class="text-red-500" aria-hidden="true">*</span></label>
+                        <textarea id="export-reason-input" rows="2" class="w-full text-sm border border-amber-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 bg-white" placeholder="Contoh: Rekap administrasi beasiswa fakultas"></textarea>
+                        <p class="text-[10px] text-gray-400 mt-1">Alasan wajib diisi (minimal 5 karakter) dan tercatat di log audit.</p>
+                    </div>
                 </div>
             </div>
             <div class="border-t border-gray-100 px-7 py-5 flex items-center justify-end gap-3">
@@ -74,6 +89,24 @@ export function renderExportDrawer() {
     const userTypeSelect = container.querySelector('#export-user-type') as HTMLSelectElement;
     const formatSelect = container.querySelector('#export-format') as HTMLSelectElement;
     const optCsv = container.querySelector('#opt-csv') as HTMLOptionElement;
+    const piiCheckbox = container.querySelector('#export-include-pii') as HTMLInputElement;
+    const reasonWrap = container.querySelector('#export-reason-wrap') as HTMLElement;
+    const reasonInput = container.querySelector('#export-reason-input') as HTMLTextAreaElement;
+    const exportBtn = container.querySelector('#confirm-export-btn') as HTMLButtonElement;
+
+    const exportReason = () => reasonInput.value.trim();
+
+    // PII export requires a stated, audited reason before the button unlocks.
+    const updateExportState = () => {
+        exportBtn.disabled = piiCheckbox.checked && exportReason().length < 5;
+    };
+
+    piiCheckbox?.addEventListener('change', () => {
+        reasonWrap.classList.toggle('hidden', !piiCheckbox.checked);
+        if (piiCheckbox.checked) reasonInput.focus();
+        updateExportState();
+    });
+    reasonInput?.addEventListener('input', updateExportState);
 
     const updateFormatOptions = () => {
         if (userTypeSelect.value === '') {
@@ -96,14 +129,25 @@ export function renderExportDrawer() {
     container.querySelector('#confirm-export-btn')?.addEventListener('click', async () => {
         const format = (container.querySelector('#export-format') as HTMLSelectElement)?.value || 'xlsx';
         const userType = (container.querySelector('#export-user-type') as HTMLSelectElement)?.value || '';
-        const url = `/api/super-admin/users/export?format=${format}${userType ? '&role=' + userType : ''}`;
+        const includePii = piiCheckbox?.checked === true;
+
+        if (includePii && exportReason().length < 5) {
+            showError('Alasan ekspor data pribadi wajib diisi (minimal 5 karakter).');
+            reasonInput.focus();
+            return;
+        }
+
+        const piiParams = includePii
+            ? `&include_pii=1&export_reason=${encodeURIComponent(exportReason())}`
+            : '';
+        const url = `/api/super-admin/users/export?format=${format}${userType ? '&role=' + userType : ''}${piiParams}`;
 
         const btn = container.querySelector('#confirm-export-btn') as HTMLButtonElement;
         const originalText = btn.innerHTML;
 
         try {
             btn.disabled = true;
-            btn.innerHTML = 'Memproses...';
+            btn.innerHTML = 'Menyiapkan file ekspor...';
 
             const response = await apiFetch(url);
 
@@ -125,8 +169,9 @@ export function renderExportDrawer() {
             console.error(error);
             showError(`Gagal mengunduh data: ${error.message}`);
         } finally {
-            btn.disabled = false;
             btn.innerHTML = originalText;
+            btn.disabled = false;
+            updateExportState();
         }
     });
 }
