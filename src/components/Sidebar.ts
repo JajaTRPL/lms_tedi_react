@@ -104,8 +104,14 @@ export const renderSidebar = (currentRole: string, activePage: string = 'dashboa
             ${peminjamanMenu}
             ${riwayatMenu}
         `;
-
+    } else {
+        // Unknown/missing role: no navigation is safe navigation. Render a
+        // helpful note instead of dead links or accidentally broad menus.
+        menuItems = `
+            <p class="px-4 py-3 text-sm leading-relaxed text-white/80">Peran akun belum lengkap. Silakan lengkapi profil atau hubungi admin.</p>
+        `;
     }
+
     return `
         <aside id="dashboard-sidebar" aria-label="Navigasi utama" aria-hidden="true" class="fixed inset-y-0 left-0 z-[60] w-64 bg-primary-teal text-white min-h-screen h-screen flex flex-col overflow-y-auto transform -translate-x-full transition-transform duration-200 ease-out lg:sticky lg:top-0 lg:z-auto lg:translate-x-0 lg:transition-none"
             style="

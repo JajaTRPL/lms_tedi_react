@@ -174,14 +174,14 @@ export const mapUserPayload = (data: UserFormData) => {
 
 /**
  * Build a clean, role-aware payload from raw FormData entries.
- * Handles all role-specific field cleanup, FK selection, and auto-password generation.
+ * Handles all role-specific field cleanup and FK selection.
  *
  * @returns `{ data, error }` — if error is non-null, submission should be aborted.
  */
 export const buildUserPayload = (
     rawData: Record<string, any>,
     assignedTasks: string[],
-    isNewUser: boolean
+    _isNewUser: boolean
 ): { data: any; error: string | null } => {
     const data = mapUserPayload(rawData);
 
@@ -204,6 +204,9 @@ export const buildUserPayload = (
             return { data: null, error: 'Program Studi wajib dipilih untuk Mahasiswa' };
         }
         data.study_program_id = parseInt(data.study_program_id);
+        // Mahasiswa accounts are passwordless when provisioned by Super Admin.
+        // A local password may only be set through the verified reset flow.
+        delete data.password;
     } else {
         delete data.study_program_id;
         delete data.department_id;
@@ -235,13 +238,7 @@ export const buildUserPayload = (
         delete data.role_level;
     }
 
-    // Auto-generate mahasiswa password for new users
-    if (isNewUser && data.role === 'mahasiswa') {
-        const nim = (data.nim as string || '').replace(/[^a-zA-Z0-9]/g, '');
-        const dobParts = (data.tanggal_lahir as string || '').split('-');
-        const dobFormatted = dobParts.length === 3 ? `${dobParts[2]}${dobParts[1]}${dobParts[0]}` : '';
-        data.password = `${nim}${dobFormatted}`;
-    }
+
 
     return { data, error: null };
 };

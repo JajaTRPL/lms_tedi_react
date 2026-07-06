@@ -21,6 +21,9 @@
  *   });
  */
 
+import { clearNormalAuthState } from './auth-state';
+import { getPasswordRotationToken } from '../login/password-rotation-state';
+
 interface ApiFetchOptions extends RequestInit {
     /** Set true for FormData uploads — skips Content-Type so browser sets boundary */
     isFormData?: boolean;
@@ -43,13 +46,40 @@ export async function apiFetch(url: string, options: ApiFetchOptions = {}): Prom
         defaultHeaders['Content-Type'] = 'application/json';
     }
 
-    return fetch(url, {
+    const response = await fetch(url, {
         ...rest,
         headers: {
             ...defaultHeaders,
             ...(customHeaders as Record<string, string>),
         },
     });
+
+    if (response.status === 423) {
+        let code: unknown;
+        try {
+            const payload: unknown = await response.clone().json();
+            if (payload && typeof payload === 'object') {
+                code = (payload as { code?: unknown }).code;
+            }
+        } catch {
+            // Preserve the original response when a non-JSON 423 is returned.
+        }
+
+        if (code === 'PASSWORD_ROTATION_REQUIRED') {
+            clearNormalAuthState();
+            const rotationToken = getPasswordRotationToken();
+
+            if (rotationToken) {
+                const { renderPasswordRotation } = await import('../login/PasswordRotation');
+                await renderPasswordRotation();
+            } else {
+                const { renderLogin } = await import('../login/Login');
+                renderLogin('Akses akun memerlukan penggantian kata sandi. Silakan login kembali.');
+            }
+        }
+    }
+
+    return response;
 }
 
 /**

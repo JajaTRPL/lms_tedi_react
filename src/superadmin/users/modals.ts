@@ -110,6 +110,11 @@ export const renderUserModal = (user: any = null, onRefresh: () => void) => {
                                 <option value="">Memuat program studi...</option>
                             </select>
                         </div>
+                        ${!user ? `
+                        <div id="mahasiswa-auth-guidance" class="rounded-xl border border-blue-100 bg-blue-50 px-3 py-2.5">
+                            <p class="text-[11px] leading-relaxed text-blue-700">Mahasiswa dapat login menggunakan Google UGM atau mengatur password melalui Lupa Kata Sandi.</p>
+                        </div>
+                        ` : ''}
                     </div>
 
                     <!-- Tendik Fields -->
@@ -152,7 +157,7 @@ export const renderUserModal = (user: any = null, onRefresh: () => void) => {
                         </div>
                     </div>
 
-                    <div id="password-section" class="${!user ? '' : 'hidden'}">
+                    <div id="password-section" class="${!user && defaultRole !== 'mahasiswa' ? '' : 'hidden'}">
                         <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Password</label>
                         <div class="flex gap-2">
                             <div class="relative flex-1">
@@ -165,7 +170,6 @@ export const renderUserModal = (user: any = null, onRefresh: () => void) => {
                                 Generate
                             </button>
                         </div>
-                        <p id="password-hint" class="text-[9px] text-gray-400 mt-1 hidden italic">Auto-generated: [NIM] + [TglLahir]</p>
                     </div>
 
                     <div class="mt-8 flex gap-3 justify-end pt-4 border-t border-gray-100">
@@ -184,7 +188,6 @@ export const renderUserModal = (user: any = null, onRefresh: () => void) => {
     const mhsFields = form.querySelector('#mahasiswa-fields')!;
     const tendikFields = form.querySelector('#tendik-fields')!;
     const passInput = form.querySelector('#modal-password-input') as HTMLInputElement;
-    const passHint = form.querySelector('#password-hint')!;
 
     const updateVisibility = () => {
         const isMhs = roleSelect.value === 'mahasiswa';
@@ -310,15 +313,12 @@ export const renderUserModal = (user: any = null, onRefresh: () => void) => {
         checkValidity();
 
         if (!user) {
-            if (isMhs) {
-                passInput.readOnly = true;
-                passInput.placeholder = '••••••••';
-                passHint.classList.remove('hidden');
-            } else {
-                passInput.readOnly = false;
-                passInput.placeholder = '••••••••';
-                passHint.classList.add('hidden');
-            }
+            const passwordSection = form.querySelector('#password-section');
+            passwordSection?.classList.toggle('hidden', isMhs);
+            passInput.disabled = isMhs;
+            passInput.required = !isMhs;
+            passInput.readOnly = false;
+            passInput.placeholder = '••••••••';
         }
     };
 

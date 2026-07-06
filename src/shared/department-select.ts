@@ -4,6 +4,7 @@
  */
 
 import { apiFetch } from './api-client';
+import { isRuntimeAcademicOption } from './academic-option-visibility';
 import { formatCodeName } from './formatters';
 
 let cache: any[] | null = null;
@@ -23,7 +24,7 @@ export async function populateDepartmentSelect(
 ): Promise<void> {
     const render = (depts: any[]) => {
         let html = '<option value="">Pilih Departemen...</option>';
-        depts.forEach((d: any) => {
+        depts.filter(isRuntimeAcademicOption).forEach((d: any) => {
             const sel = selectedId != null && String(d.id) === String(selectedId) ? 'selected' : '';
             html += `<option value="${d.id}" ${sel}>${formatCodeName(d.code, d.name)}</option>`;
         });

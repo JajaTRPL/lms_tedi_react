@@ -1,6 +1,8 @@
 import './style.css'
 import 'toastify-js/src/toastify.css'
 import { renderLogin, handleRedirection } from './login/Login'
+import { renderPasswordRotation } from './login/PasswordRotation'
+import { getPasswordRotationToken } from './login/password-rotation-state'
 
 // Guard against Vite HMR re-executing this file and overwriting the current page.
 // Without this, every HMR update re-runs handleRedirection(), which always renders
@@ -10,8 +12,11 @@ if (!(window as any).__APP_INITIALIZED__) {
 
     const token = localStorage.getItem('auth_token')
     const role = localStorage.getItem('auth_role')
+    const rotationToken = getPasswordRotationToken()
 
-    if (token && role) {
+    if (rotationToken) {
+        void renderPasswordRotation()
+    } else if (token && role) {
         handleRedirection(role)
     } else {
         renderLogin()

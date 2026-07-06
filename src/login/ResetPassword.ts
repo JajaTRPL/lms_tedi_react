@@ -1,16 +1,38 @@
 import Toastify from 'toastify-js'
 
+type PasswordResetState = {
+  email: string
+  resetToken: string
+}
+
+const resetState: PasswordResetState = {
+  email: '',
+  resetToken: '',
+}
+
+const RESEND_COOLDOWN_SECONDS = 60
+const RESEND_READY_TEXT = 'Kirim ulang kode'
+let resendCountdownTimer: number | null = null
+
+const clearResendCountdown = () => {
+  if (resendCountdownTimer !== null) {
+    window.clearInterval(resendCountdownTimer)
+    resendCountdownTimer = null
+  }
+}
+
+const clearResetState = () => {
+  clearResendCountdown()
+  resetState.email = ''
+  resetState.resetToken = ''
+}
+
 // Navigate back to the Login page. Loaded lazily so ResetPassword does not
 // statically depend on Login (that page→page edge is part of the inherited
 // import cycle, C1). Same runtime behavior — both call sites are async/event-driven.
 const renderLogin = (): void => {
+  clearResetState()
   void import('./Login').then((mod) => mod.renderLogin())
-}
-
-declare global {
-  interface Window {
-    tempEmail?: string;
-  }
 }
 
 const startCountdown = (button: HTMLElement, seconds: number) => {
@@ -31,7 +53,45 @@ const startCountdown = (button: HTMLElement, seconds: number) => {
   }, 1000)
 }
 
+const setResendReady = (button: HTMLButtonElement) => {
+  clearResendCountdown()
+  button.disabled = false
+  button.textContent = RESEND_READY_TEXT
+}
+
+const startResendCountdown = (button: HTMLButtonElement, seconds: number) => {
+  clearResendCountdown()
+
+  let timeLeft = Math.max(0, Math.ceil(seconds))
+  if (timeLeft === 0) {
+    setResendReady(button)
+    return
+  }
+
+  const renderCountdown = () => {
+    button.disabled = true
+    button.textContent = `Kirim ulang dalam ${timeLeft} detik`
+  }
+
+  renderCountdown()
+  resendCountdownTimer = window.setInterval(() => {
+    if (!button.isConnected) {
+      clearResendCountdown()
+      return
+    }
+
+    timeLeft--
+    if (timeLeft <= 0) {
+      setResendReady(button)
+      return
+    }
+
+    renderCountdown()
+  }, 1000)
+}
+
 export const renderForgotPassword = () => {
+  clearResetState()
   const app = document.querySelector<HTMLDivElement>('#app')!
   app.innerHTML = `
     <div class="min-h-screen w-full flex items-center justify-center relative overflow-hidden font-['Inter'] bg-cover bg-center bg-no-repeat" style="background-image: url('/bc-login.png');">
@@ -114,7 +174,7 @@ export const renderForgotPassword = () => {
   document.getElementById('forgot-password-form')?.addEventListener('submit', async (e) => {
     e.preventDefault()
     const submitBtn = (e.target as HTMLFormElement).querySelector('button[type="submit"]') as HTMLButtonElement
-    const email = (document.getElementById('email') as HTMLInputElement).value
+    const email = (document.getElementById('email') as HTMLInputElement).value.trim().toLowerCase()
     try {
       const response = await fetch('/api/forgot-password', {
         method: 'POST',
@@ -131,18 +191,19 @@ export const renderForgotPassword = () => {
       if (response.ok) {
         if (data.token_simulation) {
           Toastify({
-            text: `Mode Simulasi: Token Anda adalah ${data.token_simulation}\n\nSalin token ini untuk verifikasi karena sistem sedang tidak mengirim email asli.`,
+            text: `Mode simulasi lokal: kode verifikasi Anda ${data.token_simulation}.`,
             duration: 8000, close: true, gravity: "top", position: "right",
             style: { background: "#3B82F6" } // Blue
           }).showToast()
         } else {
           Toastify({
-            text: data.message || 'Token berhasil dikirim!',
+            text: data.message || 'Jika email terdaftar, kode verifikasi telah dikirim.',
             duration: 3000, close: true, gravity: "top", position: "right",
             style: { background: "#10B981" } // Green
           }).showToast()
         }
-        window.tempEmail = email
+        resetState.email = email
+        resetState.resetToken = ''
         renderVerifyToken()
       } else {
         if (response.status === 429) {
@@ -161,7 +222,7 @@ export const renderForgotPassword = () => {
           }).showToast()
         } else {
           Toastify({
-            text: data.message || 'Email tidak ditemukan atau terjadi kesalahan.',
+            text: data.message || 'Permintaan tidak dapat diproses. Silakan coba lagi.',
             duration: 3000, close: true, gravity: "top", position: "right",
             style: { background: "#EF4444" }
           }).showToast()
@@ -183,6 +244,12 @@ export const renderForgotPassword = () => {
 }
 
 export const renderVerifyToken = () => {
+  if (!resetState.email) {
+    renderForgotPassword()
+    return
+  }
+
+  clearResendCountdown()
   const app = document.querySelector<HTMLDivElement>('#app')!
   app.innerHTML = `
     <div class="min-h-screen w-full flex items-center justify-center relative overflow-hidden font-['Inter'] bg-cover bg-center bg-no-repeat" style="background-image: url('/bc-login.png');">
@@ -225,8 +292,13 @@ export const renderVerifyToken = () => {
                 </div>
               </div>
 
-              <div class="flex justify-end pt-2">
-                <button type="button" id="back-to-forgot" class="text-xs font-medium text-teal-300 hover:text-teal-200 hover:drop-shadow-[0_0_8px_rgba(94,234,212,0.5)] transition-all focus:outline-none">Kirim ulang kode</button>
+              <div class="space-y-2 pt-2 text-right">
+                <p id="resend-helper" class="text-xs leading-relaxed text-white/60">
+                  Belum menerima kode? Anda dapat meminta kode baru setelah hitung mundur selesai.
+                </p>
+                <button type="button" id="back-to-forgot" disabled class="text-xs font-medium text-teal-300 hover:text-teal-200 hover:drop-shadow-[0_0_8px_rgba(94,234,212,0.5)] transition-all focus:outline-none disabled:cursor-not-allowed disabled:text-white/40 disabled:hover:drop-shadow-none">
+                  Kirim ulang dalam 60 detik
+                </button>
               </div>
 
               <button 
@@ -247,7 +319,9 @@ export const renderVerifyToken = () => {
   const otpInputs = document.querySelectorAll<HTMLInputElement>('.otp-input')
   otpInputs.forEach((input, index) => {
     input.addEventListener('input', (e) => {
-      const val = (e.target as HTMLInputElement).value
+      const target = e.target as HTMLInputElement
+      target.value = target.value.replace(/\D/g, '').slice(0, 1)
+      const val = target.value
       if (val && index < otpInputs.length - 1) {
         otpInputs[index + 1].focus()
       }
@@ -262,7 +336,7 @@ export const renderVerifyToken = () => {
     // On paste, spread the numbers
     input.addEventListener('paste', (e) => {
       e.preventDefault()
-      const pasteData = e.clipboardData?.getData('text').slice(0, 6)
+      const pasteData = e.clipboardData?.getData('text').replace(/\D/g, '').slice(0, 6)
       if (pasteData) {
         pasteData.split('').forEach((char, i) => {
           if (otpInputs[i]) {
@@ -279,7 +353,7 @@ export const renderVerifyToken = () => {
     const token = Array.from(otpInputs).map(i => i.value).join('')
     if (token.length < 6) {
       Toastify({
-        text: 'Silakan masukkan 6 digit token dengan lengkap.',
+        text: 'Silakan masukkan 6 digit kode dengan lengkap.',
         duration: 3000, close: true, gravity: "top", position: "right",
         style: { background: "#EAB308" }
       }).showToast()
@@ -290,7 +364,7 @@ export const renderVerifyToken = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: window.tempEmail,
+          email: resetState.email,
           token: token
         })
       })
@@ -302,8 +376,19 @@ export const renderVerifyToken = () => {
       }
 
       if (response.ok) {
+        if (typeof data.reset_token !== 'string' || data.reset_token.length !== 64) {
+          Toastify({
+            text: 'Sesi reset tidak valid. Silakan minta kode baru.',
+            duration: 3000, close: true, gravity: "top", position: "right",
+            style: { background: "#EF4444" }
+          }).showToast()
+          renderForgotPassword()
+          return
+        }
+
+        resetState.resetToken = data.reset_token
         Toastify({
-          text: data.message || 'Token berhasil diverifikasi!',
+          text: data.message || 'Kode berhasil diverifikasi.',
           duration: 3000, close: true, gravity: "top", position: "right",
           style: { background: "#10B981" }
         }).showToast()
@@ -317,7 +402,7 @@ export const renderVerifyToken = () => {
           }).showToast()
         } else {
           Toastify({
-            text: data.message || 'Token salah atau sudah kadaluwarsa.',
+            text: data.message || 'Kode salah atau sudah kedaluwarsa.',
             duration: 3000, close: true, gravity: "top", position: "right",
             style: { background: "#EF4444" }
           }).showToast()
@@ -334,12 +419,17 @@ export const renderVerifyToken = () => {
   })
 
   document.getElementById('back-to-forgot')?.addEventListener('click', async (e) => {
-    const resendBtn = e.target as HTMLButtonElement
+    const resendBtn = e.currentTarget as HTMLButtonElement
+    if (resendBtn.disabled) return
+
+    resendBtn.disabled = true
+    resendBtn.textContent = 'Mengirim kode...'
+
     try {
       const response = await fetch('/api/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: window.tempEmail })
+        body: JSON.stringify({ email: resetState.email })
       })
 
       const contentType = response.headers.get("content-type");
@@ -349,30 +439,32 @@ export const renderVerifyToken = () => {
       }
 
       if (response.ok) {
+        resetState.resetToken = ''
         if (data.token_simulation) {
           Toastify({
-            text: `Mode Simulasi: Token baru Anda adalah ${data.token_simulation}\n\nSalin token ini untuk verifikasi.`,
+            text: `Mode simulasi lokal: kode verifikasi baru Anda ${data.token_simulation}.`,
             duration: 8000, close: true, gravity: "top", position: "right",
             style: { background: "#3B82F6" }
           }).showToast()
         } else {
           Toastify({
-            text: data.message || 'Token baru telah dikirim ke email Anda.',
+            text: data.message || 'Jika email terdaftar, kode verifikasi telah dikirim.',
             duration: 3000, close: true, gravity: "top", position: "right",
             style: { background: "#10B981" }
           }).showToast()
         }
-        startCountdown(resendBtn, 60)
+        startResendCountdown(resendBtn, RESEND_COOLDOWN_SECONDS)
       } else {
         if (response.status === 429) {
-          const seconds = data.seconds_left || 60
-          startCountdown(resendBtn, seconds)
+          const seconds = data.seconds_left || RESEND_COOLDOWN_SECONDS
+          startResendCountdown(resendBtn, seconds)
           Toastify({
             text: data.message || 'Harap tunggu sebentar sebelum mengirim ulang.',
             duration: 3000, close: true, gravity: "top", position: "right",
             style: { background: "#EAB308" }
           }).showToast()
         } else {
+          setResendReady(resendBtn)
           Toastify({
             text: data.message || 'Terjadi kesalahan saat mengirim ulang token.',
             duration: 3000, close: true, gravity: "top", position: "right",
@@ -382,6 +474,7 @@ export const renderVerifyToken = () => {
       }
     } catch (error) {
       console.error('Error:', error)
+      setResendReady(resendBtn)
       Toastify({
         text: 'Terjadi kesalahan pada server.',
         duration: 3000, close: true, gravity: "top", position: "right",
@@ -389,9 +482,18 @@ export const renderVerifyToken = () => {
       }).showToast()
     }
   })
+
+  const resendButton = document.getElementById('back-to-forgot') as HTMLButtonElement | null
+  if (resendButton) startResendCountdown(resendButton, RESEND_COOLDOWN_SECONDS)
 }
 
 export const renderResetPassword = () => {
+  if (!resetState.email || !resetState.resetToken) {
+    renderForgotPassword()
+    return
+  }
+
+  clearResendCountdown()
   const app = document.querySelector<HTMLDivElement>('#app')!
   app.innerHTML = `
     <div class="min-h-screen w-full flex items-center justify-center relative overflow-hidden font-['Inter'] bg-cover bg-center bg-no-repeat" style="background-image: url('/bc-login.png');">
@@ -435,6 +537,8 @@ export const renderResetPassword = () => {
                     type="password" 
                     id="new-password" 
                     placeholder="Masukkan kata sandi baru" 
+                    minlength="10"
+                    autocomplete="new-password"
                     required
                     class="block w-full pl-11 pr-12 py-3.5 bg-black/20 border border-white/10 rounded-xl outline-none transition-all text-white placeholder-white/30 shadow-inner focus:bg-black/30 focus:border-teal-400/50 focus:ring-4 focus:ring-teal-400/10"
                   >
@@ -459,6 +563,8 @@ export const renderResetPassword = () => {
                     type="password" 
                     id="confirm-password" 
                     placeholder="Ulangi kata sandi baru" 
+                    minlength="10"
+                    autocomplete="new-password"
                     required
                     class="block w-full pl-11 pr-12 py-3.5 bg-black/20 border border-white/10 rounded-xl outline-none transition-all text-white placeholder-white/30 shadow-inner focus:bg-black/30 focus:border-teal-400/50 focus:ring-4 focus:ring-teal-400/10"
                   >
@@ -522,12 +628,23 @@ export const renderResetPassword = () => {
       return
     }
 
+    const strongPassword = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{10,}$/
+    if (!strongPassword.test(newPassword)) {
+      Toastify({
+        text: 'Kata sandi minimal 10 karakter dan harus memuat huruf besar, huruf kecil, angka, serta simbol.',
+        duration: 4000, close: true, gravity: "top", position: "right",
+        style: { background: "#EAB308" }
+      }).showToast()
+      return
+    }
+
     try {
       const response = await fetch('/api/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: window.tempEmail,
+          email: resetState.email,
+          reset_token: resetState.resetToken,
           password: newPassword,
           password_confirmation: confirmPassword
         })
@@ -540,6 +657,9 @@ export const renderResetPassword = () => {
       }
 
       if (response.ok) {
+        newPasswordInput.value = ''
+        confirmPasswordInput.value = ''
+        clearResetState()
         Toastify({
           text: data.message || 'Kata sandi berhasil diatur ulang!',
           duration: 3000, close: true, gravity: "top", position: "right",
