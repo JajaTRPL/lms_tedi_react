@@ -20,8 +20,12 @@ import {
 } from '../shared/letter-workflow';
 import Toastify from 'toastify-js';
 import { apiFetch, loadProtectedImageObjectUrl, revokeProtectedImageObjectUrl } from '../shared/api-client';
+import { badgeClass, buttonClass, cx, surfaceClass, textClass } from '../shared/design-system';
 import { MAHASISWA_LETTER_ENDPOINTS, mahasiswaEndpointPrefixFor } from '../shared/letter-registry';
 import { loadMahasiswaApplications } from '../shared/mahasiswa-application-list';
+import { getMahasiswaBookings } from '../mahasiswa/peminjaman/api';
+import { isActivePeminjamanBooking, renderPeminjamanTrackingCards } from '../mahasiswa/peminjaman/views';
+import type { MahasiswaBooking } from '../mahasiswa/peminjaman/types';
 
 // Endpoint identity is centralized in the shared letter registry so the
 // dashboard, Riwayat, and the /complete resolver stay in lockstep. There is no
@@ -57,10 +61,9 @@ const escapeHtml = (value: unknown): string => String(value ?? '')
 // Global Pengajuan tracking adapter.
 //
 // The Mahasiswa dashboard aggregates submissions across multiple letter types
-// (Beasiswa, SKA, PLN, Magang today; Peminjaman Kelas/Lab in a future phase
-// once those backend endpoints exist). Count cards, Recent Riwayat, and
-// Active Tracking must all read from the same normalized model so a row that
-// is "active" in one section is "active" in every section.
+// (Beasiswa, SKA, PLN, Magang, Surat Tugas) and merges active Peminjaman
+// Ruangan into the same tracking area. Count cards remain surat-only because
+// the request types use different workflow vocabularies.
 //
 // `toTrackingItem` is the normalization point. Adding a new request type
 // later means: tag the row with `letter_type` at fetch time, ensure
@@ -239,9 +242,9 @@ const getActiveStageDescription = (status: string): string => {
 // Primary "Lihat Detail" CTA: white/outline teal (the Beasiswa style, now
 // global). Filled-teal and red are reserved for the Beasiswa-only secondary
 // actions that already existed.
-const TRACKING_CTA_OUTLINE = "w-full py-3 bg-white text-primary-teal rounded-xl font-bold border border-primary-teal hover:bg-teal-50 transition-colors shadow-sm";
-const TRACKING_CTA_PRIMARY = "w-full py-3 bg-primary-teal text-white rounded-xl font-bold hover:bg-teal-800 transition-colors shadow-sm";
-const TRACKING_CTA_DANGER = "w-full py-3 bg-[#E53935] text-white rounded-xl font-bold hover:bg-red-700 transition-colors shadow-sm flex items-center justify-center gap-2";
+const TRACKING_CTA_OUTLINE = buttonClass('secondary', 'sm', 'w-full');
+const TRACKING_CTA_PRIMARY = buttonClass('primary', 'sm', 'w-full');
+const TRACKING_CTA_DANGER = buttonClass('danger', 'sm', 'w-full');
 
 const renderTrackingMetaRow = (item: TrackingItem): string => {
     // Tanggal diajukan: prefer submitted_at, fall back to created_at. When
@@ -252,14 +255,11 @@ const renderTrackingMetaRow = (item: TrackingItem): string => {
             day: 'numeric', month: 'long', year: 'numeric',
         })
         : '';
-    const submittedChip = submittedDateStr
-        ? `<span class="text-xs text-gray-500">Diajukan ${escapeHtml(submittedDateStr)}</span>`
+    const submittedText = submittedDateStr
+        ? `<p class="${cx(textClass.helper, 'font-semibold')}">Diajukan ${escapeHtml(submittedDateStr)}</p>`
         : '';
     return `
-        <div class="flex flex-wrap items-center gap-3">
-            <span class="${item.statusTone} px-3 py-1 rounded-full font-bold text-[11px] uppercase tracking-wider border">${escapeHtml(item.statusLabel)}</span>
-            ${submittedChip}
-        </div>
+        ${submittedText}
     `;
 };
 
@@ -277,27 +277,34 @@ const renderRevisionNoteBox = (note: string | null): string => `
 interface TrackingCardParts {
     label: string;
     status: string;
+    statusLabel: string;
+    statusTone: string;
     bodyHtml: string;
     actionsHtml: string;
 }
 
 const renderTrackingCardShell = (parts: TrackingCardParts): string => `
-    <div class="bg-white rounded-[24px] shadow-sm border border-gray-100 overflow-hidden flex flex-col">
-        <div class="bg-primary-teal px-6 py-4 text-white">
-            <h4 class="font-['Inter'] font-normal text-white text-xl">${escapeHtml(parts.label)}</h4>
+    <article class="${surfaceClass('interactive', 'flex h-full flex-col p-6')}">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+            <span class="${badgeClass('primary')}">Administrasi Surat</span>
+            <span class="${parts.statusTone} px-3 py-1.5 rounded-full font-bold text-[11px] border">${escapeHtml(parts.statusLabel)}</span>
         </div>
-        <div class="p-8 flex-1 flex flex-col">
+        <div class="mt-5">
+            <h4 class="break-words font-['Inter'] text-lg font-bold text-gray-900">${escapeHtml(parts.label)}</h4>
+            <p class="mt-1 text-sm font-semibold text-gray-600">Pengajuan surat administrasi</p>
+        </div>
+        <div class="mt-6 rounded-2xl border border-gray-100 bg-gray-50/60 p-4">
             ${renderWorkflowTimeline(parts.status)}
-            <div class="flex-1 flex flex-col justify-between gap-6">
-                <div class="space-y-4">
-                    ${parts.bodyHtml}
-                </div>
-                <div>
-                    ${parts.actionsHtml}
-                </div>
+        </div>
+        <div class="mt-5 flex flex-1 flex-col justify-between gap-5">
+            <div class="space-y-4">
+                ${parts.bodyHtml}
+            </div>
+            <div>
+                ${parts.actionsHtml}
             </div>
         </div>
-    </div>
+    </article>
 `;
 
 const renderTrackingCard = (item: TrackingItem): string => {
@@ -361,7 +368,14 @@ const renderTrackingCard = (item: TrackingItem): string => {
         actionsHtml = detailButton;
     }
 
-    return renderTrackingCardShell({ label: item.label, status: item.status, bodyHtml, actionsHtml });
+    return renderTrackingCardShell({
+        label: item.label,
+        status: item.status,
+        statusLabel: item.statusLabel,
+        statusTone: item.statusTone,
+        bodyHtml,
+        actionsHtml,
+    });
 };
 
 export const renderMahasiswaDashboard = async () => {
@@ -376,6 +390,16 @@ export const renderMahasiswaDashboard = async () => {
     // Track endpoints that didn't return a usable payload so we can surface a
     // visible partial-failure banner — silent undercounts must not happen.
     let failedEndpointCount = 0;
+
+    // Peminjaman Ruangan uses its OWN status vocabulary and detail dialog —
+    // it is intentionally kept out of the letter aggregate (counts, timeline,
+    // letter-workflow labels) and rendered as a dedicated section below.
+    const peminjamanRequest = getMahasiswaBookings()
+        .then((items) => ({ items, error: null as string | null }))
+        .catch(() => ({
+            items: [] as MahasiswaBooking[],
+            error: 'Data peminjaman ruangan gagal dimuat. Coba refresh halaman.',
+        }));
 
     try {
         const loaded = await loadMahasiswaApplications((url) => apiFetch(url, { cache: 'no-store' }));
@@ -394,7 +418,7 @@ export const renderMahasiswaDashboard = async () => {
         ? `
             <div role="alert" class="bg-amber-50 border border-amber-200 text-amber-800 rounded-xl px-4 py-3 text-xs font-semibold flex items-start gap-2">
                 <svg class="shrink-0 mt-0.5 text-amber-500" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-                <span>Sebagian data surat gagal dimuat. Total dan riwayat di bawah mungkin tidak lengkap. Coba refresh halaman.</span>
+                <span>Sebagian data surat gagal dimuat. Total dan pelacakan aktif mungkin tidak lengkap. Coba refresh halaman.</span>
             </div>
         `
         : '';
@@ -406,36 +430,6 @@ export const renderMahasiswaDashboard = async () => {
 
     // Build History Rows — type-aware label and navigation so non-Beasiswa
     // entries open the right detail page when "Lihat Detail" is clicked.
-    const recentApps = applications.slice(0, 4);
-    let historyHtml = '';
-    if (recentApps.length === 0) {
-        historyHtml = `<tr><td colspan="4" class="px-8 py-5 text-center text-sm text-gray-500">Belum ada riwayat pengajuan.</td></tr>`;
-    } else {
-        historyHtml = recentApps.map((app: any) => {
-            const dateStr = new Date(app.created_at).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
-            const statusText = getLetterStatusLabel(app.status, 'student-list');
-            const statusClass = getLetterStatusTone(app.status, 'student-dashboard');
-            const label = app.scholarship_name || getLetterLabel(app.letter_type);
-
-            return `
-                <tr class="hover:bg-gray-50/50 transition-colors group">
-                    <td class="px-8 py-5 text-sm text-gray-400 font-['Inter'] font-normal text-center">${dateStr}</td>
-                    <td class="px-8 py-5 text-sm text-gray-900 font-['Inter'] font-normal text-center">${label}</td>
-                    <td class="px-8 py-5 text-sm text-center">
-                        <span class="${statusClass} px-4 py-1.5 rounded-full font-bold text-[11px] uppercase tracking-wider border">
-                            ${statusText}
-                        </span>
-                    </td>
-                    <td class="px-8 py-5">
-                        <div class="flex items-center justify-center gap-3 group-hover:opacity-100 transition-opacity">
-                            <button data-action="open-letter-detail" data-origin="riwayat" data-id="${app.id}" data-letter-type="${app.letter_type || ''}" class="text-primary-teal font-bold text-xs hover:underline">Lihat Detail</button>
-                        </div>
-                    </td>
-                </tr>
-            `;
-        }).join('');
-    }
-
     // Active Tracking — global across every aggregated letter type. An "active"
     // submission is anything not in a terminal state (COMPLETED, REJECTED);
     // REVISION is kept because the student still has work to do. The list is
@@ -448,25 +442,31 @@ export const renderMahasiswaDashboard = async () => {
     // tidy; if the full count exceeds the cap we MUST surface that or the UI
     // implies the list is complete. Total is computed before the slice so the
     // honesty note can compare shown vs total.
+    const peminjamanResult = await peminjamanRequest;
+    const activePeminjaman = peminjamanResult.items
+        .filter((booking) => isActivePeminjamanBooking(booking))
+        .sort((a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime());
+
     const allActive = applications.filter((app: any) => ![COMPLETED, REJECTED].includes(app.status));
-    const ACTIVE_TRACKING_CAP = 4;
-    const activeItems = allActive.slice(0, ACTIVE_TRACKING_CAP).map(toTrackingItem);
+    const activeItems = allActive.map(toTrackingItem);
+    const peminjamanTrackingHtml = peminjamanResult.error
+        ? `<div role="alert" class="col-span-full rounded-2xl border border-red-100 bg-red-50 px-4 py-6 text-center text-sm font-semibold text-red-700">${escapeHtml(peminjamanResult.error)}</div>`
+        : activePeminjaman.length > 0
+            ? renderPeminjamanTrackingCards(activePeminjaman)
+            : '';
 
     let trackingHtml = '';
-    if (activeItems.length === 0) {
-        trackingHtml = `<div class="col-span-full text-center text-gray-500 py-8 bg-white rounded-2xl border border-gray-100">Tidak ada pengajuan aktif yang sedang diproses.</div>`;
+    if (activeItems.length === 0 && activePeminjaman.length === 0 && !peminjamanResult.error) {
+        trackingHtml = `
+            <div class="${surfaceClass('card', 'col-span-full px-6 py-10 text-center')}">
+                <p class="text-base font-bold text-gray-900">Tidak ada pengajuan aktif</p>
+                <p class="${cx(textClass.helper, 'mx-auto mt-2 max-w-xl')}">Semua pengajuan Anda sedang kosong atau sudah masuk riwayat. Buat pengajuan baru saat diperlukan.</p>
+                <button type="button" data-action="open-letter-form" class="${buttonClass('primary', 'sm', 'mt-5')}">Ajukan Surat Baru</button>
+            </div>
+        `;
     } else {
-        trackingHtml = activeItems.map(renderTrackingCard).join('');
+        trackingHtml = `${activeItems.map(renderTrackingCard).join('')}${peminjamanTrackingHtml}`;
     }
-
-    const activeCapNote = allActive.length > activeItems.length
-        ? `
-            <p class="text-xs text-gray-500 mt-4 text-center">
-                Menampilkan ${activeItems.length} dari ${allActive.length} pengajuan aktif.
-                <button id="btn-active-cap-riwayat" type="button" class="text-primary-teal font-semibold hover:underline">Lihat Riwayat Pengajuan untuk lainnya.</button>
-            </p>
-        `
-        : '';
 
     const content = `
         <div class="space-y-8">
@@ -476,6 +476,7 @@ export const renderMahasiswaDashboard = async () => {
                     <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
                         <div class="flex-1">
                             <h2 class="text-[32px] font-semibold text-gray-900 font-['Inter']">Halo, ${getGreetingName(localStorage.getItem('auth_name'))}! </h2>
+                            <p class="mt-1 text-sm text-gray-500">Pantau pengajuan surat dan peminjaman ruangan Anda di sini.</p>
                         </div>
                         <div>
                             <button id="btn-lengkapi-profil" class="font-['Inter'] hidden px-6 py-2.5 bg-primary-teal text-white font-semibold rounded-xl hover:bg-black hover:text-white transition-all duration-200 shadow-sm whitespace-nowrap">
@@ -552,29 +553,6 @@ export const renderMahasiswaDashboard = async () => {
                 <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
                     ${trackingHtml}
                 </div>
-                ${activeCapNote}
-            </div>
-
-            <!-- Recent History Section -->
-            <div class="mt-8">
-                <h3 class="text-2xl font-normal text-gray-800 mb-6 flex items-center gap-2">Riwayat Pengajuan</h3>
-                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left ">
-                            <thead>
-                                <tr class="text-[13px] font-['Inter'] font-medium text-gray-900 border-b border-gray-500">
-                                    <th class="px-8 py-5 text-center">Tanggal Unggah</th>
-                                    <th class="px-8 py-5 text-center">Nama Dokumen</th>
-                                    <th class="px-8 py-5 text-center">Status</th>
-                                    <th class="px-8 py-5 text-center">Detail</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-50">
-                                ${historyHtml}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
             </div>
         </div>
     `;
@@ -596,6 +574,14 @@ export const renderMahasiswaDashboard = async () => {
                 });
             });
         }
+
+        document.querySelectorAll('[data-action="open-letter-form"]').forEach((button) => {
+            button.addEventListener('click', () => {
+                import('../mahasiswa/AdministrasiSurat').then(({ renderAdministrasiSurat }) => {
+                    renderAdministrasiSurat();
+                });
+            });
+        });
 
         document.querySelectorAll('[data-action="fix-scholarship-revision"]').forEach((button) => {
             button.addEventListener('click', () => {
@@ -626,14 +612,25 @@ export const renderMahasiswaDashboard = async () => {
             });
         });
 
-        // Active Tracking cap note → open Riwayat Pengajuan via the same lazy
-        // import pattern the "Ajukan Surat Baru" button uses.
-        document.getElementById('btn-active-cap-riwayat')?.addEventListener('click', () => {
-            import('../mahasiswa/RiwayatPengajuan').then(({ renderRiwayatPengajuan }) => {
-                renderRiwayatPengajuan();
+        // Peminjaman Ruangan cards → shared booking detail controller. Lazy
+        // import (like page navigation) keeps the dashboard chunk lean and
+        // avoids widening the static import graph.
+        document.querySelectorAll('[data-action="open-peminjaman-detail"]').forEach((button) => {
+            button.addEventListener('click', () => {
+                const id = Number((button as HTMLElement).dataset.bookingId);
+                if (!Number.isInteger(id)) return;
+                import('../mahasiswa/peminjaman/detail').then(({ openPeminjamanBookingDetail }) => {
+                    void openPeminjamanBookingDetail(id, {
+                        onMutated: () => {
+                            void renderMahasiswaDashboard();
+                        },
+                    });
+                });
             });
         });
 
+        // Active Tracking cap note → open Riwayat Pengajuan via the same lazy
+        // import pattern the "Ajukan Surat Baru" button uses.
         document.querySelectorAll('[data-action="complete-letter-review"]').forEach((button) => {
             button.addEventListener('click', () => {
                 const el = button as HTMLElement;

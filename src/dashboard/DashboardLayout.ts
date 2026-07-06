@@ -310,6 +310,16 @@ export const renderDashboardLayout = (title: string, content: string, role: stri
         });
     });
 
+    document.getElementById('sidebar-peminjaman-admin-link')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (role === 'super_admin') {
+            (window as any).clearDashboardInterval?.();
+            import('../superadmin/PeminjamanRuanganAdmin').then(({ renderPeminjamanRuanganAdmin }) => {
+                void renderPeminjamanRuanganAdmin();
+            });
+        }
+    });
+
     document.getElementById('sidebar-history-link')?.addEventListener('click', (e) => {
         e.preventDefault();
         (window as any).clearDashboardInterval?.();
@@ -339,6 +349,14 @@ export const renderDashboardLayout = (title: string, content: string, role: stri
         (window as any).clearDashboardInterval?.();
         import('../tendik/DokumenTendik').then(({ renderDokumenTendik }) => {
             renderDokumenTendik(role);
+        });
+    });
+
+    document.getElementById('sidebar-peminjaman-tendik-link')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        (window as any).clearDashboardInterval?.();
+        import('../tendik/PeminjamanRuanganTendik').then(({ renderPeminjamanRuanganTendik }) => {
+            void renderPeminjamanRuanganTendik(role);
         });
     });
 
