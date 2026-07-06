@@ -31,6 +31,7 @@ import {
     surfaceClass,
 } from '../shared/design-system';
 import {
+    fetchRoomPhotoObjectUrl,
     getPeminjamanAvailability,
     getPeminjamanRooms,
 } from './peminjaman/api';
@@ -42,6 +43,10 @@ import {
     closePeminjamanDetail,
     openPeminjamanBookingDetail,
 } from './peminjaman/detail';
+import {
+    closeRoomCatalogDetail,
+    openRoomCatalogDetail,
+} from './peminjaman/room-detail';
 import { escapeHtml } from './peminjaman/views';
 import type {
     AvailabilityItem,
@@ -62,6 +67,14 @@ let rooms: Room[] = [];
 let availabilityByDate: AvailabilityByDate = new Map();
 let pageRequestSequence = 0;
 let dayDialogEscapeHandler: ((event: KeyboardEvent) => void) | null = null;
+// Cover thumbnails per media URL, cached for the page visit so filter/month
+// re-renders reuse the same object URL instead of refetching or leaking.
+const roomCoverUrlCache = new Map<string, string>();
+
+const revokeRoomCoverCache = (): void => {
+    roomCoverUrlCache.forEach((objectUrl) => URL.revokeObjectURL(objectUrl));
+    roomCoverUrlCache.clear();
+};
 
 function createInitialViewState(): CalendarViewState {
     const now = new Date();
@@ -172,6 +185,40 @@ const renderCategoryCard = (type: RoomType): string => {
     `;
 };
 
+const PHOTO_PLACEHOLDER_ICON =
+    '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="m21 15-5-5L5 21"></path></svg>';
+
+const renderRoomCard = (room: Room): string => {
+    const coverUrl = room.cover_photo?.thumb_url ?? room.cover_photo?.display_url ?? null;
+    const facilityCount = room.facilities_summary?.count ?? 0;
+    const facilityItems = (room.facilities_summary?.items ?? []).slice(0, 3);
+
+    return `
+        <article role="button" tabindex="0" data-room-select="${room.id}" aria-label="Lihat detail ruangan ${escapeHtml(room.code)} ${escapeHtml(room.name)}" class="cursor-pointer overflow-hidden rounded-xl border border-gray-100 bg-gray-50/60 transition-all hover:border-teal-200 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-50 focus:border-primary-teal">
+            <div class="relative h-28 w-full bg-gray-100" data-room-cover${coverUrl ? ` data-cover-url="${escapeHtml(coverUrl)}" data-cover-alt="Foto ${escapeHtml(room.code)} ${escapeHtml(room.name)}"` : ''}>
+                <div data-cover-placeholder class="flex h-full items-center justify-center text-gray-300">${PHOTO_PLACEHOLDER_ICON}</div>
+                <span class="absolute right-2 top-2 rounded-full border border-gray-200 bg-white/95 px-2 py-0.5 text-[10px] font-bold text-gray-600 shadow-sm">${getRoomTypeLabel(room.type)}</span>
+            </div>
+            <div class="p-4">
+                <p class="min-w-0 break-words text-sm font-bold text-gray-800">${escapeHtml(room.code)} · ${escapeHtml(room.name)}</p>
+                <p class="mt-1 truncate text-xs text-gray-500">${escapeHtml(room.location)}</p>
+                <p class="mt-1.5 text-xs font-semibold text-gray-600">Kapasitas ${room.capacity} orang</p>
+                <div class="mt-2.5 flex flex-wrap items-center gap-1.5">
+                    ${facilityItems.map((item) => `<span class="rounded-full border border-gray-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-gray-600">${escapeHtml(item)}</span>`).join('')}
+                    ${facilityCount > facilityItems.length ? `<span class="text-[10px] font-semibold text-gray-400">+${facilityCount - facilityItems.length} lainnya</span>` : ''}
+                    ${facilityCount === 0 ? '<span class="text-[10px] text-gray-400">Fasilitas belum dicatat</span>' : ''}
+                </div>
+                ${room.has_active_template ? `
+                    <p class="mt-2 inline-flex items-center gap-1 text-[10px] font-bold text-teal-700">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        Template tersedia
+                    </p>
+                ` : ''}
+            </div>
+        </article>
+    `;
+};
+
 const renderRoomBrowser = (): string => {
     if (rooms.length === 0) {
         return `
@@ -187,24 +234,51 @@ const renderRoomBrowser = (): string => {
             <div class="flex items-start justify-between gap-4">
                 <div>
                     <h3 class="text-base font-bold text-gray-800">Daftar Ruangan Aktif</h3>
-                    <p class="mt-1 text-xs text-gray-500">Klik ruangan untuk langsung mengajukan dengan ruangan tersebut.</p>
+                    <p class="mt-1 text-xs text-gray-500">Klik ruangan untuk melihat foto, fasilitas, dan template sebelum mengajukan.</p>
                 </div>
                 <span class="shrink-0 rounded-full border border-teal-100 bg-teal-50 px-3 py-1 text-xs font-bold text-teal-700">${rooms.length} ruang</span>
             </div>
-            <div class="mt-5 grid max-h-[440px] grid-cols-1 gap-3 overflow-y-auto pr-1 sm:grid-cols-2">
-                ${rooms.map((room) => `
-                    <article role="button" tabindex="0" data-room-select="${room.id}" aria-label="Ajukan peminjaman ${escapeHtml(room.code)} ${escapeHtml(room.name)}" class="cursor-pointer rounded-xl border border-gray-100 bg-gray-50/60 p-4 transition-colors hover:border-teal-200 focus:outline-none focus:ring-2 focus:ring-teal-50 focus:border-primary-teal">
-                        <div class="flex items-start justify-between gap-3">
-                            <p class="min-w-0 break-words text-sm font-bold text-gray-800">${escapeHtml(room.code)} · ${escapeHtml(room.name)}</p>
-                            <span class="shrink-0 rounded-full border border-gray-200 bg-white px-2 py-0.5 text-[10px] font-bold text-gray-600">${getRoomTypeLabel(room.type)}</span>
-                        </div>
-                        <p class="mt-1 truncate text-xs text-gray-500">${escapeHtml(room.location)}</p>
-                        <p class="mt-2 text-xs font-semibold text-gray-600">Kapasitas ${room.capacity} orang</p>
-                    </article>
-                `).join('')}
+            <div class="mt-5 grid max-h-[560px] grid-cols-1 gap-3 overflow-y-auto pr-1 sm:grid-cols-2">
+                ${rooms.map((room) => renderRoomCard(room)).join('')}
             </div>
         </section>
     `;
+};
+
+/**
+ * Async cover hydration: cards render instantly with a neutral placeholder,
+ * then authenticated thumbnails stream in (cached per page visit). Failures
+ * simply keep the placeholder — never an error card for a photo.
+ */
+const hydrateRoomCovers = (): void => {
+    document.querySelectorAll<HTMLElement>('[data-room-cover][data-cover-url]').forEach((container) => {
+        const mediaUrl = container.dataset.coverUrl;
+        if (!mediaUrl) return;
+
+        const applyImage = (objectUrl: string): void => {
+            if (!container.isConnected) return;
+            const image = document.createElement('img');
+            image.src = objectUrl;
+            image.alt = container.dataset.coverAlt ?? 'Foto ruangan';
+            image.className = 'h-full w-full object-cover';
+            container.querySelector('[data-cover-placeholder]')?.replaceWith(image);
+        };
+
+        const cached = roomCoverUrlCache.get(mediaUrl);
+        if (cached) {
+            applyImage(cached);
+            return;
+        }
+
+        void fetchRoomPhotoObjectUrl(mediaUrl)
+            .then((objectUrl) => {
+                roomCoverUrlCache.set(mediaUrl, objectUrl);
+                applyImage(objectUrl);
+            })
+            .catch(() => {
+                // Placeholder stays — photos are progressive enhancement.
+            });
+    });
 };
 
 const buildCalendarGrid = (): string => {
@@ -395,6 +469,7 @@ const renderSuccessState = (calendarLoading = false): void => {
         </div>
     `;
     attachSuccessListeners();
+    hydrateRoomCovers();
 };
 
 const setPageState = (html: string): void => {
@@ -519,8 +594,14 @@ const attachSuccessListeners = (): void => {
             startBooking({ preferredType: cta });
             return;
         }
+        // Room cards open the detail drawer first (photos, facilities,
+        // template); booking starts from the drawer's CTA.
         const roomId = Number(element.dataset.roomSelect);
-        if (Number.isInteger(roomId)) startBooking({ roomId });
+        if (Number.isInteger(roomId)) {
+            void openRoomCatalogDetail(roomId, {
+                onApply: (selectedRoomId) => startBooking({ roomId: selectedRoomId }),
+            });
+        }
     };
     document.querySelectorAll<HTMLElement>('[data-booking-cta], [data-room-select]').forEach((element) => {
         element.addEventListener('click', () => activateBookingTrigger(element));
@@ -579,6 +660,8 @@ export const renderPeminjamanRuangan = async (): Promise<void> => {
     closeDayDialog();
     closeBookingWorkflow();
     closePeminjamanDetail();
+    closeRoomCatalogDetail();
+    revokeRoomCoverCache();
 
     renderDashboardLayout(
         'Peminjaman Ruangan',
@@ -590,6 +673,8 @@ export const renderPeminjamanRuangan = async (): Promise<void> => {
         closeDayDialog();
         closeBookingWorkflow();
         closePeminjamanDetail();
+        closeRoomCatalogDetail();
+        revokeRoomCoverCache();
         renderMahasiswaDashboard();
     });
 

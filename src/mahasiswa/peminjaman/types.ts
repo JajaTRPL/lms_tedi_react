@@ -13,6 +13,47 @@ export interface LaboratorySummary {
     name: string;
 }
 
+/**
+ * Room photo metadata from the CP2 catalog API. Only authenticated media
+ * endpoint references are exposed — never storage disks/paths. Everything is
+ * optional so legacy payloads (pre-photo backend) normalize to "no photo".
+ */
+export interface RoomPhotoMeta {
+    id: number;
+    thumb_url?: string | null;
+    display_url?: string | null;
+    full_url?: string | null;
+    width?: number | null;
+    height?: number | null;
+    is_cover?: boolean;
+    sort_order?: number;
+    original_name?: string | null;
+}
+
+export type RoomFacilityCondition = 'baik' | 'perlu_perbaikan' | 'rusak';
+
+export interface RoomFacilityItem {
+    facility_type_id: number;
+    name?: string | null;
+    slug?: string | null;
+    quantity?: number | null;
+    condition?: RoomFacilityCondition | string | null;
+    notes?: string | null;
+}
+
+export interface RoomFacilitiesSummary {
+    count?: number;
+    items?: string[];
+}
+
+export interface RoomTemplateInfo {
+    original_name?: string | null;
+    mime?: string | null;
+    size_bytes?: number | null;
+    version?: number | null;
+    download_url?: string | null;
+}
+
 export interface Room {
     id: number;
     code: string;
@@ -23,6 +64,17 @@ export interface Room {
     description: string | null;
     is_active: boolean;
     owning_laboratory: LaboratorySummary | null;
+    // CP2 additive catalog hints — absent on legacy payloads.
+    rules?: string | null;
+    cover_photo?: RoomPhotoMeta | null;
+    facilities_summary?: RoomFacilitiesSummary | null;
+    has_active_template?: boolean;
+}
+
+export interface RoomDetail extends Room {
+    photos?: RoomPhotoMeta[] | null;
+    facilities?: RoomFacilityItem[] | null;
+    template?: RoomTemplateInfo | null;
 }
 
 export interface AvailabilityRoom {

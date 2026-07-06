@@ -6,8 +6,10 @@ import type {
     LaboratorySummary,
     MahasiswaBooking,
     Room,
+    RoomDetail,
     RoomManagementPayload,
     RoomListEnvelope,
+    RoomTemplateInfo,
     RoomType,
     SuperAdminBooking,
     SuperAdminBookingFilters,
@@ -112,6 +114,72 @@ export async function getPeminjamanAvailability(
         response,
         'Gagal memuat kalender ketersediaan ruangan.',
     )).data;
+}
+
+export async function getPeminjamanRoomDetail(roomId: number): Promise<RoomDetail> {
+    const response = await apiFetch(`${BASE}/rooms/${roomId}`);
+    return (await readJson<ApiEnvelope<RoomDetail>>(
+        response,
+        'Gagal memuat detail ruangan.',
+    )).data;
+}
+
+/**
+ * Load a room photo through its authenticated media endpoint and return an
+ * object URL. Only relative /api endpoint references from the backend payload
+ * are accepted — anything else (accidental raw path, absolute host) is
+ * rejected before any request is made. Callers own revocation.
+ */
+export async function fetchRoomPhotoObjectUrl(mediaUrl: string): Promise<string> {
+    if (!mediaUrl.startsWith('/api/')) {
+        throw new PeminjamanApiError('Foto ruangan tidak dapat dimuat.', 0);
+    }
+
+    const response = await apiFetch(mediaUrl, {
+        headers: { Accept: 'image/jpeg' },
+    });
+    if (!response.ok) {
+        throw new PeminjamanApiError('Foto ruangan tidak dapat dimuat.', response.status);
+    }
+
+    return URL.createObjectURL(await response.blob());
+}
+
+/**
+ * Authenticated download of the active booking template for a room →
+ * blob → browser save. Filename is built locally from the room code and the
+ * template MIME; server filenames are display metadata only.
+ */
+export async function downloadRoomTemplate(
+    room: Pick<RoomDetail, 'id' | 'code'>,
+    template?: RoomTemplateInfo | null,
+): Promise<void> {
+    const response = await apiFetch(`${BASE}/rooms/${room.id}/template`, {
+        cache: 'no-store',
+    });
+    if (!response.ok) {
+        const message = response.status === 404
+            ? 'Template peminjaman belum tersedia untuk ruangan ini.'
+            : 'Template peminjaman gagal diunduh.';
+        throw new PeminjamanApiError(message, response.status);
+    }
+
+    const extension = template?.mime?.includes('wordprocessingml') ? 'docx' : 'pdf';
+    const safeCode = room.code.replace(/[^A-Za-z0-9-]+/g, '-').replace(/^-+|-+$/g, '') || 'ruangan';
+    const fileName = `template-peminjaman-${safeCode}.${extension}`;
+
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    try {
+        const anchor = document.createElement('a');
+        anchor.href = objectUrl;
+        anchor.download = fileName;
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+    } finally {
+        URL.revokeObjectURL(objectUrl);
+    }
 }
 
 export async function getMahasiswaBookings(): Promise<MahasiswaBooking[]> {

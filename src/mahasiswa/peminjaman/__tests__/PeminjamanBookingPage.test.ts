@@ -6,6 +6,9 @@ const m = vi.hoisted(() => ({
     getAvailability: vi.fn(),
     getBookings: vi.fn(),
     getBooking: vi.fn(),
+    getRoomDetail: vi.fn(),
+    fetchRoomPhoto: vi.fn(),
+    downloadTemplate: vi.fn(),
     createBooking: vi.fn(),
     updateBooking: vi.fn(),
     resubmitBooking: vi.fn(),
@@ -52,6 +55,9 @@ vi.mock('../api', () => {
         getPeminjamanAvailability: m.getAvailability,
         getMahasiswaBookings: m.getBookings,
         getMahasiswaBooking: m.getBooking,
+        getPeminjamanRoomDetail: m.getRoomDetail,
+        fetchRoomPhotoObjectUrl: m.fetchRoomPhoto,
+        downloadRoomTemplate: m.downloadTemplate,
         createMahasiswaBooking: m.createBooking,
         updateMahasiswaBooking: m.updateBooking,
         resubmitMahasiswaBooking: m.resubmitBooking,
@@ -343,10 +349,22 @@ describe('Mahasiswa booking workflow', () => {
         expect(document.getElementById('peminjaman-booking-form')).not.toBeNull();
     });
 
-    it('opens the form prefilled from the room browser selection', async () => {
+    it('opens the room detail drawer from the browser, then the form via Ajukan Peminjaman', async () => {
+        m.getRoomDetail.mockResolvedValue({ ...room, photos: [], facilities: [], template: null });
         await renderPeminjamanRuangan();
         document.querySelector<HTMLElement>(`[data-room-select="${room.id}"]`)?.click();
+        await flush();
 
+        // Card click opens the detail drawer — not the booking form.
+        expect(document.getElementById('peminjaman-room-detail-root')).not.toBeNull();
+        expect(document.getElementById('peminjaman-booking-form')).toBeNull();
+        expect(m.getRoomDetail).toHaveBeenCalledWith(room.id);
+
+        document.getElementById('room-detail-apply')?.click();
+        await flush();
+
+        // Drawer closes and the existing booking form opens prefilled.
+        expect(document.getElementById('peminjaman-room-detail-root')).toBeNull();
         expect((document.getElementById('peminjaman-room-id') as HTMLSelectElement).value)
             .toBe(String(room.id));
     });
