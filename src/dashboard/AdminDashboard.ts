@@ -59,6 +59,7 @@ export const renderAdminDashboard = async () => {
                     <!-- Welcome Section -->
                     <div>
                         <h2 class="text-2xl font-semibold text-gray-800 font-['Inter']">Halo, Super Admin!</h2>
+                        <p class="mt-1 text-sm text-gray-500">Kelola pengguna, data master, dan pantau aktivitas sistem.</p>
                         <span class="inline-flex items-center px-3 py-1 rounded-lg text-xs font-semibold font-['Inter'] mt-2" style="background:#F59E0B;color:#fff">
                             Super Admin
                         </span>

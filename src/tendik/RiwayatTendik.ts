@@ -77,7 +77,7 @@ const loadRiwayatScope = async (role: string, scope: RiwayatScope): Promise<void
     try {
         const response = await apiFetch(`/api/tendik/riwayat?scope=${scope}`);
         const data = await response.json();
-        if (!response.ok) throw new Error(data.message || 'Failed to fetch history');
+        if (!response.ok) throw new Error(data.message || 'Riwayat belum berhasil dimuat. Coba muat ulang halaman.');
         items = toTendikListItems(data.tasks);
     } catch (error) {
         console.error(error);

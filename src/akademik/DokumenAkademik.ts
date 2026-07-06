@@ -72,7 +72,7 @@ export const renderDokumenAkademik = async (role: string): Promise<void> => {
     let items: AkademikListItem[] = [];
     try {
         const response = await apiFetch('/api/akademik/dashboard/tasks');
-        if (!response.ok) throw new Error('Failed to fetch academic documents.');
+        if (!response.ok) throw new Error('Daftar dokumen belum berhasil dimuat. Coba muat ulang halaman.');
         const data = await response.json() as { tasks?: unknown };
         items = toAkademikListItems(data.tasks);
     } catch (error) {

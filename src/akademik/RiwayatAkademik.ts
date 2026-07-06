@@ -74,7 +74,7 @@ export const renderRiwayatAkademik = async (role: string): Promise<void> => {
     let items: AkademikListItem[] = [];
     try {
         const response = await apiFetch('/api/akademik/riwayat');
-        if (!response.ok) throw new Error('Failed to fetch academic history.');
+        if (!response.ok) throw new Error('Riwayat belum berhasil dimuat. Coba muat ulang halaman.');
         const data = await response.json() as { tasks?: unknown };
         items = toAkademikListItems(data.tasks);
     } catch (error) {
