@@ -1,5 +1,5 @@
 import { tabManager } from './types';
-import { buildUserPayload } from './ui-utils';
+import { buildUserPayload, escapeHtml } from './ui-utils';
 import { attachNimUppercaseHandler, normalizeNim } from '../../shared/nim-utils';
 import { attachBlurLowercaseEmail, trimAndCollapseWhitespace } from '../../shared/formatters';
 import { populateStudyProgramSelect } from '../../shared/study-program-select';
@@ -42,15 +42,15 @@ export const renderUserModal = (user: any = null, onRefresh: () => void) => {
                 <form id="user-form" class="p-6 space-y-4">
                     <div>
                         <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Nama Lengkap</label>
-                        <input type="text" name="name" value="${user?.name || ''}" required class="w-full px-4 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-teal-500 outline-none transition-all">
+                        <input type="text" name="name" value="${escapeHtml(user?.name || '')}" required class="w-full px-4 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-teal-500 outline-none transition-all">
                     </div>
                     <div>
                         <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Email</label>
-                        <input type="email" name="email" value="${user?.email || ''}" required class="w-full px-4 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-teal-500 outline-none transition-all">
+                        <input type="email" name="email" value="${escapeHtml(user?.email || '')}" required class="w-full px-4 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-teal-500 outline-none transition-all">
                     </div>
                     <div id="nip-field-container" class="${defaultRole === 'mahasiswa' ? 'hidden' : ''}">
                         <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">NIP</label>
-                        <input type="text" name="nip" value="${user?.nip || ''}" placeholder="Masukkan NIP" maxlength="50" ${defaultRole === 'mahasiswa' ? 'disabled' : ''} class="w-full px-4 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-teal-500 outline-none transition-all disabled:bg-gray-50">
+                        <input type="text" name="nip" value="${escapeHtml(user?.nip || '')}" placeholder="Masukkan NIP" maxlength="50" ${defaultRole === 'mahasiswa' ? 'disabled' : ''} class="w-full px-4 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-teal-500 outline-none transition-all disabled:bg-gray-50">
                     </div>
                     <div>
                         <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Role</label>
@@ -97,11 +97,11 @@ export const renderUserModal = (user: any = null, onRefresh: () => void) => {
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">NIM</label>
-                                <input type="text" name="nim" value="${user?.mahasiswa_profile?.nim || ''}" class="w-full px-4 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-teal-500 outline-none transition-all uppercase" placeholder="••••••••">
+                                <input type="text" name="nim" value="${escapeHtml(user?.mahasiswa_profile?.nim || '')}" class="w-full px-4 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-teal-500 outline-none transition-all uppercase" placeholder="••••••••">
                             </div>
                             <div>
                                 <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Tgl Lahir</label>
-                                <input type="date" name="tanggal_lahir" value="${user?.mahasiswa_profile?.tanggal_lahir || ''}" class="w-full px-4 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-teal-500 outline-none transition-all">
+                                <input type="date" name="tanggal_lahir" value="${escapeHtml(user?.mahasiswa_profile?.tanggal_lahir || '')}" class="w-full px-4 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-teal-500 outline-none transition-all">
                             </div>
                         </div>
                         <div>
@@ -352,7 +352,7 @@ export const renderUserModal = (user: any = null, onRefresh: () => void) => {
                 warning?.classList.remove('hidden');
             } else {
                 select.innerHTML = '<option value="">Pilih Laboratorium...</option>' +
-                    labs.map((l: any) => `<option value="${l.id}" ${user?.laboratory_id == l.id ? 'selected' : ''}>${l.code} - ${l.name}</option>`).join('');
+                    labs.map((l: any) => `<option value="${escapeHtml(l.id)}" ${user?.laboratory_id == l.id ? 'selected' : ''}>${escapeHtml(l.code)} - ${escapeHtml(l.name)}</option>`).join('');
                 select.disabled = false;
                 warning?.classList.add('hidden');
             }
@@ -393,8 +393,8 @@ export const renderUserModal = (user: any = null, onRefresh: () => void) => {
             }
             container.innerHTML = types.map((item: SuratType) => `
                 <label class="flex items-center gap-3 cursor-pointer group">
-                    <input type="checkbox" name="assigned_tasks" value="${item.key}" ${isSuratTypeAssigned(item, assigned) ? 'checked' : ''} class="w-4 h-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500">
-                    <span class="text-xs text-gray-600 group-hover:text-teal-700 transition-colors">${suratTypeLabel(item)}</span>
+                    <input type="checkbox" name="assigned_tasks" value="${escapeHtml(item.key)}" ${isSuratTypeAssigned(item, assigned) ? 'checked' : ''} class="w-4 h-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500">
+                    <span class="text-xs text-gray-600 group-hover:text-teal-700 transition-colors">${escapeHtml(suratTypeLabel(item))}</span>
                 </label>
             `).join('');
         };

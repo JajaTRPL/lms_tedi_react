@@ -25,7 +25,7 @@ const getStatusBadge = (status: string) => {
 
 async function fetchMonitoringData(period: string) {
     const response = await apiFetch(`/api/super-admin/dashboard/monitoring?period=${period}`);
-    if (!response.ok) throw new Error('Failed to fetch monitoring data');
+    if (!response.ok) throw new Error('Data monitoring belum berhasil dimuat. Coba muat ulang halaman.');
     return response.json();
 }
 

@@ -110,12 +110,12 @@ export const getRoleBadge = (user: any) => {
     const role = user.role;
     const roleLevel = user.role_level;
 
-    let label = role.charAt(0).toUpperCase() + role.slice(1);
+    let label = escapeHtml(role.charAt(0).toUpperCase() + role.slice(1));
 
     if (role === 'tendik' && ['kepala_lab', 'laboran'].includes(user.tendik_role)) {
         const labName = user.laboratory?.code || user.laboratory?.name || `Lab ${user.laboratory_id || '?'}`;
         const roleName = user.tendik_role === 'kepala_lab' ? 'Kepala Lab' : 'Laboran';
-        label = `${roleName} (${labName})`;
+        label = `${roleName} (${escapeHtml(labName)})`;
     } else if (role === 'super_admin') {
         label = roleLevel === 'primary' ? 'Primary Admin' : 'Secondary Admin';
     } else if (role === 'mahasiswa') {
@@ -130,11 +130,11 @@ export const getRoleBadge = (user: any) => {
         if (['kadep', 'sekdep'].includes(subRoleRaw.toLowerCase())) {
             const deptCode = user.department?.code ?? 'Unknown';
             const deptName = user.department?.name ?? '';
-            label = `<span title="${deptName}">${subRoleStr} ${deptCode}</span>`;
+            label = `<span title="${escapeHtml(deptName)}">${escapeHtml(subRoleStr)} ${escapeHtml(deptCode)}</span>`;
         } else if (['kaprodi', 'sekprodi'].includes(subRoleRaw.toLowerCase())) {
             const progCode = user.study_program?.code ?? 'Unknown';
             const progName = user.study_program?.name ?? '';
-            label = `<span title="${progName}">${subRoleStr} ${progCode}</span>`;
+            label = `<span title="${escapeHtml(progName)}">${escapeHtml(subRoleStr)} ${escapeHtml(progCode)}</span>`;
         } else {
             label = 'Akademik';
         }
@@ -238,8 +238,6 @@ export const buildUserPayload = (
         delete data.role_level;
     }
 
-
-
     return { data, error: null };
 };
 
@@ -254,7 +252,7 @@ export const getRoleLevelBadge = (user: any) => {
 export const getStatusBadge = (status: string) => {
     const c = STATUS_BADGE_STYLES[status as keyof typeof STATUS_BADGE_STYLES]
         || { color: 'bg-gray-100 text-gray-700', label: status };
-    return `<span class="px-2 py-0.5 rounded-full text-[10px] font-medium ${c.color}">${c.label}</span>`;
+    return `<span class="px-2 py-0.5 rounded-full text-[10px] font-medium ${c.color}">${escapeHtml(c.label)}</span>`;
 };
 
 export const renderUserRow = (user: any, isSuperAdminTab = false) => {
@@ -288,7 +286,7 @@ export const renderUserRow = (user: any, isSuperAdminTab = false) => {
                     Edit
                 </button>
                 ${showBlock ? `
-                <button class="block-user-btn w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-gray-700 hover:bg-yellow-50 hover:text-yellow-600 transition-colors mt-0.5" data-id="${user.id}" data-status="${user.status}">
+                <button class="block-user-btn w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-gray-700 hover:bg-yellow-50 hover:text-yellow-600 transition-colors mt-0.5" data-id="${user.id}" data-status="${escapeHtml(user.status)}">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
                     ${getSuspendLabel(user.status)}
                 </button>` : ''}
@@ -308,14 +306,14 @@ export const renderUserRow = (user: any, isSuperAdminTab = false) => {
                 <input type="checkbox" class="user-checkbox no-row-click w-4 h-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500 cursor-pointer" data-id="${user.id}">
             </td>
             <td class="px-4 py-3.5 border-b border-gray-50">
-                <span class="text-sm font-semibold text-gray-800">${user.name}</span>
+                <span class="text-sm font-semibold text-gray-800">${escapeHtml(user.name)}</span>
                 ${isSelf ? '<span class="ml-1.5 text-[9px] font-bold bg-teal-100 text-teal-700 px-1.5 py-0.5 rounded-full">Anda</span>' : ''}
             </td>
             <td class="px-4 py-3.5 border-b border-gray-50">
-                <span class="text-sm text-gray-400">${user.email}</span>
+                <span class="text-sm text-gray-400">${escapeHtml(user.email)}</span>
             </td>
             <td class="px-4 py-3.5 border-b border-gray-50">
-                <span class="text-sm text-gray-500 font-mono">${user.nip || '-'}</span>
+                <span class="text-sm text-gray-500 font-mono">${escapeHtml(user.nip || '-')}</span>
             </td>
             ${roleCell.replace('class="', 'class="border-b border-gray-50 ')}
             <td class="px-4 py-3.5 border-b border-gray-50">
@@ -349,7 +347,7 @@ export const renderMahasiswaRow = (user: any) => {
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                     Edit
                 </button>
-                <button class="block-user-btn no-row-click w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-gray-700 hover:bg-yellow-50 hover:text-yellow-600 transition-colors mt-0.5" data-id="${user.id}" data-status="${status}">
+                <button class="block-user-btn no-row-click w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-gray-700 hover:bg-yellow-50 hover:text-yellow-600 transition-colors mt-0.5" data-id="${user.id}" data-status="${escapeHtml(status)}">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
                     ${getSuspendLabel(status)}
                 </button>
@@ -369,18 +367,18 @@ export const renderMahasiswaRow = (user: any) => {
             </td>
             <td class="px-4 py-3.5 border-b border-gray-50">
                 <div class="flex flex-col">
-                    <span class="text-sm font-semibold text-gray-800">${user.name}</span>
-                    <span class="text-[11px] text-gray-400">${user.email}</span>
+                    <span class="text-sm font-semibold text-gray-800">${escapeHtml(user.name)}</span>
+                    <span class="text-[11px] text-gray-400">${escapeHtml(user.email)}</span>
                 </div>
             </td>
             <td class="px-4 py-3.5 border-b border-gray-50">
-                <span class="text-sm text-gray-600 font-mono">${nim}</span>
+                <span class="text-sm text-gray-600 font-mono">${escapeHtml(nim)}</span>
             </td>
             <td class="px-4 py-3.5 border-b border-gray-50">
-                <span class="text-sm text-gray-600">${prodiCode}</span>
+                <span class="text-sm text-gray-600">${escapeHtml(prodiCode)}</span>
             </td>
             <td class="px-4 py-3.5 border-b border-gray-50">
-                <span class="text-sm text-gray-600">${angkatan}</span>
+                <span class="text-sm text-gray-600">${escapeHtml(angkatan)}</span>
             </td>
             <td class="px-4 py-3.5 border-b border-gray-50">
                 ${getStatusBadge(status)}
@@ -417,8 +415,8 @@ export const renderMahasiswaDetailModal = (user: any) => {
                 <div class="bg-teal-700 px-6 py-5 text-white">
                     <div class="flex justify-between items-start">
                         <div>
-                            <h3 class="text-xl font-bold leading-tight">${user.name}</h3>
-                            <p class="text-teal-100 text-sm mt-1 font-mono tracking-wide">${formatUserIdentifier(user)}</p>
+                            <h3 class="text-xl font-bold leading-tight">${escapeHtml(user.name)}</h3>
+                            <p class="text-teal-100 text-sm mt-1 font-mono tracking-wide">${escapeHtml(formatUserIdentifier(user))}</p>
                         </div>
                         <button id="close-mhs-detail" class="hover:bg-white/10 p-1 rounded-lg transition-colors">
                             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
@@ -427,7 +425,7 @@ export const renderMahasiswaDetailModal = (user: any) => {
                     <div class="mt-3 flex items-center gap-2">
                         <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${sc.bg} ${sc.text}">
                             <span class="w-1.5 h-1.5 rounded-full ${sc.dot}"></span>
-                            ${status}
+                            ${escapeHtml(status)}
                         </span>
                         <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-white/15 text-white">Mahasiswa</span>
                     </div>
@@ -441,21 +439,21 @@ export const renderMahasiswaDetailModal = (user: any) => {
                         <div class="grid grid-cols-2 gap-x-6 gap-y-3">
                             <div>
                                 <p class="text-[10px] text-gray-400 uppercase">Program Studi</p>
-                                <p class="text-sm font-semibold text-gray-800" title="${prodiName}">${prodiCode}</p>
-                                <p class="text-[11px] text-gray-400">${prodiName}</p>
+                                <p class="text-sm font-semibold text-gray-800" title="${escapeHtml(prodiName)}">${escapeHtml(prodiCode)}</p>
+                                <p class="text-[11px] text-gray-400">${escapeHtml(prodiName)}</p>
                             </div>
                             <div>
                                 <p class="text-[10px] text-gray-400 uppercase">Departemen</p>
-                                <p class="text-sm font-semibold text-gray-800" title="${deptName}">${deptCode}</p>
-                                <p class="text-[11px] text-gray-400">${deptName}</p>
+                                <p class="text-sm font-semibold text-gray-800" title="${escapeHtml(deptName)}">${escapeHtml(deptCode)}</p>
+                                <p class="text-[11px] text-gray-400">${escapeHtml(deptName)}</p>
                             </div>
                             <div>
                                 <p class="text-[10px] text-gray-400 uppercase">Fakultas</p>
-                                <p class="text-sm font-semibold text-gray-800">${fakultasName}</p>
+                                <p class="text-sm font-semibold text-gray-800">${escapeHtml(fakultasName)}</p>
                             </div>
                             <div>
                                 <p class="text-[10px] text-gray-400 uppercase">Angkatan</p>
-                                <p class="text-sm font-semibold text-gray-800">${angkatan}</p>
+                                <p class="text-sm font-semibold text-gray-800">${escapeHtml(angkatan)}</p>
                             </div>
                         </div>
                     </div>
@@ -468,7 +466,7 @@ export const renderMahasiswaDetailModal = (user: any) => {
                         <div class="space-y-3">
                             <div>
                                 <p class="text-[10px] text-gray-400 uppercase">Email</p>
-                                <p class="text-sm text-gray-700 break-words leading-relaxed">${user.email}</p>
+                                <p class="text-sm text-gray-700 break-words leading-relaxed">${escapeHtml(user.email)}</p>
                             </div>
                             <div class="pt-3 border-t border-gray-100">
                                 <p class="text-[10px] text-gray-400 uppercase">Tanggal Terdaftar</p>
@@ -481,7 +479,7 @@ export const renderMahasiswaDetailModal = (user: any) => {
                 <!-- Footer Actions -->
                 <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-end gap-2">
                     <button class="user-detail-edit-btn px-4 py-2 text-sm font-semibold bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-all" data-id="${user.id}">Edit</button>
-                    <button class="user-detail-block-btn px-4 py-2 text-sm font-semibold bg-yellow-50 border border-yellow-200 text-yellow-700 rounded-xl hover:bg-yellow-100 transition-all" data-id="${user.id}" data-status="${status}">
+                    <button class="user-detail-block-btn px-4 py-2 text-sm font-semibold bg-yellow-50 border border-yellow-200 text-yellow-700 rounded-xl hover:bg-yellow-100 transition-all" data-id="${user.id}" data-status="${escapeHtml(status)}">
                         ${getSuspendLabel(status)}
                     </button>
                     <button class="user-detail-delete-btn px-4 py-2 text-sm font-semibold bg-red-50 border border-red-200 text-red-600 rounded-xl hover:bg-red-100 transition-all" data-id="${user.id}">Hapus</button>
@@ -558,7 +556,7 @@ const renderGenericUserDetailModal = (user: any) => {
         const showTasks = user.tendik_role === 'persuratan';
         const tasksHtml = tasks.length === 0
             ? '<p class="text-sm text-gray-400">-</p>'
-            : `<div class="flex flex-wrap gap-1.5">${tasks.map((t: string) => `<span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-teal-50 text-teal-700 border border-teal-100">${t}</span>`).join('')}</div>`;
+            : `<div class="flex flex-wrap gap-1.5">${tasks.map((t: string) => `<span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-teal-50 text-teal-700 border border-teal-100">${escapeHtml(t)}</span>`).join('')}</div>`;
         roleSection = `
             <div>
                 <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-3">Informasi Peran</h4>
@@ -570,7 +568,7 @@ const renderGenericUserDetailModal = (user: any) => {
                     ${showLab ? `
                     <div>
                         <p class="text-[10px] text-gray-400 uppercase">Laboratorium</p>
-                        <p class="text-sm font-semibold text-gray-800">${joinCodeName(org.laboratory)}</p>
+                        <p class="text-sm font-semibold text-gray-800">${escapeHtml(joinCodeName(org.laboratory))}</p>
                     </div>
                     ` : ''}
                     ${showTasks ? `
@@ -597,16 +595,16 @@ const renderGenericUserDetailModal = (user: any) => {
                     ${showProdi ? `
                     <div>
                         <p class="text-[10px] text-gray-400 uppercase">Program Studi</p>
-                        <p class="text-sm font-semibold text-gray-800">${joinCodeName(org.studyProgram)}</p>
+                        <p class="text-sm font-semibold text-gray-800">${escapeHtml(joinCodeName(org.studyProgram))}</p>
                     </div>
                     ` : ''}
                     <div>
                         <p class="text-[10px] text-gray-400 uppercase">Departemen</p>
-                        <p class="text-sm font-semibold text-gray-800">${joinCodeName(org.department)}</p>
+                        <p class="text-sm font-semibold text-gray-800">${escapeHtml(joinCodeName(org.department))}</p>
                     </div>
                     <div>
                         <p class="text-[10px] text-gray-400 uppercase">Fakultas</p>
-                        <p class="text-sm font-semibold text-gray-800">${org.facultyName}</p>
+                        <p class="text-sm font-semibold text-gray-800">${escapeHtml(org.facultyName)}</p>
                     </div>
                 </div>
             </div>
@@ -630,7 +628,7 @@ const renderGenericUserDetailModal = (user: any) => {
         ? `<button class="user-detail-edit-btn px-4 py-2 text-sm font-semibold bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-all" data-id="${user.id}">Edit</button>`
         : '';
     const blockBtn = showBlock
-        ? `<button class="user-detail-block-btn px-4 py-2 text-sm font-semibold bg-yellow-50 border border-yellow-200 text-yellow-700 rounded-xl hover:bg-yellow-100 transition-all" data-id="${user.id}" data-status="${status}">${getSuspendLabel(status)}</button>`
+        ? `<button class="user-detail-block-btn px-4 py-2 text-sm font-semibold bg-yellow-50 border border-yellow-200 text-yellow-700 rounded-xl hover:bg-yellow-100 transition-all" data-id="${user.id}" data-status="${escapeHtml(status)}">${getSuspendLabel(status)}</button>`
         : '';
     const delBtn = showDelete
         ? `<button class="user-detail-delete-btn px-4 py-2 text-sm font-semibold bg-red-50 border border-red-200 text-red-600 rounded-xl hover:bg-red-100 transition-all" data-id="${user.id}">Hapus</button>`
@@ -651,8 +649,8 @@ const renderGenericUserDetailModal = (user: any) => {
                 <div class="bg-teal-700 px-6 py-5 text-white">
                     <div class="flex justify-between items-start">
                         <div class="min-w-0">
-                            <h3 class="text-xl font-bold leading-tight truncate">${user.name}${isSelf ? '<span class="ml-1.5 text-[9px] font-bold bg-white/20 text-white px-1.5 py-0.5 rounded-full align-middle">Anda</span>' : ''}</h3>
-                            <p class="text-teal-100 text-sm mt-1 font-mono tracking-wide">${formatUserIdentifier(user)}</p>
+                            <h3 class="text-xl font-bold leading-tight truncate">${escapeHtml(user.name)}${isSelf ? '<span class="ml-1.5 text-[9px] font-bold bg-white/20 text-white px-1.5 py-0.5 rounded-full align-middle">Anda</span>' : ''}</h3>
+                            <p class="text-teal-100 text-sm mt-1 font-mono tracking-wide">${escapeHtml(formatUserIdentifier(user))}</p>
                         </div>
                         <button id="close-user-detail" class="shrink-0 hover:bg-white/10 p-1 rounded-lg transition-colors">
                             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
@@ -661,7 +659,7 @@ const renderGenericUserDetailModal = (user: any) => {
                     <div class="mt-3 flex items-center gap-2">
                         <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${sc.bg} ${sc.text}">
                             <span class="w-1.5 h-1.5 rounded-full ${sc.dot}"></span>
-                            ${status}
+                            ${escapeHtml(status)}
                         </span>
                         <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-white/15 text-white">${roleBadge}</span>
                     </div>
@@ -673,7 +671,7 @@ const renderGenericUserDetailModal = (user: any) => {
                         <div class="space-y-3">
                             <div>
                                 <p class="text-[10px] text-gray-400 uppercase">Email</p>
-                                <p class="text-sm text-gray-700 break-words leading-relaxed">${user.email || '-'}</p>
+                                <p class="text-sm text-gray-700 break-words leading-relaxed">${escapeHtml(user.email || '-')}</p>
                             </div>
                             <div class="pt-3 border-t border-gray-100">
                                 <p class="text-[10px] text-gray-400 uppercase">Tanggal Terdaftar</p>
@@ -777,7 +775,7 @@ const renderGroupedUsers = (users: any[], config: string[], isSuperAdminTab: boo
             html += `
                 <tr class="bg-gray-50/50 border-y border-gray-100">
                     <td colspan="${colspan}" class="px-6 py-2.5 text-[11px] font-bold text-gray-500 uppercase tracking-wider" style="padding-left: ${1.5 + padding}rem;">
-                        ${groupName}
+                        ${escapeHtml(groupName)}
                     </td>
                 </tr>
             `;
