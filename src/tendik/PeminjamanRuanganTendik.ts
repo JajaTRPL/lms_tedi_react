@@ -31,8 +31,29 @@ import {
     getBookingStatusTone,
     getRoomTypeLabel,
 } from '../shared/peminjaman-calendar';
+import { listManagedRooms } from '../shared/room-management/api';
+import {
+    attachRoomTableListeners,
+    hydrateRoomTableCovers,
+    renderRoomManagementTable,
+} from '../shared/room-management/list';
+import {
+    closeRoomManagementDrawer,
+    openRoomManagementDrawer,
+} from '../shared/room-management/detail-drawer';
+import {
+    closeRoomFormModal,
+    openRoomFormModal,
+} from '../shared/room-management/room-form';
+import type {
+    ManagedLaboratory,
+    ManagedRoom,
+    ManagedRoomType,
+} from '../shared/room-management/types';
 
 const PER_PAGE = 10;
+
+type TendikTab = 'queue' | 'rooms';
 
 let renderSequence = 0;
 let reviewerProfile: TendikReviewerProfile | null = null;
@@ -52,6 +73,13 @@ let knownRooms = new Map<number, Room>();
 let actionDeniedBookingIds = new Set<number>();
 let drawerEscapeHandler: ((event: KeyboardEvent) => void) | null = null;
 let actionEscapeHandler: ((event: KeyboardEvent) => void) | null = null;
+// "Kelola Ruangan" tab state (management roles only).
+let activeTab: TendikTab = 'queue';
+let managedRooms: ManagedRoom[] = [];
+let managedRoomsLoaded = false;
+let managedRoomsLoading = false;
+let managedRoomsError: string | null = null;
+const roomCoverCache = new Map<string, string>();
 
 const escapeHtml = (value: unknown): string => String(value ?? '')
     .replace(/&/g, '&amp;')
@@ -90,6 +118,32 @@ const reviewerRole = (): TendikReviewerRole | null =>
 
 const canAct = (): boolean =>
     reviewerRole() === 'sarpras' || reviewerRole() === 'kepala_lab';
+
+// Room master-data management surface is available to sarpras (classrooms),
+// kepala_lab (own lab), and laboran (all labs). Persuratan/unknown roles keep
+// the review-only page. Every mutation is still gated by backend flags.
+const canManageRooms = (): boolean =>
+    reviewerRole() === 'sarpras'
+    || reviewerRole() === 'kepala_lab'
+    || reviewerRole() === 'laboran';
+
+/** Room types this reviewer may create (create stays with sarpras/classroom). */
+const allowedCreateTypes = (): ManagedRoomType[] =>
+    reviewerRole() === 'sarpras' ? ['classroom'] : [];
+
+/** Laboratories referenced by the loaded rooms — enough for the edit form. */
+const managedLaboratories = (): ManagedLaboratory[] => {
+    const map = new Map<number, ManagedLaboratory>();
+    managedRooms.forEach((room) => {
+        if (room.owning_laboratory) map.set(room.owning_laboratory.id, room.owning_laboratory);
+    });
+    return Array.from(map.values());
+};
+
+const roomDrawerOptions = () => ({
+    laboratories: managedLaboratories(),
+    onRoomMutated: () => { void loadManagedRooms(); },
+});
 
 const roleLabel = (role: TendikReviewerRole | null): string => {
     switch (role) {
@@ -304,23 +358,153 @@ const renderQueueState = (): string => {
     `;
 };
 
-const renderMainState = (): void => {
-    const root = document.getElementById('tendik-peminjaman-page-state');
-    if (!root) return;
-    root.innerHTML = `
+const renderTabBar = (): string => {
+    if (!canManageRooms()) return '';
+    const tab = (id: TendikTab, label: string): string => `
+        <button type="button" role="tab" data-tendik-tab="${id}" aria-selected="${activeTab === id}" class="rounded-xl px-4 py-2.5 text-sm font-bold ${activeTab === id ? 'bg-teal-700 text-white' : 'border border-gray-200 bg-white text-gray-600'}">${label}</button>
+    `;
+    return `
+        <div class="flex flex-wrap gap-2" role="tablist" aria-label="Bagian Peminjaman Ruangan">
+            ${tab('queue', 'Pengajuan')}
+            ${tab('rooms', 'Kelola Ruangan')}
+        </div>
+    `;
+};
+
+const renderQueueTab = (): string => `
+    <div class="space-y-5">
+        ${renderRoleNotice()}
+        ${renderFilters()}
+        <section class="overflow-hidden rounded-[24px] border border-gray-100 bg-white shadow-sm" aria-live="polite">
+            <div class="border-b border-gray-100 px-5 py-5">
+                <h3 class="text-base font-bold text-gray-800">Antrean Review Peminjaman</h3>
+                <p class="mt-1 text-xs text-gray-500">Daftar ini mengikuti lingkup reviewer yang ditentukan backend.</p>
+            </div>
+            ${renderQueueState()}
+        </section>
+    </div>
+`;
+
+const renderRoomsTabState = (): string => {
+    if (managedRoomsLoading) {
+        return `
+            <div data-tendik-rooms-state="loading" class="px-6 py-16 text-center">
+                <div class="mx-auto h-9 w-9 animate-spin rounded-full border-4 border-teal-100 border-t-teal-700"></div>
+                <p class="mt-4 text-sm font-bold text-gray-700">Memuat data ruangan...</p>
+            </div>
+        `;
+    }
+    if (managedRoomsError) {
+        return `
+            <div data-tendik-rooms-state="error" class="px-6 py-16 text-center">
+                <h3 class="text-base font-bold text-gray-800">Data ruangan gagal dimuat</h3>
+                <p class="mt-2 text-sm text-gray-500">${escapeHtml(managedRoomsError)}</p>
+                <button id="tendik-rooms-retry" type="button" class="mt-5 rounded-xl bg-teal-700 px-4 py-2.5 text-sm font-bold text-white">Coba Lagi</button>
+            </div>
+        `;
+    }
+    if (managedRooms.length === 0) {
+        return `
+            <div data-tendik-rooms-state="empty" class="px-6 py-16 text-center">
+                <h3 class="text-base font-bold text-gray-800">Belum ada ruangan dalam lingkup Anda</h3>
+                <p class="mt-2 text-sm text-gray-500">Ruangan yang dapat Anda kelola akan muncul di sini.</p>
+            </div>
+        `;
+    }
+    return `<div data-tendik-rooms-state="success">${renderRoomManagementTable(managedRooms)}</div>`;
+};
+
+const renderRoomsTab = (): string => {
+    const canCreate = allowedCreateTypes().length > 0;
+    const scopeCopy = reviewerRole() === 'sarpras'
+        ? 'Kelola data ruang kelas: informasi, foto, fasilitas, dan template.'
+        : reviewerRole() === 'kepala_lab'
+            ? 'Kelola data laboratorium dalam lingkup Anda.'
+            : 'Kelola data seluruh laboratorium. Persetujuan pengajuan tetap oleh Kepala Lab.';
+    return `
         <div class="space-y-5">
-            ${renderRoleNotice()}
-            ${renderFilters()}
             <section class="overflow-hidden rounded-[24px] border border-gray-100 bg-white shadow-sm" aria-live="polite">
-                <div class="border-b border-gray-100 px-5 py-5">
-                    <h3 class="text-base font-bold text-gray-800">Antrean Review Peminjaman</h3>
-                    <p class="mt-1 text-xs text-gray-500">Daftar ini mengikuti lingkup reviewer yang ditentukan backend.</p>
+                <div class="flex flex-col gap-3 border-b border-gray-100 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h3 class="text-base font-bold text-gray-800">Kelola Ruangan</h3>
+                        <p class="mt-1 text-xs text-gray-500">${scopeCopy}</p>
+                    </div>
+                    ${canCreate ? '<button id="tendik-rooms-add" type="button" class="rounded-xl bg-teal-700 px-4 py-2.5 text-sm font-bold text-white hover:bg-teal-800">Tambah Ruang Kelas</button>' : ''}
                 </div>
-                ${renderQueueState()}
+                ${renderRoomsTabState()}
             </section>
         </div>
     `;
-    attachMainListeners();
+};
+
+const renderMainState = (): void => {
+    const root = document.getElementById('tendik-peminjaman-page-state');
+    if (!root) return;
+    const showRooms = canManageRooms() && activeTab === 'rooms';
+    root.innerHTML = `
+        <div class="space-y-5">
+            ${renderTabBar()}
+            ${showRooms ? renderRoomsTab() : renderQueueTab()}
+        </div>
+    `;
+    attachTabListeners();
+    if (showRooms) attachRoomsListeners();
+    else attachMainListeners();
+};
+
+const attachTabListeners = (): void => {
+    document.querySelectorAll<HTMLElement>('[data-tendik-tab]').forEach((button) => {
+        button.addEventListener('click', () => {
+            const tab = button.dataset.tendikTab as TendikTab;
+            if (tab === activeTab) return;
+            activeTab = tab;
+            renderMainState();
+            if (tab === 'rooms' && !managedRoomsLoaded) void loadManagedRooms();
+        });
+    });
+};
+
+const attachRoomsListeners = (): void => {
+    document.getElementById('tendik-rooms-retry')?.addEventListener('click', () => {
+        void loadManagedRooms();
+    });
+    document.getElementById('tendik-rooms-add')?.addEventListener('click', () => {
+        openRoomFormModal({
+            mode: 'create',
+            laboratories: managedLaboratories(),
+            allowedTypes: allowedCreateTypes(),
+            onSaved: (saved) => {
+                showToast('Ruangan berhasil dibuat.', true);
+                void loadManagedRooms().then(() => {
+                    void openRoomManagementDrawer(saved.id, roomDrawerOptions());
+                });
+            },
+        });
+    });
+    const tableRoot = document.querySelector('[data-tendik-rooms-state="success"]');
+    if (tableRoot) {
+        attachRoomTableListeners(tableRoot, (id) => {
+            void openRoomManagementDrawer(id, roomDrawerOptions());
+        });
+        hydrateRoomTableCovers(tableRoot, roomCoverCache, () => activeTab === 'rooms');
+    }
+};
+
+const loadManagedRooms = async (): Promise<void> => {
+    managedRoomsLoading = true;
+    managedRoomsError = null;
+    if (activeTab === 'rooms') renderMainState();
+    try {
+        managedRooms = await listManagedRooms();
+        managedRoomsLoaded = true;
+        managedRoomsError = null;
+    } catch (error) {
+        managedRooms = [];
+        managedRoomsError = errorMessage(error, 'Data ruangan gagal dimuat.');
+    } finally {
+        managedRoomsLoading = false;
+        if (activeTab === 'rooms') renderMainState();
+    }
 };
 
 const pageShell = (): string => `
@@ -787,8 +971,17 @@ export const renderPeminjamanRuanganTendik = async (role = 'tendik'): Promise<vo
     filterError = null;
     knownRooms = new Map();
     actionDeniedBookingIds = new Set();
+    activeTab = 'queue';
+    managedRooms = [];
+    managedRoomsLoaded = false;
+    managedRoomsLoading = false;
+    managedRoomsError = null;
+    roomCoverCache.forEach((url) => URL.revokeObjectURL(url));
+    roomCoverCache.clear();
     closeActionDialog();
     closeDrawer();
+    closeRoomManagementDrawer();
+    closeRoomFormModal();
 
     renderDashboardLayout(
         'Peminjaman Ruangan',

@@ -11,6 +11,16 @@ const m = vi.hoisted(() => ({
     downloadSurat: vi.fn(),
     attachViewer: vi.fn(() => () => {}),
     renderLayout: vi.fn(),
+    // shared room-management api
+    listRooms: vi.fn(),
+    getRoom: vi.fn(),
+    createRoom: vi.fn(),
+    listPhotos: vi.fn(),
+    listFacilities: vi.fn(),
+    listFacilityTypes: vi.fn(),
+    listTemplates: vi.fn(),
+    listAudit: vi.fn(),
+    fetchPhoto: vi.fn(),
     toasts: [] as string[],
 }));
 
@@ -73,6 +83,31 @@ vi.mock('../../shared/protected-pdf-viewer', () => ({
     attachProtectedPdfViewer: m.attachViewer,
 }));
 
+vi.mock('../../shared/room-management/api', () => ({
+    listManagedRooms: m.listRooms,
+    getManagedRoom: m.getRoom,
+    createManagedRoom: m.createRoom,
+    updateManagedRoom: vi.fn(),
+    activateManagedRoom: vi.fn(),
+    deactivateManagedRoom: vi.fn(),
+    listRoomPhotos: m.listPhotos,
+    uploadRoomPhoto: vi.fn(),
+    deleteRoomPhoto: vi.fn(),
+    setRoomCover: vi.fn(),
+    reorderRoomPhotos: vi.fn(),
+    fetchRoomPhotoObjectUrl: m.fetchPhoto,
+    listFacilityTypes: m.listFacilityTypes,
+    createFacilityType: vi.fn(),
+    getRoomFacilities: m.listFacilities,
+    syncRoomFacilities: vi.fn(),
+    listRoomTemplates: m.listTemplates,
+    uploadRoomTemplate: vi.fn(),
+    activateRoomTemplate: vi.fn(),
+    deactivateRoomTemplate: vi.fn(),
+    downloadRoomTemplate: vi.fn(),
+    listRoomAuditLogs: m.listAudit,
+}));
+
 vi.mock('toastify-js', () => ({
     default: vi.fn((options: { text: string }) => ({
         showToast: () => m.toasts.push(options.text),
@@ -84,6 +119,7 @@ import type {
     TendikBooking,
     TendikReviewerRole,
 } from '../../mahasiswa/peminjaman/types';
+import type { ManagedRoom } from '../../shared/room-management/types';
 import { renderPeminjamanRuanganTendik } from '../PeminjamanRuanganTendik';
 import pageSource from '../PeminjamanRuanganTendik.ts?raw';
 
@@ -153,6 +189,37 @@ const profile = (role: TendikReviewerRole) => ({
     tendik_role: role,
 });
 
+const managedRoom = (overrides: Partial<ManagedRoom> = {}): ManagedRoom => ({
+    id: 9,
+    code: 'KLS-09',
+    name: 'Ruang <img src=x onerror=unsafe()>',
+    type: 'classroom',
+    capacity: 40,
+    location: 'Gedung A',
+    description: null,
+    rules: null,
+    is_active: true,
+    owning_laboratory: null,
+    cover_photo: null,
+    facilities_summary: { count: 0, items: [] },
+    has_active_template: false,
+    management_flags: {
+        can_edit_info: true,
+        can_manage_media: true,
+        can_manage_facilities: true,
+        can_manage_templates: true,
+        can_create: false,
+        can_deactivate: false,
+        can_activate: false,
+    },
+    ...overrides,
+});
+
+const openRoomsTab = async (): Promise<void> => {
+    document.querySelector<HTMLElement>('[data-tendik-tab="rooms"]')?.click();
+    await flush();
+};
+
 const flush = async (): Promise<void> => {
     await Promise.resolve();
     await Promise.resolve();
@@ -188,6 +255,14 @@ beforeEach(() => {
     m.approve.mockResolvedValue(booking({ status: 'approved' }));
     m.revise.mockResolvedValue(booking({ status: 'revision_requested' }));
     m.reject.mockResolvedValue(booking({ status: 'rejected' }));
+    m.listRooms.mockResolvedValue([managedRoom()]);
+    m.getRoom.mockResolvedValue(managedRoom());
+    m.createRoom.mockResolvedValue(managedRoom());
+    m.listPhotos.mockResolvedValue([]);
+    m.listFacilities.mockResolvedValue([]);
+    m.listFacilityTypes.mockResolvedValue([]);
+    m.listTemplates.mockResolvedValue([]);
+    m.listAudit.mockResolvedValue([]);
 });
 
 describe('Tendik Peminjaman reviewer page', () => {
@@ -452,5 +527,76 @@ describe('Tendik Peminjaman reviewer page', () => {
         expect(pageSource).not.toContain('/api/room-bookings');
         expect(pageSource).not.toContain('window.open');
         expect(pageSource).not.toContain('<iframe');
+    });
+});
+
+describe('Tendik "Kelola Ruangan" management tab', () => {
+    it('offers the management tab and a create button for Sarpras', async () => {
+        m.getProfile.mockResolvedValue(profile('sarpras'));
+        await renderPeminjamanRuanganTendik();
+        await flush();
+
+        expect(document.querySelector('[data-tendik-tab="rooms"]')).not.toBeNull();
+        await openRoomsTab();
+
+        expect(m.listRooms).toHaveBeenCalled();
+        expect(document.querySelector('[data-tendik-rooms-state="success"]')).not.toBeNull();
+        // Sarpras may create classrooms.
+        expect(document.getElementById('tendik-rooms-add')).not.toBeNull();
+    });
+
+    it('shows the management tab for Laboran without a create button', async () => {
+        m.getProfile.mockResolvedValue(profile('laboran'));
+        await renderPeminjamanRuanganTendik();
+        await flush();
+
+        expect(document.querySelector('[data-tendik-tab="rooms"]')).not.toBeNull();
+        await openRoomsTab();
+
+        expect(document.querySelector('[data-tendik-rooms-state="success"]')).not.toBeNull();
+        // Laboran maintains data but cannot create/deactivate rooms.
+        expect(document.getElementById('tendik-rooms-add')).toBeNull();
+    });
+
+    it('shows the management tab for Kepala Lab without a create button', async () => {
+        m.getProfile.mockResolvedValue(profile('kepala_lab'));
+        await renderPeminjamanRuanganTendik();
+        await flush();
+
+        expect(document.querySelector('[data-tendik-tab="rooms"]')).not.toBeNull();
+        await openRoomsTab();
+        expect(document.getElementById('tendik-rooms-add')).toBeNull();
+    });
+
+    it('hides the management tab for Persuratan (review-only)', async () => {
+        m.getProfile.mockResolvedValue(profile('persuratan'));
+        await renderPeminjamanRuanganTendik();
+        await flush();
+
+        expect(document.querySelector('[data-tendik-tab="rooms"]')).toBeNull();
+    });
+
+    it('opens the management drawer from a room row', async () => {
+        m.getProfile.mockResolvedValue(profile('sarpras'));
+        await renderPeminjamanRuanganTendik();
+        await flush();
+        await openRoomsTab();
+
+        document.querySelector<HTMLButtonElement>('[data-room-mgmt-open="9"]')?.click();
+        await flush();
+
+        expect(document.getElementById('room-management-drawer-root')).not.toBeNull();
+        expect(m.getRoom).toHaveBeenCalledWith(9);
+    });
+
+    it('escapes room text and shows health badges in the management table', async () => {
+        m.getProfile.mockResolvedValue(profile('sarpras'));
+        await renderPeminjamanRuanganTendik();
+        await flush();
+        await openRoomsTab();
+
+        expect(document.body.textContent).toContain('Ruang <img src=x onerror=unsafe()>');
+        expect(document.querySelector('img[src="x"]')).toBeNull();
+        expect(document.body.textContent).toContain('Belum ada foto');
     });
 });

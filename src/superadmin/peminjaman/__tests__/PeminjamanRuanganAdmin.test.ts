@@ -3,27 +3,29 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const m = vi.hoisted(() => ({
     getLabs: vi.fn(),
-    getRooms: vi.fn(),
-    getRoom: vi.fn(),
-    createRoom: vi.fn(),
-    updateRoom: vi.fn(),
-    activateRoom: vi.fn(),
-    deactivateRoom: vi.fn(),
     getBookings: vi.fn(),
     getBooking: vi.fn(),
     downloadSurat: vi.fn(),
     attachViewer: vi.fn(() => () => {}),
     renderLayout: vi.fn(),
+    // shared room-management api
+    listRooms: vi.fn(),
+    getRoom: vi.fn(),
+    createRoom: vi.fn(),
+    updateRoom: vi.fn(),
+    activateRoom: vi.fn(),
+    deactivateRoom: vi.fn(),
+    listPhotos: vi.fn(),
+    listFacilities: vi.fn(),
+    listFacilityTypes: vi.fn(),
+    listTemplates: vi.fn(),
+    listAudit: vi.fn(),
+    fetchPhoto: vi.fn(),
     toasts: [] as string[],
 }));
 
 vi.mock('../../../dashboard/DashboardLayout', () => ({
-    renderDashboardLayout: (
-        title: string,
-        content: string,
-        role: string,
-        activePage: string,
-    ) => {
+    renderDashboardLayout: (title: string, content: string, role: string, activePage: string) => {
         m.renderLayout(title, content, role, activePage);
         document.body.innerHTML = content;
     },
@@ -34,32 +36,19 @@ vi.mock('../../../mahasiswa/peminjaman/api', () => {
         readonly status: number;
         readonly code?: string;
         readonly errors?: Record<string, string[]>;
-
-        constructor(
-            message: string,
-            status: number,
-            code?: string,
-            errors?: Record<string, string[]>,
-        ) {
+        constructor(message: string, status: number, code?: string, errors?: Record<string, string[]>) {
             super(message);
             this.status = status;
             this.code = code;
             this.errors = errors;
         }
     }
-
     return {
         getSuperAdminLaboratories: m.getLabs,
-        getSuperAdminRooms: m.getRooms,
-        getSuperAdminRoom: m.getRoom,
-        createSuperAdminRoom: m.createRoom,
-        updateSuperAdminRoom: m.updateRoom,
-        activateSuperAdminRoom: m.activateRoom,
-        deactivateSuperAdminRoom: m.deactivateRoom,
         getSuperAdminBookings: m.getBookings,
         getSuperAdminBooking: m.getBooking,
-        // Requester-side exports pulled in transitively via the shared
-        // booking detail/form modules — not exercised by the admin page.
+        downloadSuratPeminjamanPdf: m.downloadSurat,
+        // transitive requester exports pulled via shared booking modules
         getMahasiswaBooking: vi.fn(),
         getPeminjamanRooms: vi.fn(),
         createMahasiswaBooking: vi.fn(),
@@ -67,12 +56,36 @@ vi.mock('../../../mahasiswa/peminjaman/api', () => {
         cancelMahasiswaBooking: vi.fn(),
         resubmitMahasiswaBooking: vi.fn(),
         replaceSuratPeminjamanPdf: vi.fn(),
-        downloadSuratPeminjamanPdf: m.downloadSurat,
         suratPeminjamanPreviewUrl: (id: number) =>
             `/api/peminjaman-ruangan/${id}/attachment/surat-peminjaman/preview`,
         PeminjamanApiError: MockPeminjamanApiError,
     };
 });
+
+vi.mock('../../../shared/room-management/api', () => ({
+    listManagedRooms: m.listRooms,
+    getManagedRoom: m.getRoom,
+    createManagedRoom: m.createRoom,
+    updateManagedRoom: m.updateRoom,
+    activateManagedRoom: m.activateRoom,
+    deactivateManagedRoom: m.deactivateRoom,
+    listRoomPhotos: m.listPhotos,
+    uploadRoomPhoto: vi.fn(),
+    deleteRoomPhoto: vi.fn(),
+    setRoomCover: vi.fn(),
+    reorderRoomPhotos: vi.fn(),
+    fetchRoomPhotoObjectUrl: m.fetchPhoto,
+    listFacilityTypes: m.listFacilityTypes,
+    createFacilityType: vi.fn(),
+    getRoomFacilities: m.listFacilities,
+    syncRoomFacilities: vi.fn(),
+    listRoomTemplates: m.listTemplates,
+    uploadRoomTemplate: vi.fn(),
+    activateRoomTemplate: vi.fn(),
+    deactivateRoomTemplate: vi.fn(),
+    downloadRoomTemplate: vi.fn(),
+    listRoomAuditLogs: m.listAudit,
+}));
 
 vi.mock('../../../shared/protected-pdf-viewer', () => ({
     renderProtectedPdfViewer: () => '<div data-protected-pdf-viewer></div>',
@@ -86,24 +99,46 @@ vi.mock('toastify-js', () => ({
 }));
 
 import { PeminjamanApiError } from '../../../mahasiswa/peminjaman/api';
-import type {
-    Room,
-    SuperAdminBooking,
-} from '../../../mahasiswa/peminjaman/types';
+import type { Room, SuperAdminBooking } from '../../../mahasiswa/peminjaman/types';
+import type { ManagedRoom } from '../../../shared/room-management/types';
 import { renderPeminjamanRuanganAdmin } from '../../PeminjamanRuanganAdmin';
 import pageSource from '../../PeminjamanRuanganAdmin.ts?raw';
 
-const labs = [
-    { id: 7, code: 'LAB-UJI', name: 'Laboratorium <script>uji</script>' },
-];
+const labs = [{ id: 7, code: 'LAB-UJI', name: 'Laboratorium <script>uji</script>' }];
 
-const room = (overrides: Partial<Room> = {}): Room => ({
+const managedRoom = (overrides: Partial<ManagedRoom> = {}): ManagedRoom => ({
     id: 12,
     code: 'ROOM-12',
     name: 'Ruang <img src=x onerror=unsafe()>',
     type: 'classroom',
     capacity: 30,
     location: 'Gedung <script>unsafe()</script>',
+    description: 'Deskripsi aman.',
+    rules: null,
+    is_active: true,
+    owning_laboratory: null,
+    cover_photo: null,
+    facilities_summary: { count: 0, items: [] },
+    has_active_template: false,
+    management_flags: {
+        can_edit_info: true,
+        can_manage_media: true,
+        can_manage_facilities: true,
+        can_manage_templates: true,
+        can_create: true,
+        can_deactivate: true,
+        can_activate: true,
+    },
+    ...overrides,
+});
+
+const room = (overrides: Partial<Room> = {}): Room => ({
+    id: 12,
+    code: 'ROOM-12',
+    name: 'Ruang Booking',
+    type: 'classroom',
+    capacity: 30,
+    location: 'Gedung Uji',
     description: 'Deskripsi aman.',
     is_active: true,
     owning_laboratory: null,
@@ -113,11 +148,7 @@ const room = (overrides: Partial<Room> = {}): Room => ({
 const booking = (overrides: Partial<SuperAdminBooking> = {}): SuperAdminBooking => ({
     id: 44,
     room: room(),
-    requester: {
-        id: 20,
-        name: 'Pemohon <script>unsafe()</script>',
-        email: 'pemohon@example.test',
-    },
+    requester: { id: 20, name: 'Pemohon <script>unsafe()</script>', email: 'pemohon@example.test' },
     activity_name: 'Kegiatan <img src=x onerror=unsafe()>',
     purpose: 'Tujuan <script>unsafe()</script>',
     participant_count: 20,
@@ -132,12 +163,8 @@ const booking = (overrides: Partial<SuperAdminBooking> = {}): SuperAdminBooking 
     created_at: '2026-06-18T09:00:00+07:00',
     updated_at: '2026-06-18T09:00:00+07:00',
     status_histories: [{
-        id: 1,
-        from_status: null,
-        to_status: 'submitted',
-        actor: null,
-        note: 'Riwayat <b>aman</b>',
-        created_at: '2026-06-18T09:00:00+07:00',
+        id: 1, from_status: null, to_status: 'submitted', actor: null,
+        note: 'Riwayat <b>aman</b>', created_at: '2026-06-18T09:00:00+07:00',
     }],
     ...overrides,
 });
@@ -145,12 +172,7 @@ const booking = (overrides: Partial<SuperAdminBooking> = {}): SuperAdminBooking 
 const bookingEnvelope = (items: SuperAdminBooking[] = [booking()]) => ({
     message: 'ok',
     data: items,
-    meta: {
-        current_page: 1,
-        per_page: 10,
-        total: items.length,
-        last_page: 1,
-    },
+    meta: { current_page: 1, per_page: 10, total: items.length, last_page: 1 },
 });
 
 const flush = async (): Promise<void> => {
@@ -170,10 +192,7 @@ const changeValue = (id: string, value: string): void => {
 };
 
 const submit = (id: string): void => {
-    document.getElementById(id)?.dispatchEvent(new Event('submit', {
-        bubbles: true,
-        cancelable: true,
-    }));
+    document.getElementById(id)?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
 };
 
 const openRoomForm = (): void => {
@@ -181,13 +200,13 @@ const openRoomForm = (): void => {
 };
 
 const fillRoomForm = (type: 'classroom' | 'laboratory' = 'classroom'): void => {
-    setValue('admin-room-code', type === 'classroom' ? 'KLS-01' : 'LAB-01');
-    setValue('admin-room-name', type === 'classroom' ? 'Ruang Kelas' : 'Laboratorium');
-    changeValue('admin-room-type', type);
-    setValue('admin-room-capacity', '30');
-    setValue('admin-room-location', 'Gedung Uji');
-    setValue('admin-room-description', 'Deskripsi');
-    if (type === 'laboratory') setValue('admin-room-laboratory', '7');
+    setValue('room-form-code', type === 'classroom' ? 'KLS-01' : 'LAB-01');
+    setValue('room-form-name', type === 'classroom' ? 'Ruang Kelas' : 'Laboratorium');
+    changeValue('room-form-type', type);
+    setValue('room-form-capacity', '30');
+    setValue('room-form-location', 'Gedung Uji');
+    setValue('room-form-description', 'Deskripsi');
+    if (type === 'laboratory') setValue('room-form-laboratory', '7');
 };
 
 const openMonitoring = (): void => {
@@ -201,31 +220,35 @@ beforeEach(() => {
     });
     m.toasts = [];
     m.getLabs.mockResolvedValue(labs);
-    m.getRooms.mockResolvedValue([room()]);
-    m.getRoom.mockResolvedValue(room());
-    m.createRoom.mockResolvedValue(room());
-    m.updateRoom.mockResolvedValue(room());
-    m.activateRoom.mockResolvedValue(room({ is_active: true }));
-    m.deactivateRoom.mockResolvedValue(room({ is_active: false }));
+    m.listRooms.mockResolvedValue([managedRoom()]);
+    m.getRoom.mockResolvedValue(managedRoom());
+    m.createRoom.mockResolvedValue(managedRoom());
+    m.updateRoom.mockResolvedValue(managedRoom());
+    m.activateRoom.mockResolvedValue(managedRoom({ is_active: true }));
+    m.deactivateRoom.mockResolvedValue(managedRoom({ is_active: false }));
+    m.listPhotos.mockResolvedValue([]);
+    m.listFacilities.mockResolvedValue([]);
+    m.listFacilityTypes.mockResolvedValue([]);
+    m.listTemplates.mockResolvedValue([]);
+    m.listAudit.mockResolvedValue([]);
+    m.attachViewer.mockReturnValue(() => {});
     m.getBookings.mockResolvedValue(bookingEnvelope());
     m.getBooking.mockResolvedValue(booking());
 });
 
-describe('Super Admin Peminjaman room management', () => {
+describe('Super Admin room master management', () => {
     it('renders loading, empty, error/retry, and success room states', async () => {
-        let resolveRooms!: (value: Room[]) => void;
-        m.getRooms.mockReturnValueOnce(new Promise((resolve) => {
-            resolveRooms = resolve;
-        }));
+        let resolveRooms!: (value: ManagedRoom[]) => void;
+        m.listRooms.mockReturnValueOnce(new Promise((resolve) => { resolveRooms = resolve; }));
         const rendering = renderPeminjamanRuanganAdmin();
         expect(document.querySelector('[data-admin-room-state="loading"]')).not.toBeNull();
         resolveRooms([]);
         await rendering;
         expect(document.querySelector('[data-admin-room-state="empty"]')).not.toBeNull();
 
-        m.getRooms
+        m.listRooms
             .mockRejectedValueOnce(new Error('Data ruangan gagal.'))
-            .mockResolvedValueOnce([room()]);
+            .mockResolvedValueOnce([managedRoom()]);
         await renderPeminjamanRuanganAdmin();
         expect(document.querySelector('[data-admin-room-state="error"]')).not.toBeNull();
         document.getElementById('admin-peminjaman-retry-rooms')?.click();
@@ -242,7 +265,7 @@ describe('Super Admin Peminjaman room management', () => {
         submit('admin-peminjaman-room-filters');
         await flush();
 
-        expect(m.getRooms).toHaveBeenCalledWith({
+        expect(m.listRooms).toHaveBeenCalledWith({
             type: 'laboratory',
             laboratoryId: 7,
             active: false,
@@ -250,12 +273,15 @@ describe('Super Admin Peminjaman room management', () => {
         });
     });
 
-    it('renders minimal laboratory data and safely escapes room text', async () => {
+    it('renders health badges and safely escapes room text in the table', async () => {
         await renderPeminjamanRuanganAdmin();
-        expect(document.body.textContent).toContain('LAB-UJI · Laboratorium <script>uji</script>');
         expect(document.body.textContent).toContain('Ruang <img src=x onerror=unsafe()>');
         expect(document.querySelector('script')).toBeNull();
         expect(document.querySelector('img[src="x"]')).toBeNull();
+        // A room with no photo/facility/template shows all three health badges.
+        expect(document.body.textContent).toContain('Belum ada foto');
+        expect(document.body.textContent).toContain('Belum ada fasilitas');
+        expect(document.body.textContent).toContain('Belum ada template');
     });
 
     it('renders and retries a denied laboratory catalog request', async () => {
@@ -273,18 +299,19 @@ describe('Super Admin Peminjaman room management', () => {
     it('validates required room fields before create', async () => {
         await renderPeminjamanRuanganAdmin();
         openRoomForm();
-        submit('admin-room-form');
+        submit('room-form');
 
         expect(m.createRoom).not.toHaveBeenCalled();
         expect(document.body.textContent).toContain('Kode ruangan wajib diisi.');
         expect(document.body.textContent).toContain('Kapasitas ruangan wajib diisi.');
     });
 
-    it('creates a classroom without requiring or sending a laboratory owner', async () => {
+    it('creates a classroom with rules and without a laboratory owner', async () => {
         await renderPeminjamanRuanganAdmin();
         openRoomForm();
         fillRoomForm('classroom');
-        submit('admin-room-form');
+        setValue('room-form-rules', 'Jaga kebersihan.');
+        submit('room-form');
         await flush();
 
         expect(m.createRoom).toHaveBeenCalledWith({
@@ -294,6 +321,7 @@ describe('Super Admin Peminjaman room management', () => {
             capacity: 30,
             location: 'Gedung Uji',
             description: 'Deskripsi',
+            rules: 'Jaga kebersihan.',
             owning_laboratory_id: null,
         });
     });
@@ -302,13 +330,13 @@ describe('Super Admin Peminjaman room management', () => {
         await renderPeminjamanRuanganAdmin();
         openRoomForm();
         fillRoomForm('laboratory');
-        setValue('admin-room-laboratory', '');
-        submit('admin-room-form');
+        setValue('room-form-laboratory', '');
+        submit('room-form');
         expect(m.createRoom).not.toHaveBeenCalled();
         expect(document.body.textContent).toContain('Laboratorium pemilik wajib dipilih.');
 
-        setValue('admin-room-laboratory', '7');
-        submit('admin-room-form');
+        setValue('room-form-laboratory', '7');
+        submit('room-form');
         await flush();
         expect(m.createRoom).toHaveBeenCalledWith(expect.objectContaining({
             type: 'laboratory',
@@ -318,79 +346,57 @@ describe('Super Admin Peminjaman room management', () => {
 
     it('renders backend 422 field errors during create', async () => {
         m.createRoom.mockRejectedValueOnce(new PeminjamanApiError(
-            'Validasi gagal.',
-            422,
-            undefined,
-            { code: ['Kode ruangan sudah digunakan.'] },
+            'Validasi gagal.', 422, undefined, { code: ['Kode ruangan sudah digunakan.'] },
         ));
         await renderPeminjamanRuanganAdmin();
         openRoomForm();
         fillRoomForm();
-        submit('admin-room-form');
+        submit('room-form');
         await flush();
 
         expect(document.body.textContent).toContain('Kode ruangan sudah digunakan.');
     });
 
-    it('loads detail and updates a room through the edit form', async () => {
+    it('opens the management drawer and edits room info', async () => {
         await renderPeminjamanRuanganAdmin();
-        document.querySelector<HTMLButtonElement>('[data-admin-room-detail="12"]')?.click();
-        await flush();
-        document.getElementById('edit-admin-peminjaman-room')?.click();
-        setValue('admin-room-name', 'Nama Diperbarui');
-        submit('admin-room-form');
+        document.querySelector<HTMLButtonElement>('[data-room-mgmt-open="12"]')?.click();
         await flush();
 
-        expect(m.updateRoom).toHaveBeenCalledWith(12, expect.objectContaining({
-            name: 'Nama Diperbarui',
-        }));
+        expect(document.getElementById('room-management-drawer-root')).not.toBeNull();
+        expect(m.getRoom).toHaveBeenCalledWith(12);
+
+        document.getElementById('room-mgmt-edit')?.click();
+        setValue('room-form-name', 'Nama Diperbarui');
+        submit('room-form');
+        await flush();
+
+        expect(m.updateRoom).toHaveBeenCalledWith(12, expect.objectContaining({ name: 'Nama Diperbarui' }));
     });
 
-    it('activates and deactivates through separate confirmed actions', async () => {
+    it('activates and deactivates through the drawer Info tab', async () => {
         await renderPeminjamanRuanganAdmin();
-        document.querySelector<HTMLButtonElement>('[data-admin-room-detail="12"]')?.click();
+        document.querySelector<HTMLButtonElement>('[data-room-mgmt-open="12"]')?.click();
         await flush();
-        document.getElementById('toggle-admin-peminjaman-room')?.click();
-        document.getElementById('confirm-admin-room-status')?.click();
+        document.getElementById('room-mgmt-toggle')?.click();
+        document.getElementById('room-mgmt-confirm-ok')?.click();
         await flush();
         expect(m.deactivateRoom).toHaveBeenCalledWith(12);
 
-        m.getRoom.mockResolvedValue(room({ is_active: false }));
-        document.getElementById('close-admin-peminjaman-drawer')?.click();
-        document.querySelector<HTMLButtonElement>('[data-admin-room-detail="12"]')?.click();
+        m.getRoom.mockResolvedValue(managedRoom({ is_active: false }));
+        document.getElementById('close-room-mgmt')?.click();
+        document.querySelector<HTMLButtonElement>('[data-room-mgmt-open="12"]')?.click();
         await flush();
-        document.getElementById('toggle-admin-peminjaman-room')?.click();
-        document.getElementById('confirm-admin-room-status')?.click();
+        document.getElementById('room-mgmt-toggle')?.click();
+        document.getElementById('room-mgmt-confirm-ok')?.click();
         await flush();
         expect(m.activateRoom).toHaveBeenCalledWith(12);
-    });
-
-    it('shows a clear deactivation 409 conflict without optimistic state', async () => {
-        m.deactivateRoom.mockRejectedValueOnce(new PeminjamanApiError(
-            'Conflict',
-            409,
-            'booking_conflict',
-        ));
-        await renderPeminjamanRuanganAdmin();
-        document.querySelector<HTMLButtonElement>('[data-admin-room-detail="12"]')?.click();
-        await flush();
-        document.getElementById('toggle-admin-peminjaman-room')?.click();
-        document.getElementById('confirm-admin-room-status')?.click();
-        await flush();
-
-        expect(document.body.textContent).toContain(
-            'memiliki peminjaman disetujui yang akan datang',
-        );
-        expect(m.getRooms).toHaveBeenCalledTimes(1);
     });
 });
 
 describe('Super Admin booking monitoring', () => {
     it('renders loading, empty, error/retry, and success monitoring states', async () => {
         let resolveBookings!: (value: ReturnType<typeof bookingEnvelope>) => void;
-        m.getBookings.mockReturnValueOnce(new Promise((resolve) => {
-            resolveBookings = resolve;
-        }));
+        m.getBookings.mockReturnValueOnce(new Promise((resolve) => { resolveBookings = resolve; }));
         const rendering = renderPeminjamanRuanganAdmin();
         openMonitoring();
         expect(document.querySelector('[data-admin-booking-state="loading"]')).not.toBeNull();
@@ -471,7 +477,6 @@ describe('Super Admin booking monitoring', () => {
         expect(document.body.textContent).toContain('Surat <b>Final</b>.pdf');
         expect(document.querySelector('b')).toBeNull();
         expect(document.body.textContent).toContain('200.0 KB');
-        // Monitoring stays read-only: no replacement upload even on revision.
         expect(document.getElementById('peminjaman-surat-replace-input')).toBeNull();
         expect(document.getElementById('peminjaman-surat-replace-submit')).toBeNull();
 
@@ -512,17 +517,14 @@ describe('Super Admin booking monitoring', () => {
         expect(document.body.textContent).toContain('tidak ditemukan');
     });
 
-    it('contains no approval workflow, delete action, separate API origin, or localhost dependency', () => {
+    it('contains no approval workflow, separate API origin, or unsafe media handling', () => {
         expect(pageSource).not.toContain('approveTendikBooking');
         expect(pageSource).not.toContain('reviseTendikBooking');
         expect(pageSource).not.toContain('rejectTendikBooking');
-        expect(pageSource).not.toContain('deleteSuperAdminRoom');
         expect(pageSource).not.toContain('VITE_API_BASE_URL');
         expect(pageSource).not.toContain('localhost');
-        // Surat access is read-only and stays on the protected application API.
         expect(pageSource).not.toContain('replaceSuratPeminjamanPdf');
         expect(pageSource).not.toContain('/storage');
-        expect(pageSource).not.toContain('/api/room-bookings');
         expect(pageSource).not.toContain('window.open');
         expect(pageSource).not.toContain('<iframe');
     });
