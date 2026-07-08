@@ -79,6 +79,14 @@ export async function apiFetch(url: string, options: ApiFetchOptions = {}): Prom
         }
     }
 
+    // Handle 401 Unauthorized: token expired, revoked, or invalid.
+    // Skip the logout endpoint itself to prevent an infinite redirect loop.
+    if (response.status === 401 && !url.includes('/api/logout')) {
+        clearNormalAuthState();
+        const { renderLogin } = await import('../login/Login');
+        renderLogin('Sesi Anda telah berakhir. Silakan login kembali.');
+    }
+
     return response;
 }
 
