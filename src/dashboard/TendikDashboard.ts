@@ -58,7 +58,7 @@ export const renderTendikDashboard = async (role: string) => {
             apiFetch('/api/tendik/riwayat?scope=mine'),
         ]);
 
-        if (!response.ok) throw new Error('Failed to fetch dashboard data');
+        if (!response.ok) throw new Error('Data dasbor belum berhasil dimuat. Coba muat ulang halaman.');
 
         const data = await response.json();
         const stats = data.stats;
@@ -97,18 +97,33 @@ export const renderTendikDashboard = async (role: string) => {
             } catch { /* ignore */ }
         }
 
+        // Sarpras/Kepala Lab/Laboran work in Peminjaman Ruangan, not surat
+        // verification — their greeting must not talk about "jenis surat"
+        // or show empty surat-assignment chips.
+        const tendikRole = localStorage.getItem('auth_tendik_role') ?? '';
+        const isPeminjamanOnlyRole = ['sarpras', 'kepala_lab', 'laboran'].includes(tendikRole);
+        const welcomeSubtitle = tendikRole === 'sarpras'
+            ? 'Pantau dan verifikasi pengajuan peminjaman ruang kelas.'
+            : tendikRole === 'kepala_lab'
+                ? 'Tinjau pengajuan peminjaman laboratorium yang menjadi tanggung jawab Anda.'
+                : tendikRole === 'laboran'
+                    ? 'Pantau jadwal dan pengajuan laboratorium yang berada dalam cakupan Anda.'
+                    : 'Tinjau dan proses dokumen administrasi surat mahasiswa.';
+
         const content = `
             <div class="space-y-6 animate-fade-in pb-12 w-full max-w-[1200px] mx-auto">
                 <!-- Welcome Section -->
                 <div class="mt-2">
                     <h2 class="text-[28px] font-bold text-gray-800 leading-tight">Halo, ${userName}!</h2>
-                    <p class="text-xs text-gray-600 mt-1 mb-3">Jenis surat yang menjadi tanggung jawab Anda</p>
+                    <p class="text-xs text-gray-600 mt-1 mb-3">${welcomeSubtitle}</p>
+                    ${isPeminjamanOnlyRole ? '' : `
                     <div class="flex flex-wrap gap-2">
                         ${assignedTasks.length > 0
                             ? assignedTasks.map((t: string) => `<span class="bg-[#FFD700] text-gray-900 border border-yellow-400/50 text-[10px] font-bold px-3 py-1.5 rounded-md shadow-sm">${getAssignedTaskLabel(t)}</span>`).join('')
                             : '<span class="bg-gray-100 text-gray-500 text-[10px] font-bold px-3 py-1.5 rounded-md">Belum ada penugasan</span>'
                         }
                     </div>
+                    `}
                 </div>
 
                 <!-- Stats Cards -->

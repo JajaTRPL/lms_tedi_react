@@ -942,14 +942,23 @@ const restoreButton = (button: HTMLButtonElement | null, fallbackLabel: string) 
 const renderTimeline = (status: string) => {
     const steps = [
         { key: LETTER_WORKFLOW_STATUS.SUBMITTED, label: 'Diajukan' },
-        { key: LETTER_WORKFLOW_STATUS.APPROVED_TENDIK, label: 'Verifikasi Tendik' },
-        { key: LETTER_WORKFLOW_STATUS.APPROVED_KAPRODI, label: 'Persetujuan Prodi' },
-        { key: LETTER_WORKFLOW_STATUS.READY_FOR_STUDENT_REVIEW, label: 'Persetujuan Departemen' },
+        { key: LETTER_WORKFLOW_STATUS.APPROVED_TENDIK, label: 'Tendik' },
+        { key: LETTER_WORKFLOW_STATUS.APPROVED_KAPRODI, label: 'Prodi' },
+        { key: LETTER_WORKFLOW_STATUS.READY_FOR_STUDENT_REVIEW, label: 'Departemen' },
+        { key: LETTER_WORKFLOW_STATUS.READY_FOR_STUDENT_REVIEW, label: 'Tinjau Dokumen' },
         { key: LETTER_WORKFLOW_STATUS.COMPLETED, label: 'Selesai' },
     ];
-    const currentIndex = status === LETTER_WORKFLOW_STATUS.REVISION || status === LETTER_WORKFLOW_STATUS.REJECTED
-        ? 0
-        : Math.max(0, steps.findIndex((step) => step.key === status));
+    const currentIndexByStatus: Record<string, number> = {
+        [LETTER_WORKFLOW_STATUS.DRAFT]: 0,
+        [LETTER_WORKFLOW_STATUS.REVISION]: 0,
+        [LETTER_WORKFLOW_STATUS.REJECTED]: 0,
+        [LETTER_WORKFLOW_STATUS.SUBMITTED]: 0,
+        [LETTER_WORKFLOW_STATUS.APPROVED_TENDIK]: 1,
+        [LETTER_WORKFLOW_STATUS.APPROVED_KAPRODI]: 2,
+        [LETTER_WORKFLOW_STATUS.READY_FOR_STUDENT_REVIEW]: 4,
+        [LETTER_WORKFLOW_STATUS.COMPLETED]: 5,
+    };
+    const currentIndex = currentIndexByStatus[status] ?? 0;
 
     return `
         <div class="bg-white rounded-[24px] border border-gray-100 shadow-sm overflow-hidden">

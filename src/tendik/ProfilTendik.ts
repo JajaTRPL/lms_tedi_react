@@ -133,7 +133,6 @@ export const renderProfilTendik = (role: string) => {
     };
     // Field-level validation errors (populated on 422 response, cleared on edit).
     let nameError = '';
-    let nipError = '';
     // Foto Profil state. `currentPhotoObjectUrl` is the auth-loaded object URL
     // displayed in the card. `pendingPhotoFile` + `pendingPhotoPreviewUrl` hold
     // the locally-selected file before save (rendered as a data: URL so we
@@ -197,18 +196,15 @@ export const renderProfilTendik = (role: string) => {
         const errorTextClass = "text-[10px] text-red-500 mt-1.5 font-bold";
 
         const nameInputClass = isEditingData ? editableInputClass : inlineReadonlyClass;
-        const nipInputClass = isEditingData ? editableInputClass : inlineReadonlyClass;
 
         const nameVal = escapeHtml(profileUser.name || '');
         const emailVal = escapeHtml(profileUser.email || '-');
-        const nipVal = escapeHtml(profileUser.nip || '');
-        const nipDisplayVal = isEditingData ? nipVal : (nipVal || '-');
+        const nipDisplayVal = escapeHtml(profileUser.nip || '-');
 
         const saveLabel = isSavingData ? 'Menyimpan...' : 'Simpan Perubahan';
         const saveDisabledAttr = isSavingData ? 'disabled' : '';
 
         const nameAriaInvalid = nameError ? 'aria-invalid="true" aria-describedby="profil-tendik-name-error"' : '';
-        const nipAriaInvalid = nipError ? 'aria-invalid="true" aria-describedby="profil-tendik-nip-error"' : '';
 
         return `
             <div class="space-y-4 max-w-3xl">
@@ -232,9 +228,11 @@ export const renderProfilTendik = (role: string) => {
                 <div class="flex flex-col md:flex-row md:items-start gap-2 md:gap-4">
                     <label class="w-40 text-sm font-semibold text-gray-600 md:pt-2">NIP</label>
                     <div class="flex-1">
-                        <input id="profil-tendik-nip" type="text" value="${nipDisplayVal}" class="${nipInputClass}" ${!isEditingData ? 'readonly' : ''} maxlength="50" placeholder="${isEditingData ? 'Masukkan NIP' : ''}" ${nipAriaInvalid}>
-                        ${nipError ? `<p id="profil-tendik-nip-error" class="${errorTextClass}">${escapeHtml(nipError)}</p>` : ''}
-                        ${isEditingData && !nipError ? `<p class="text-[10px] text-gray-500 mt-1.5 font-medium">Kosongkan jika belum tersedia.</p>` : ''}
+                        <div class="relative">
+                            ${lockIcon}
+                            <input id="profil-tendik-nip" type="text" value="${nipDisplayVal}" class="${lockedInputClass}" readonly disabled aria-readonly="true" title="NIP dikelola oleh Super Admin">
+                        </div>
+                        ${isEditingData ? `<p class="text-[10px] text-gray-500 mt-1.5 font-medium">NIP dikelola oleh Super Admin setelah onboarding.</p>` : ''}
                     </div>
                 </div>
                 <div class="flex flex-col md:flex-row gap-2 md:gap-4 mt-2">
@@ -250,7 +248,7 @@ export const renderProfilTendik = (role: string) => {
                     </div>
                 </div>
                 ${isEditingData ? `
-                    <p class="text-[11px] text-gray-500 italic pt-1">Nama, NIP, dan Foto Profil dapat diperbarui dari halaman ini. Role, status, dan tugas dikelola oleh Super Admin.</p>
+                    <p class="text-[11px] text-gray-500 italic pt-1">Nama dan Foto Profil dapat diperbarui dari halaman ini. NIP, role, status, dan tugas dikelola oleh Super Admin.</p>
                     <div class="flex justify-end gap-3 mt-2 pt-4">
                         <button id="cancel-data-btn" class="px-5 py-2 rounded-lg border border-gray-300 text-gray-600 font-semibold text-sm hover:bg-gray-50 transition-colors" ${saveDisabledAttr}>Batal</button>
                         <button id="save-data-btn" class="px-5 py-2 rounded-lg bg-teal-800 text-white font-semibold text-sm shadow-sm hover:bg-teal-900 transition-colors disabled:opacity-60 disabled:cursor-not-allowed" ${saveDisabledAttr}>${saveLabel}</button>
@@ -373,15 +371,12 @@ export const renderProfilTendik = (role: string) => {
     };
 
     const saveProfileData = async () => {
-        // Self-editable: name + nip + optional pas_foto. Email is account identity
-        // and managed exclusively by Super Admin; we do not read it from the DOM here.
+        // Self-editable: name + optional pas_foto. Email and NIP are account
+        // identity fields managed exclusively by Super Admin.
         const nameInput = document.getElementById('profil-tendik-name') as HTMLInputElement | null;
-        const nipInput = document.getElementById('profil-tendik-nip') as HTMLInputElement | null;
         const newName = nameInput?.value.trim() || '';
-        const newNip = nipInput?.value.trim() || '';
 
         nameError = '';
-        nipError = '';
         photoError = '';
 
         if (!newName) {
@@ -396,9 +391,6 @@ export const renderProfilTendik = (role: string) => {
         try {
             const formData = new FormData();
             formData.append('name', newName);
-            // Always send `nip` so blank clears the value server-side
-            // (backend normalizeNip trims and turns empty into null).
-            formData.append('nip', newNip);
             if (pendingPhotoFile) {
                 formData.append('pas_foto', pendingPhotoFile);
             }
@@ -414,19 +406,15 @@ export const renderProfilTendik = (role: string) => {
                 try { body = await res.json(); } catch { /* ignore */ }
 
                 if (res.status === 422 && body?.errors && typeof body.errors === 'object') {
-                    const nipErrors = body.errors.nip;
                     const nameErrors = body.errors.name;
                     const photoErrors = body.errors.pas_foto;
-                    if (Array.isArray(nipErrors) && nipErrors.length > 0) {
-                        nipError = String(nipErrors[0]);
-                    }
                     if (Array.isArray(nameErrors) && nameErrors.length > 0) {
                         nameError = String(nameErrors[0]);
                     }
                     if (Array.isArray(photoErrors) && photoErrors.length > 0) {
                         photoError = String(photoErrors[0]);
                     }
-                    if (!nipError && !nameError && !photoError) {
+                    if (!nameError && !photoError) {
                         showToast(typeof body.message === 'string' ? body.message : 'Profil Gagal Disimpan', false);
                     }
                 } else {
@@ -471,7 +459,6 @@ export const renderProfilTendik = (role: string) => {
             if (isSavingData) return;
             isEditingData = false;
             nameError = '';
-            nipError = '';
             photoError = '';
             // Discard any locally-selected photo on cancel.
             pendingPhotoFile = null;
@@ -489,10 +476,6 @@ export const renderProfilTendik = (role: string) => {
         document.getElementById('profil-tendik-name')?.addEventListener('input', () => {
             if (nameError) { nameError = ''; updateUI(); }
         });
-        document.getElementById('profil-tendik-nip')?.addEventListener('input', () => {
-            if (nipError) { nipError = ''; updateUI(); }
-        });
-
         document.getElementById('profil-tendik-foto')?.addEventListener('change', (event) => {
             const input = event.currentTarget as HTMLInputElement;
             const file = input.files?.[0];
@@ -590,7 +573,6 @@ export const renderProfilTendik = (role: string) => {
     document.getElementById('edit-data-btn')?.addEventListener('click', () => {
         isEditingData = true;
         nameError = '';
-        nipError = '';
         updateUI();
     });
 

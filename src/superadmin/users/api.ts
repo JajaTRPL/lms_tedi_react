@@ -33,19 +33,3 @@ export const deleteUser = async (userId: number, onSuccess: () => void) => {
         console.error(err);
     }
 };
-
-export const bulkDeleteUsers = async (userIds: number[], onSuccess: () => void) => {
-    try {
-        const response = await apiFetch('/api/super-admin/users/bulk-delete', {
-            method: 'POST',
-            body: JSON.stringify({ ids: userIds })
-        });
-
-        if (response.ok) {
-            showSuccess(`${userIds.length} user berhasil dihapus`);
-            onSuccess();
-        }
-    } catch (err) {
-        console.error(err);
-    }
-};

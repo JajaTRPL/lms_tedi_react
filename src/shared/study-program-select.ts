@@ -4,6 +4,7 @@
  */
 
 import { apiFetch } from './api-client';
+import { isRuntimeAcademicOption } from './academic-option-visibility';
 import { formatCodeName } from './formatters';
 
 let cache: any[] | null = null;
@@ -22,15 +23,24 @@ export async function populateStudyProgramSelect(
 ): Promise<void> {
     const render = (grouped: any[]) => {
         let html = '<option value="">Pilih Program Studi...</option>';
+        let visibleProgramCount = 0;
         grouped.forEach((group: any) => {
+            const programs = Array.isArray(group?.programs)
+                ? group.programs.filter(isRuntimeAcademicOption)
+                : [];
+            if (!isRuntimeAcademicOption(group?.department) || programs.length === 0) return;
+
             html += `<optgroup label="${formatCodeName(group.department.code, group.department.name)}">`;
-            group.programs.forEach((p: any) => {
+            programs.forEach((p: any) => {
+                visibleProgramCount += 1;
                 const sel = selectedId != null && String(p.id) === String(selectedId) ? 'selected' : '';
                 html += `<option value="${p.id}" ${sel}>${formatCodeName(p.code, p.name)}</option>`;
             });
             html += '</optgroup>';
         });
-        select.innerHTML = html;
+        select.innerHTML = visibleProgramCount > 0
+            ? html
+            : '<option value="">Program studi tidak tersedia.</option>';
     };
 
     if (cache !== null && (!filters || Object.keys(filters).length === 0)) {

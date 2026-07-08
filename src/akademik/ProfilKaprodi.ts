@@ -47,7 +47,6 @@ export const renderProfilKaprodi = async (role: string) => {
     let pendingSignaturePreviewUrl: string | null = null;
     // Field-level validation errors (populated on 422 response, cleared on edit).
     let nameError = '';
-    let nipError = '';
     let photoError = '';
     let signatureError = '';
 
@@ -244,11 +243,10 @@ export const renderProfilKaprodi = async (role: string) => {
                         <div class="flex flex-col md:flex-row md:items-start gap-2 md:gap-6">
                             <label class="w-48 text-sm font-bold text-gray-500 md:pt-3">NIP</label>
                             <div class="flex-1">
-                                <input id="profil-akademik-nip" type="text" name="nip" value="${userData.nip || ''}" maxlength="50" placeholder="${isEditingData ? 'Masukkan NIP' : ''}"
-                                    class="w-full ${isEditingData ? 'bg-white border-gray-300 font-bold' : 'bg-gray-100 border-transparent cursor-default font-bold'} border px-4 py-3 rounded-xl text-sm text-gray-700 font-semibold focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 outline-none transition-all"
-                                    ${!isEditingData ? 'readonly' : ''} ${nipError ? 'aria-invalid="true" aria-describedby="profil-akademik-nip-error"' : ''}>
-                                ${nipError ? `<p id="profil-akademik-nip-error" class="text-[10px] text-red-500 mt-1.5 font-bold">${nipError}</p>` : ''}
-                                ${isEditingData && !nipError ? `<p class="text-[10px] text-gray-500 mt-1.5 font-medium">Kosongkan jika belum tersedia.</p>` : ''}
+                                <input id="profil-akademik-nip" type="text" value="${userData.nip || '-'}"
+                                    class="w-full bg-gray-100 border-transparent cursor-not-allowed font-bold border px-4 py-3 rounded-xl text-sm text-gray-500 font-semibold outline-none transition-all"
+                                    readonly disabled aria-readonly="true" title="NIP dikelola oleh Super Admin">
+                                ${isEditingData ? `<p class="text-[10px] text-gray-500 mt-1.5 font-medium">NIP dikelola oleh Super Admin setelah onboarding.</p>` : ''}
                             </div>
                         </div>
                         <div class="flex flex-col md:flex-row gap-2 md:gap-6">
@@ -370,7 +368,6 @@ export const renderProfilKaprodi = async (role: string) => {
         document.getElementById('toggle-data-edit')?.addEventListener('click', () => {
             isEditingData = !isEditingData;
             nameError = '';
-            nipError = '';
             photoError = '';
             signatureError = '';
             // Discard any locally-selected files when leaving edit mode.
@@ -387,10 +384,6 @@ export const renderProfilKaprodi = async (role: string) => {
         document.getElementById('profil-akademik-name')?.addEventListener('input', () => {
             if (nameError) { nameError = ''; render(); }
         });
-        document.getElementById('profil-akademik-nip')?.addEventListener('input', () => {
-            if (nipError) { nipError = ''; render(); }
-        });
-
         document.getElementById('toggle-pwd-edit')?.addEventListener('click', () => {
             isEditingPassword = !isEditingPassword;
             render();
@@ -455,15 +448,12 @@ export const renderProfilKaprodi = async (role: string) => {
             e.preventDefault();
 
             // Build payload manually so we control exactly which fields go to the
-            // backend. Email is locked here and must never be submitted; role /
-            // sub_role / status / scope remain admin-managed.
+            // backend. Email and NIP are locked here and must never be submitted;
+            // role / sub_role / status / scope remain admin-managed.
             const nameInput = document.getElementById('profil-akademik-name') as HTMLInputElement | null;
-            const nipInput = document.getElementById('profil-akademik-nip') as HTMLInputElement | null;
             const newName = nameInput?.value.trim() || '';
-            const newNip = nipInput?.value.trim() || '';
 
             nameError = '';
-            nipError = '';
             photoError = '';
             signatureError = '';
 
@@ -476,9 +466,6 @@ export const renderProfilKaprodi = async (role: string) => {
             const formData = new FormData();
             formData.append('_method', 'PUT'); // Spoofing for Laravel PUT
             formData.append('name', newName);
-            // Always send `nip` so blank clears the value server-side
-            // (backend normalizeNip trims and turns empty into null).
-            formData.append('nip', newNip);
 
             if (pendingPhotoFile) {
                 formData.append('pas_foto', pendingPhotoFile);
@@ -510,13 +497,9 @@ export const renderProfilKaprodi = async (role: string) => {
                 try { body = await res.json(); } catch { /* ignore */ }
 
                 if (res.status === 422 && body?.errors && typeof body.errors === 'object') {
-                    const nipErrors = body.errors.nip;
                     const nameErrors = body.errors.name;
                     const photoErrors = body.errors.pas_foto;
                     const signatureErrors = body.errors.tanda_tangan;
-                    if (Array.isArray(nipErrors) && nipErrors.length > 0) {
-                        nipError = String(nipErrors[0]);
-                    }
                     if (Array.isArray(nameErrors) && nameErrors.length > 0) {
                         nameError = String(nameErrors[0]);
                     }
@@ -526,7 +509,7 @@ export const renderProfilKaprodi = async (role: string) => {
                     if (Array.isArray(signatureErrors) && signatureErrors.length > 0) {
                         signatureError = String(signatureErrors[0]);
                     }
-                    if (!nipError && !nameError && !photoError && !signatureError) {
+                    if (!nameError && !photoError && !signatureError) {
                         Toastify({ text: body?.message || "Gagal memperbarui profil", duration: 3000, style: { background: "#EF4444" } }).showToast();
                     }
                     render();

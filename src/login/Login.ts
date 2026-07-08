@@ -6,14 +6,58 @@ import { renderTendikDashboard } from '../dashboard/TendikDashboard'
 import { renderAkademikDashboard } from '../dashboard/AkademikDashboard'
 import { renderProfileCompletion } from '../mahasiswa/ProfileCompletion'
 import { UserStatus } from '../shared/user-status'
+import { apiFetch } from '../shared/api-client'
+import type { ProfileCompletionStatus } from '../mahasiswa/ProfileCompletion'
+import { clearNormalAuthState } from '../shared/auth-state'
+import { renderPasswordRotation } from './PasswordRotation'
+import {
+  clearPasswordRotationState,
+  storePasswordRotationChallenge,
+} from './password-rotation-state'
 
-export const handleRedirection = (role: string, needsCompletion?: boolean) => {
+export const handleRedirection = async (
+  role: string,
+  needsCompletion?: boolean,
+  completion?: ProfileCompletionStatus,
+) => {
   localStorage.setItem('auth_role', role)
   const status = localStorage.getItem('auth_status')
-  if (needsCompletion || status === UserStatus.PENDING_PROFILE) {
-    renderProfileCompletion()
+  let resolvedCompletion = completion
+  let requiresCompletion = needsCompletion
+
+  if (resolvedCompletion) {
+    localStorage.setItem('auth_completion', JSON.stringify(resolvedCompletion))
+  }
+
+  if (requiresCompletion === undefined && localStorage.getItem('auth_token')) {
+    try {
+      const response = await apiFetch('/api/auth/profile-completion')
+      if (response.ok) {
+        const payload = await response.json()
+        resolvedCompletion = payload.completion
+        requiresCompletion = Boolean(resolvedCompletion?.needs_completion)
+        localStorage.setItem('auth_completion', JSON.stringify(resolvedCompletion))
+      }
+    } catch {
+      // Fall back to the persisted lifecycle status when the status check is unavailable.
+    }
+  }
+
+  if (requiresCompletion === undefined) {
+    requiresCompletion =
+      localStorage.getItem('auth_requires_completion') === 'true'
+      || status === UserStatus.PENDING_PROFILE
+  }
+
+  if (requiresCompletion) {
+    localStorage.setItem('auth_requires_completion', 'true')
+    await renderProfileCompletion(resolvedCompletion)
     return
   }
+
+  localStorage.removeItem('auth_requires_completion')
+  localStorage.removeItem('auth_completion')
+
   if (role === 'super_admin') {
     renderAdminDashboard()
   } else if (role === 'mahasiswa') {
@@ -34,7 +78,8 @@ export const handleRedirection = (role: string, needsCompletion?: boolean) => {
   }
 }
 
-export const renderLogin = () => {
+export const renderLogin = (initialMessage?: string) => {
+  clearPasswordRotationState()
   const app = document.querySelector<HTMLDivElement>('#app')!
   app.innerHTML = `
     <div class="min-h-screen w-full flex items-center justify-center relative overflow-hidden font-['Inter'] bg-cover bg-center bg-no-repeat" style="background-image: url('/bc-login.png');">
@@ -182,6 +227,8 @@ export const renderLogin = () => {
     }
   }
 
+  if (initialMessage) showLoginError(initialMessage)
+
   toggleBtn?.addEventListener('click', () => {
     const isPassword = passwordInput.type === 'password'
     passwordInput.type = isPassword ? 'text' : 'password'
@@ -219,6 +266,7 @@ export const renderLogin = () => {
       }
 
       if (response.ok) {
+        clearPasswordRotationState()
         localStorage.setItem('auth_token', data.token)
         localStorage.setItem('auth_name', data.user.name)
         localStorage.setItem('auth_user_id', String(data.user.id))
@@ -237,11 +285,38 @@ export const renderLogin = () => {
         } else {
             localStorage.removeItem('auth_assigned_tasks')
         }
+        if (data.user.tendik_role) {
+            localStorage.setItem('auth_tendik_role', data.user.tendik_role)
+        } else {
+            localStorage.removeItem('auth_tendik_role')
+        }
         localStorage.setItem('auth_status', data.user.status)
-        handleRedirection(data.user.sub_role && ['kaprodi', 'kadep', 'sekdep', 'sekprodi'].includes(data.user.sub_role) ? data.user.sub_role : data.user.role, data.needs_completion)
+        handleRedirection(
+          data.user.sub_role && ['kaprodi', 'kadep', 'sekdep', 'sekprodi'].includes(data.user.sub_role)
+            ? data.user.sub_role
+            : data.user.role,
+          data.needs_completion,
+          data.completion,
+        )
       } else {
+        if (response.status === 423 && data.code === 'PASSWORD_ROTATION_REQUIRED') {
+          clearNormalAuthState()
+          if (
+            typeof data.rotation_token === 'string'
+            && typeof data.expires_in === 'number'
+            && storePasswordRotationChallenge(data.rotation_token, data.expires_in)
+          ) {
+            await renderPasswordRotation(
+              typeof data.message === 'string' ? data.message : undefined,
+            )
+            return
+          }
+        }
+
         if (response.status === 404) {
           showLoginError('Endpoint API tidak ditemukan (404). Pastikan backend Laravel sudah jalan di port 8000.')
+        } else if (response.status === 423) {
+          showLoginError('Sesi penggantian kata sandi tidak valid. Silakan coba login kembali.')
         } else {
           showLoginError('Email atau kata sandi yang Anda masukkan tidak sesuai. Silakan coba lagi.')
         }
@@ -292,12 +367,27 @@ export const renderLogin = () => {
             const data = await res.json()
 
             if (res.ok) {
+              clearPasswordRotationState()
               localStorage.setItem('auth_token', data.token)
               localStorage.setItem('auth_name', data.user.name)
               localStorage.setItem('auth_user_id', String(data.user.id))
               localStorage.setItem('auth_status', data.user.status)
+              if (data.user.sub_role) {
+                localStorage.setItem('auth_sub_role', data.user.sub_role)
+              } else {
+                localStorage.removeItem('auth_sub_role')
+              }
+              if (data.user.tendik_role) {
+                localStorage.setItem('auth_tendik_role', data.user.tendik_role)
+              } else {
+                localStorage.removeItem('auth_tendik_role')
+              }
               if (data.user.avatar_url) localStorage.setItem('auth_avatar', data.user.avatar_url)
-              handleRedirection(data.user.role, data.needs_completion)
+              const dashboardRole =
+                data.user.sub_role && ['kaprodi', 'kadep', 'sekdep', 'sekprodi'].includes(data.user.sub_role)
+                  ? data.user.sub_role
+                  : data.user.role
+              handleRedirection(dashboardRole, data.needs_completion, data.completion)
             } else {
               showLoginError(data.message || 'Google login gagal.')
               resetGoogleBtn(btn)

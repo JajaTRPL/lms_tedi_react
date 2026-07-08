@@ -6,6 +6,7 @@ import { renderSidebar } from '../components/Sidebar';
 import { getGreetingName } from '../utils/nameHelper';
 import Toastify from 'toastify-js';
 import { apiFetch, loadProtectedImageObjectUrl, revokeProtectedImageObjectUrl } from '../shared/api-client';
+import { clearAllAuthenticationState } from '../login/password-rotation-state';
 
 let dashboardLayoutAvatarObjectUrl: string | null = null;
 let dashboardLayoutDrawerCleanup: (() => void) | null = null;
@@ -310,6 +311,16 @@ export const renderDashboardLayout = (title: string, content: string, role: stri
         });
     });
 
+    document.getElementById('sidebar-peminjaman-admin-link')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (role === 'super_admin') {
+            (window as any).clearDashboardInterval?.();
+            import('../superadmin/PeminjamanRuanganAdmin').then(({ renderPeminjamanRuanganAdmin }) => {
+                void renderPeminjamanRuanganAdmin();
+            });
+        }
+    });
+
     document.getElementById('sidebar-history-link')?.addEventListener('click', (e) => {
         e.preventDefault();
         (window as any).clearDashboardInterval?.();
@@ -339,6 +350,14 @@ export const renderDashboardLayout = (title: string, content: string, role: stri
         (window as any).clearDashboardInterval?.();
         import('../tendik/DokumenTendik').then(({ renderDokumenTendik }) => {
             renderDokumenTendik(role);
+        });
+    });
+
+    document.getElementById('sidebar-peminjaman-tendik-link')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        (window as any).clearDashboardInterval?.();
+        import('../tendik/PeminjamanRuanganTendik').then(({ renderPeminjamanRuanganTendik }) => {
+            void renderPeminjamanRuanganTendik(role);
         });
     });
 
@@ -377,14 +396,7 @@ export const renderDashboardLayout = (title: string, content: string, role: stri
             }
         }
 
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('auth_role');
-        localStorage.removeItem('auth_name');
-        localStorage.removeItem('auth_photo');
-        localStorage.removeItem('auth_sub_role');
-        localStorage.removeItem('auth_assigned_tasks');
-        localStorage.removeItem('auth_role_level');
-        localStorage.removeItem('auth_user_id');
+        clearAllAuthenticationState();
 
         Toastify({
             text: "Berhasil keluar!",

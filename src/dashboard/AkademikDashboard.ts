@@ -80,7 +80,7 @@ export const renderAkademikDashboard = async (role: string) => {
             apiFetch('/api/akademik/riwayat'),
         ]);
 
-        if (!tasksRes.ok) throw new Error('Failed to fetch academic dashboard data');
+        if (!tasksRes.ok) throw new Error('Data dasbor belum berhasil dimuat. Coba muat ulang halaman.');
 
         const data = await tasksRes.json();
         const stats = data.stats || { total_incoming: 0, needs_verification: 0, finished_this_month: 0 };
@@ -120,6 +120,7 @@ export const renderAkademikDashboard = async (role: string) => {
             <!-- Welcome Section -->
             <div class="mt-2">
                 <h2 class="text-[28px] font-bold text-gray-800 leading-tight">Halo, ${escapeHtml(userName)}${userName ? '!' : ''}</h2>
+                <p class="text-xs text-gray-600 mt-1">Tinjau pengajuan surat yang membutuhkan verifikasi Anda.</p>
                 <div class="flex flex-wrap gap-2 mt-3">
                     <span class="bg-[#FFD700] text-gray-900 border border-yellow-400/50 text-[10px] font-bold px-3 py-1.5 rounded-md shadow-sm">${escapeHtml(roleLabel)}</span>
                 </div>
