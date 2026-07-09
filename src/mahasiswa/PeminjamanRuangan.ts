@@ -1,5 +1,6 @@
 import Toastify from 'toastify-js';
 import { renderDashboardLayout } from '../dashboard/DashboardLayout';
+import { renderDashboardLoadingState } from '../shared/ui-primitives';
 import { renderMahasiswaDashboard } from '../dashboard/MahasiswaDashboard';
 import {
     countApprovedByFilter,
@@ -27,7 +28,6 @@ import {
     accentStroke,
     buttonClass,
     galleryTabClass,
-    SPINNER_CLASS,
     surfaceClass,
 } from '../shared/design-system';
 import {
@@ -113,12 +113,7 @@ const renderPageShell = (): string => `
     </div>
 `;
 
-const renderLoadingState = (): string => `
-    <div data-state="loading" class="${surfaceClass('card', 'px-6 py-16 text-center')}">
-        <div class="mx-auto h-10 w-10 ${SPINNER_CLASS}" aria-hidden="true"></div>
-        <p class="mt-4 text-sm font-bold text-gray-700">Memuat layanan peminjaman ruangan...</p>
-    </div>
-`;
+const renderLoadingState = (): string => renderDashboardLoadingState();
 
 const renderEmptyState = (): string => `
     <div data-state="empty" class="${surfaceClass('card', 'px-6 py-16 text-center')}">

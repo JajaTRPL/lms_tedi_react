@@ -1,6 +1,7 @@
+import Toastify from 'toastify-js';
 import { renderDashboardLayout } from '../dashboard/DashboardLayout';
 import { renderLogin } from '../login/Login';
-import Toastify from 'toastify-js';
+import { showSuccess } from '../shared/toast';
 import { apiFetch, loadProtectedImageObjectUrl, revokeProtectedImageObjectUrl } from '../shared/api-client';
 import { STATUS_LABELS, type UserStatusValue } from '../shared/user-status';
 
@@ -360,7 +361,7 @@ export const renderProfilKaprodi = async (role: string) => {
             const token = localStorage.getItem('auth_token');
             if (token) try { await apiFetch('/api/logout', { method: 'POST' }); } catch (e) { }
             localStorage.clear();
-            Toastify({ text: "Berhasil keluar!", duration: 2000, style: { background: "#10B981" } }).showToast();
+            showSuccess('Berhasil keluar!');
             setTimeout(() => renderLogin(), 500);
         });
 

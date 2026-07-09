@@ -1,5 +1,5 @@
 import { renderForgotPassword } from './ResetPassword'
-import Toastify from 'toastify-js'
+import { showInlineNotification, hideInlineNotification } from './AuthNotification'
 import { renderAdminDashboard } from '../dashboard/AdminDashboard'
 import { renderMahasiswaDashboard } from '../dashboard/MahasiswaDashboard'
 import { renderTendikDashboard } from '../dashboard/TendikDashboard'
@@ -67,14 +67,7 @@ export const handleRedirection = async (
   } else if (['akademik', 'kaprodi', 'kadep', 'sekdep', 'sekprodi'].includes(role)) {
     renderAkademikDashboard(role)
   } else {
-    Toastify({
-      text: 'Role tidak dikenali, menghubungi admin.',
-      duration: 3000,
-      close: true,
-      gravity: "top",
-      position: "right",
-      style: { background: "#EF4444" }
-    }).showToast()
+    showInlineNotification('auth-notification', 'Gagal Masuk', 'Role tidak dikenali, menghubungi admin.', 'error')
   }
 }
 
@@ -179,7 +172,7 @@ export const renderLogin = (initialMessage?: string) => {
                 Masuk
               </button>
 
-              <div id="login-error" class="hidden w-full rounded-xl px-4 py-3 text-center text-sm font-medium bg-red-500/20 text-red-200 border border-red-500/30 backdrop-blur-md shadow-inner"></div>
+
 
               <div class="relative my-6 flex items-center justify-center">
                 <div class="absolute w-full border-t border-white/10"></div>
@@ -212,19 +205,11 @@ export const renderLogin = (initialMessage?: string) => {
   passwordInput.addEventListener('input', updateSubmitBtn)
 
   const showLoginError = (message: string) => {
-    const errorEl = document.getElementById('login-error')
-    if (errorEl) {
-      errorEl.textContent = message
-      errorEl.classList.remove('hidden')
-    }
+    showInlineNotification('auth-notification', 'Gagal Masuk', message, 'error')
   }
 
   const hideLoginError = () => {
-    const errorEl = document.getElementById('login-error')
-    if (errorEl) {
-      errorEl.classList.add('hidden')
-      errorEl.textContent = ''
-    }
+    hideInlineNotification('auth-notification')
   }
 
   if (initialMessage) showLoginError(initialMessage)

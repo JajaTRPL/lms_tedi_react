@@ -3,7 +3,10 @@ import type {
     ApiEnvelope,
     AvailabilityItem,
     BookingPayload,
+    DepartmentSummary,
     LaboratorySummary,
+    LaboratoryUnit,
+    LaboratoryUnitPayload,
     MahasiswaBooking,
     Room,
     RoomDetail,
@@ -127,7 +130,7 @@ export async function getPeminjamanRoomDetail(roomId: number): Promise<RoomDetai
 /**
  * Load a room photo through its authenticated media endpoint and return an
  * object URL. Only relative /api endpoint references from the backend payload
- * are accepted — anything else (accidental raw path, absolute host) is
+ * are accepted - anything else (accidental raw path, absolute host) is
  * rejected before any request is made. Callers own revocation.
  */
 export async function fetchRoomPhotoObjectUrl(mediaUrl: string): Promise<string> {
@@ -146,8 +149,8 @@ export async function fetchRoomPhotoObjectUrl(mediaUrl: string): Promise<string>
 }
 
 /**
- * Authenticated download of the active booking template for a room →
- * blob → browser save. Filename is built locally from the room code and the
+ * Authenticated download of the active booking template for a room:
+ * blob -> browser save. Filename is built locally from the room code and the
  * template MIME; server filenames are display metadata only.
  */
 export async function downloadRoomTemplate(
@@ -224,7 +227,7 @@ export async function createMahasiswaBooking(
 
 /**
  * Replace (or upload the first) surat peminjaman PDF for a revision. Dedicated
- * multipart route — the normal PUT edit stays file-free. Backend enforces
+ * multipart route - the normal PUT edit stays file-free. Backend enforces
  * owner + revision_requested.
  */
 export async function replaceSuratPeminjamanPdf(
@@ -245,7 +248,7 @@ export async function replaceSuratPeminjamanPdf(
 }
 
 /**
- * Authenticated download of the surat PDF via the protected route → blob →
+ * Authenticated download of the surat PDF via the protected route -> blob ->
  * browser save. Never uses a raw public storage URL. Throws PeminjamanApiError with a
  * user-facing message on 403/404/other.
  */
@@ -318,6 +321,26 @@ export async function cancelMahasiswaBooking(
     )).data;
 }
 
+export async function submitMahasiswaBookingReturn(
+    id: number,
+    payload: { returnedTo: string; note?: string },
+    photo: File,
+): Promise<MahasiswaBooking> {
+    const formData = new FormData();
+    formData.append('returned_to', payload.returnedTo);
+    if (payload.note?.trim()) formData.append('return_note', payload.note.trim());
+    formData.append('return_photo', photo);
+
+    const response = await apiFetch(`${BASE}/requests/${id}/return`, {
+        method: 'POST',
+        body: formData,
+        isFormData: true,
+    });
+    return (await readJson<ApiEnvelope<MahasiswaBooking>>(
+        response,
+        'Gagal menyimpan pengembalian peminjaman.',
+    )).data;
+}
 export async function getTendikReviewerProfile(): Promise<TendikReviewerProfile> {
     const response = await apiFetch('/api/profile', { cache: 'no-store' });
     const payload = await readJson<{ user?: TendikReviewerProfile }>(
@@ -477,6 +500,68 @@ export async function getSuperAdminLaboratories(): Promise<LaboratorySummary[]> 
     );
 }
 
+export async function getSuperAdminDepartments(): Promise<DepartmentSummary[]> {
+    const response = await apiFetch('/api/super-admin/departments');
+    return readJson<DepartmentSummary[]>(
+        response,
+        'Gagal memuat daftar departemen.',
+    );
+}
+
+export async function listSuperAdminLaboratoryUnits(): Promise<LaboratoryUnit[]> {
+    const response = await apiFetch('/api/super-admin/laboratories');
+    return (await readJson<ApiEnvelope<LaboratoryUnit[]>>(
+        response,
+        'Gagal memuat unit laboratorium.',
+    )).data;
+}
+
+export async function createSuperAdminLaboratoryUnit(
+    payload: LaboratoryUnitPayload,
+): Promise<LaboratoryUnit> {
+    const response = await apiFetch('/api/super-admin/laboratories', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+    });
+    return (await readJson<ApiEnvelope<LaboratoryUnit>>(
+        response,
+        'Gagal membuat unit laboratorium.',
+    )).data;
+}
+
+export async function updateSuperAdminLaboratoryUnit(
+    id: number,
+    payload: LaboratoryUnitPayload,
+): Promise<LaboratoryUnit> {
+    const response = await apiFetch(`/api/super-admin/laboratories/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+    });
+    return (await readJson<ApiEnvelope<LaboratoryUnit>>(
+        response,
+        'Gagal memperbarui unit laboratorium.',
+    )).data;
+}
+
+export async function toggleSuperAdminLaboratoryUnit(id: number): Promise<LaboratoryUnit> {
+    const response = await apiFetch(`/api/super-admin/laboratories/${id}/toggle-active`, {
+        method: 'PATCH',
+    });
+    return (await readJson<ApiEnvelope<LaboratoryUnit>>(
+        response,
+        'Gagal mengubah status unit laboratorium.',
+    )).data;
+}
+
+export async function deleteSuperAdminLaboratoryUnit(id: number): Promise<void> {
+    const response = await apiFetch(`/api/super-admin/laboratories/${id}`, {
+        method: 'DELETE',
+    });
+    await readJson<{ message: string }>(
+        response,
+        'Gagal menghapus unit laboratorium.',
+    );
+}
 export async function getSuperAdminBookings(
     filters: SuperAdminBookingFilters = {},
 ): Promise<SuperAdminBookingListEnvelope> {

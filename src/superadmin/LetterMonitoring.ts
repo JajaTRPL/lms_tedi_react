@@ -32,7 +32,7 @@ async function fetchMonitoringData(period: string) {
 function buildContent(stats: any, overdue: any[]) {
     const periodTabs = PERIODS.map(p => {
         const isActive = p.key === activePeriod;
-        return `<button data-period="${p.key}" class="period-btn px-6 py-2 text-sm font-semibold transition-colors rounded-xl ${isActive ? 'text-white shadow-sm' : 'text-gray-500 hover:text-gray-800'}" ${isActive ? 'style="background-color: #0d4a46"' : ''}>${p.label}</button>`;
+        return `<button data-period="${p.key}" class="period-btn shrink-0 px-4 py-2 text-sm font-semibold transition-colors rounded-xl sm:px-6 ${isActive ? 'text-white shadow-sm' : 'text-gray-500 hover:text-gray-800'}" ${isActive ? 'style="background-color: #0d4a46"' : ''}>${p.label}</button>`;
     }).join('');
 
     const overdueRows = overdue.length > 0
@@ -68,60 +68,59 @@ function buildContent(stats: any, overdue: any[]) {
         </td></tr>`;
 
     return `
-        <div class="space-y-6 animate-fade-in pb-12 w-full max-w-6xl mx-auto">
-            <p class="text-gray-500 text-sm mb-6 -mt-2">Memantau status dan progres pengajuan surat dalam sistem</p>
+        <div class="w-full max-w-6xl mx-auto space-y-6 overflow-hidden pb-12 animate-fade-in">
 
             <!-- Time Period Tabs -->
-            <div class="flex items-center gap-1 border-b border-gray-200 pb-4">
+            <div class="-mx-1 flex gap-1 overflow-x-auto border-b border-gray-200 px-1 pb-4">
                 ${periodTabs}
             </div>
 
             <!-- Summary Cards -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
                 <!-- Surat Masuk -->
-                <div class="bg-[#EFF6FF] border border-blue-100 p-6 rounded-2xl flex justify-between items-start hover:shadow-sm transition-all">
+                <div class="bg-[#EFF6FF] border border-blue-100 p-4 rounded-2xl flex justify-between items-start gap-4 sm:p-6 hover:shadow-sm transition-all">
                     <div class="flex-1">
                         <p class="text-sm font-bold text-gray-700 mb-1">Surat Masuk</p>
-                        <h3 class="text-[40px] font-black text-gray-800 mb-3 leading-none">${stats.surat_masuk}</h3>
+                        <h3 class="text-3xl font-black text-gray-800 mb-3 leading-none sm:text-[40px]">${stats.surat_masuk}</h3>
                         <p class="text-[11px] text-gray-500 max-w-[200px] leading-snug">Jumlah pengajuan surat yang masuk pada periode yang dipilih</p>
                     </div>
-                    <div class="w-[72px] h-[72px] bg-blue-300/40 rounded-2xl flex items-center justify-center text-blue-500 shadow-inner mt-1">
+                    <div class="hidden w-[72px] h-[72px] sm:flex bg-blue-300/40 rounded-2xl items-center justify-center text-blue-500 shadow-inner mt-1">
                         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path></svg>
                     </div>
                 </div>
 
                 <!-- Menunggu Persetujuan -->
-                <div class="bg-[#FEF9C3]/40 border border-yellow-200/50 p-6 rounded-2xl flex justify-between items-start hover:shadow-sm transition-all">
+                <div class="bg-[#FEF9C3]/40 border border-yellow-200/50 p-4 rounded-2xl flex justify-between items-start gap-4 sm:p-6 hover:shadow-sm transition-all">
                     <div class="flex-1">
                         <p class="text-sm font-bold text-gray-700 mb-1">Menunggu Persetujuan</p>
-                        <h3 class="text-[40px] font-black text-gray-800 mb-3 leading-none">${stats.menunggu_persetujuan}</h3>
+                        <h3 class="text-3xl font-black text-gray-800 mb-3 leading-none sm:text-[40px]">${stats.menunggu_persetujuan}</h3>
                         <p class="text-[11px] text-gray-500 max-w-[220px] leading-snug">Surat yang sedang menunggu verifikasi atau persetujuan</p>
                     </div>
-                    <div class="w-[72px] h-[72px] bg-yellow-300/50 rounded-2xl flex items-center justify-center text-yellow-600 shadow-inner mt-1">
+                    <div class="hidden w-[72px] h-[72px] sm:flex bg-yellow-300/50 rounded-2xl items-center justify-center text-yellow-600 shadow-inner mt-1">
                         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
                     </div>
                 </div>
 
                 <!-- Perlu Revisi -->
-                <div class="bg-[#FFEDD5]/40 border border-orange-200/50 p-6 rounded-2xl flex justify-between items-start hover:shadow-sm transition-all">
+                <div class="bg-[#FFEDD5]/40 border border-orange-200/50 p-4 rounded-2xl flex justify-between items-start gap-4 sm:p-6 hover:shadow-sm transition-all">
                     <div class="flex-1">
                         <p class="text-sm font-bold text-gray-700 mb-1">Perlu Revisi</p>
-                        <h3 class="text-[40px] font-black text-gray-800 mb-3 leading-none">${stats.perlu_revisi}</h3>
+                        <h3 class="text-3xl font-black text-gray-800 mb-3 leading-none sm:text-[40px]">${stats.perlu_revisi}</h3>
                         <p class="text-[11px] text-gray-500 max-w-[200px] leading-snug">Surat yang dikembalikan kepada mahasiswa untuk diperbaiki</p>
                     </div>
-                    <div class="w-[72px] h-[72px] bg-orange-200/60 rounded-2xl flex items-center justify-center text-orange-500 shadow-inner mt-1">
+                    <div class="hidden w-[72px] h-[72px] sm:flex bg-orange-200/60 rounded-2xl items-center justify-center text-orange-500 shadow-inner mt-1">
                         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
                     </div>
                 </div>
 
                 <!-- Surat Selesai -->
-                <div class="bg-[#ECFDF5]/50 border border-green-200/50 p-6 rounded-2xl flex justify-between items-start hover:shadow-sm transition-all">
+                <div class="bg-[#ECFDF5]/50 border border-green-200/50 p-4 rounded-2xl flex justify-between items-start gap-4 sm:p-6 hover:shadow-sm transition-all">
                     <div class="flex-1">
                         <p class="text-sm font-bold text-gray-700 mb-1">Surat Selesai</p>
-                        <h3 class="text-[40px] font-black text-gray-800 mb-3 leading-none">${stats.selesai}</h3>
+                        <h3 class="text-3xl font-black text-gray-800 mb-3 leading-none sm:text-[40px]">${stats.selesai}</h3>
                         <p class="text-[11px] text-gray-500 max-w-[240px] leading-snug">Surat yang telah selesai diproses pada periode yang dipilih</p>
                     </div>
-                    <div class="w-[72px] h-[72px] bg-emerald-200/60 rounded-2xl flex items-center justify-center text-emerald-500 shadow-inner mt-1">
+                    <div class="hidden w-[72px] h-[72px] sm:flex bg-emerald-200/60 rounded-2xl items-center justify-center text-emerald-500 shadow-inner mt-1">
                         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
                     </div>
                 </div>
@@ -129,7 +128,7 @@ function buildContent(stats: any, overdue: any[]) {
 
             <!-- Overdue List -->
             <div class="bg-white rounded-2xl border border-gray-100 shadow-sm mt-10 overflow-hidden">
-                <div class="px-6 py-5 border-b border-gray-100 flex gap-3">
+                <div class="flex gap-3 border-b border-gray-100 px-4 py-5 sm:px-6">
                     <div class="w-6 h-6 rounded-full border border-red-500 text-red-500 flex flex-col items-center justify-center shrink-0 mt-0.5">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="6" x2="12" y2="14"></line><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
                     </div>
@@ -140,7 +139,7 @@ function buildContent(stats: any, overdue: any[]) {
                 </div>
 
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left bg-white">
+                    <table class="min-w-[760px] w-full text-left bg-white">
                         <thead>
                             <tr class="border-b border-gray-100 bg-white">
                                 <th class="px-6 py-4 text-xs font-bold text-gray-700 whitespace-nowrap">Tanggal Masuk</th>
@@ -156,7 +155,7 @@ function buildContent(stats: any, overdue: any[]) {
                     </table>
                 </div>
 
-                <div class="px-6 py-5 flex items-center justify-between border-t border-gray-100">
+                <div class="flex items-center justify-between border-t border-gray-100 px-4 py-5 sm:px-6">
                     <p class="text-xs font-medium text-gray-600">Menampilkan <span class="font-bold">${overdue.length}</span> surat tertunda</p>
                 </div>
             </div>

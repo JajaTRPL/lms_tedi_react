@@ -18,6 +18,10 @@ export function renderStatusBadge(tone: UiTone, label: string, extra?: string): 
     return `<span class="${badgeClass(tone, extra)}">${escapeFormHtml(label)}</span>`;
 }
 
+
+export function renderDashboardLoadingState(): string {
+    return '<div class="flex items-center justify-center h-64"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div></div>';
+}
 export function renderLoadingState(message = 'Memuat data...'): string {
     return `
         <div class="${surfaceClass('card', 'p-10')} flex items-center gap-4">

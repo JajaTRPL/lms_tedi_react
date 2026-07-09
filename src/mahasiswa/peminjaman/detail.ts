@@ -7,10 +7,11 @@ import {
     replaceSuratPeminjamanPdf,
     resubmitMahasiswaBooking,
     suratPeminjamanPreviewUrl,
+    submitMahasiswaBookingReturn,
 } from './api';
 import { closeBookingWorkflow, openBookingWorkflowForm } from './booking-form';
 import { renderBookingDetailDialog, renderCancelDialog } from './views';
-import { validateSuratPdfFile } from './workflow';
+import { validateReturnPhotoFile, validateSuratPdfFile } from './workflow';
 import {
     attachProtectedPdfViewer,
     renderProtectedPdfViewer,
@@ -111,6 +112,7 @@ const renderDetailState = (
             openCancelDialog(booking, options);
         });
         bindSuratControls(root, booking, options);
+        bindReturnControls(root, booking, options);
     }
 
     if (detailEscapeHandler) {
@@ -136,7 +138,7 @@ export const closeSuratPreview = (): void => {
 };
 
 // Full-screen protected preview overlay (above the detail drawer). Reuses the
-// shared authenticated PDF.js viewer — bytes are fetched via apiFetch, never a
+// shared authenticated PDF.js viewer - bytes are fetched via apiFetch, never a
 // raw storage URL. Exported so the Tendik reviewer drawer opens the exact same
 // overlay (role authorization happens in the backend preview endpoint).
 export const openSuratPreview = (booking: MahasiswaBooking): void => {
@@ -155,7 +157,7 @@ export const openSuratPreview = (booking: MahasiswaBooking): void => {
             <div class="min-h-0 flex-1 overflow-auto p-3">
                 ${renderProtectedPdfViewer('peminjaman-surat-pdf-viewer', {
                     title: 'Surat Peminjaman Ruangan',
-                    subtitle: `${booking.room.code} · ${booking.room.name}`,
+                    subtitle: `${booking.room.code} - ${booking.room.name}`,
                     loading: 'Memuat surat peminjaman...',
                 })}
             </div>
@@ -248,6 +250,62 @@ const bindSuratControls = (
     });
 };
 
+const bindReturnControls = (
+    root: HTMLElement,
+    booking: MahasiswaBooking,
+    options: PeminjamanDetailOptions,
+): void => {
+    const form = root.querySelector<HTMLFormElement>('#peminjaman-return-form');
+    if (!form) return;
+
+    const feedback = root.querySelector<HTMLElement>('#peminjaman-return-feedback');
+    const submitButton = root.querySelector<HTMLButtonElement>('#peminjaman-return-submit');
+    const showFeedback = (message: string, ok: boolean): void => {
+        if (!feedback) return;
+        feedback.textContent = message;
+        feedback.classList.remove('hidden', 'text-red-600', 'text-emerald-600');
+        feedback.classList.add(ok ? 'text-emerald-600' : 'text-red-600');
+    };
+
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const returnedTo = root.querySelector<HTMLInputElement>('#peminjaman-returned-to')?.value.trim() ?? '';
+        const note = root.querySelector<HTMLTextAreaElement>('#peminjaman-return-note')?.value.trim() ?? '';
+        const photo = root.querySelector<HTMLInputElement>('#peminjaman-return-photo')?.files?.[0] ?? null;
+
+        if (!returnedTo) {
+            showFeedback('Nama penerima pengembalian wajib diisi.', false);
+            return;
+        }
+
+        const photoError = validateReturnPhotoFile(photo);
+        if (photoError) {
+            showFeedback(photoError, false);
+            return;
+        }
+
+        if (submitButton) submitButton.disabled = true;
+        showFeedback('Menyimpan pengembalian...', true);
+        try {
+            const updated = await submitMahasiswaBookingReturn(
+                booking.id,
+                { returnedTo, note },
+                photo!,
+            );
+            showToast('Pengembalian berhasil disimpan. Peminjaman masuk riwayat.', true);
+            options.onMutated?.();
+            renderDetailState(updated, false, null, false, options);
+        } catch (returnError) {
+            if (submitButton) submitButton.disabled = false;
+            showFeedback(
+                returnError instanceof Error
+                    ? returnError.message
+                    : 'Pengembalian gagal disimpan.',
+                false,
+            );
+        }
+    });
+};
 const openEditForm = async (
     booking: MahasiswaBooking,
     options: PeminjamanDetailOptions,

@@ -78,25 +78,25 @@ function renderContent(periods: AcademicPeriod[]): void {
                     <p class="text-xs text-gray-400 ml-7">Kelola periode akademik aktif. Semester mahasiswa dihitung otomatis dari angkatan/NIM dan periode akademik aktif.</p>
                 </div>
 
-                <div class="px-6 py-4 flex flex-wrap gap-3 items-center justify-between border-b border-gray-50">
-                    <div class="relative flex-1 min-w-[200px] max-w-sm">
+                <div class="flex flex-col gap-3 border-b border-gray-50 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
+                    <div class="relative w-full min-w-0 lg:max-w-sm lg:flex-1">
                         <span class="absolute inset-y-0 left-3 flex items-center text-gray-400 pointer-events-none">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                         </span>
                         <input type="text" id="ap-search" placeholder="Cari tahun akademik..." class="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 outline-none transition-all">
                     </div>
-                    <div class="flex items-center gap-3">
-                        <select id="ap-type-filter" class="pl-3 pr-8 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none cursor-pointer bg-white text-gray-600">
+                    <div class="flex w-full flex-col gap-3 sm:flex-row sm:items-center lg:w-auto">
+                        <select id="ap-type-filter" class="w-full pl-3 pr-8 py-2 sm:w-auto text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none cursor-pointer bg-white text-gray-600">
                             <option value="">Semua Semester</option>
                             <option value="ganjil">Ganjil</option>
                             <option value="genap">Genap</option>
                         </select>
-                        <select id="ap-active-filter" class="pl-3 pr-8 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none cursor-pointer bg-white text-gray-600">
+                        <select id="ap-active-filter" class="w-full pl-3 pr-8 py-2 sm:w-auto text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none cursor-pointer bg-white text-gray-600">
                             <option value="">Semua Status</option>
                             <option value="true">Aktif</option>
                             <option value="false">Nonaktif</option>
                         </select>
-                        <button id="ap-add-btn" class="flex items-center gap-2 px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white text-sm font-semibold rounded-xl transition-all shadow-sm">
+                        <button id="ap-add-btn" class="flex w-full items-center justify-center gap-2 sm:w-auto px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white text-sm font-semibold rounded-xl transition-all shadow-sm">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                             Tambah
                         </button>
@@ -104,7 +104,7 @@ function renderContent(periods: AcademicPeriod[]): void {
                 </div>
 
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left">
+                    <table class="min-w-[760px] w-full text-left">
                         <thead>
                             <tr class="border-b border-gray-100">
                                 <th class="px-4 py-3 text-xs font-semibold text-gray-500">Tahun Akademik</th>

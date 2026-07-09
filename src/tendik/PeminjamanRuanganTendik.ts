@@ -10,7 +10,7 @@ import {
     rejectTendikBooking,
     reviseTendikBooking,
 } from '../mahasiswa/peminjaman/api';
-import { renderSuratPeminjamanPanel } from '../mahasiswa/peminjaman/views';
+import { renderReturnInfoPanel, renderSuratPeminjamanPanel } from '../mahasiswa/peminjaman/views';
 import {
     closeSuratPreview,
     openSuratPreview,
@@ -131,7 +131,7 @@ const canManageRooms = (): boolean =>
 const allowedCreateTypes = (): ManagedRoomType[] =>
     reviewerRole() === 'sarpras' ? ['classroom'] : [];
 
-/** Laboratories referenced by the loaded rooms — enough for the edit form. */
+/** Laboratories referenced by the loaded rooms - enough for the edit form. */
 const managedLaboratories = (): ManagedLaboratory[] => {
     const map = new Map<number, ManagedLaboratory>();
     managedRooms.forEach((room) => {
@@ -228,7 +228,7 @@ const renderFilters = (): string => {
                     Status
                     <select id="tendik-peminjaman-status" class="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm font-medium text-gray-700">
                         <option value="">Semua status</option>
-                        ${(['submitted', 'revision_requested', 'approved', 'rejected', 'cancelled'] as BookingStatus[]).map((status) => `
+                        ${(['submitted', 'revision_requested', 'return_pending', 'completed', 'approved', 'rejected', 'cancelled'] as BookingStatus[]).map((status) => `
                             <option value="${status}" ${optionSelected(filters.status, status)}>${getBookingStatusLabel(status)}</option>
                         `).join('')}
                     </select>
@@ -246,7 +246,7 @@ const renderFilters = (): string => {
                     <select id="tendik-peminjaman-room-id" class="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm font-medium text-gray-700">
                         <option value="">Semua ruangan</option>
                         ${rooms.map((room) => `
-                            <option value="${room.id}" ${optionSelected(filters.roomId, room.id)}>${escapeHtml(room.code)} · ${escapeHtml(room.name)}</option>
+                            <option value="${room.id}" ${optionSelected(filters.roomId, room.id)}>${escapeHtml(room.code)} - ${escapeHtml(room.name)}</option>
                         `).join('')}
                     </select>
                 </label>
@@ -275,7 +275,7 @@ const renderQueueRows = (): string => queue.map((booking) => `
             <p class="mt-1 text-xs text-gray-500">${escapeHtml(booking.requester?.name ?? 'Pemohon tidak tersedia')}</p>
         </td>
         <td class="px-5 py-4 align-top">
-            <p class="break-words text-sm font-semibold text-gray-700">${escapeHtml(booking.room.code)} · ${escapeHtml(booking.room.name)}</p>
+            <p class="break-words text-sm font-semibold text-gray-700">${escapeHtml(booking.room.code)} - ${escapeHtml(booking.room.name)}</p>
             <p class="mt-1 text-xs text-gray-500">${escapeHtml(getRoomTypeLabel(booking.room.type))}</p>
         </td>
         <td class="px-5 py-4 align-top text-sm text-gray-600">
@@ -295,7 +295,7 @@ const renderPagination = (): string => {
     if (pagination.last_page <= 1) return '';
     return `
         <div class="flex items-center justify-between gap-4 border-t border-gray-100 px-5 py-4">
-            <p class="text-xs font-medium text-gray-500">Halaman ${pagination.current_page} dari ${pagination.last_page} · ${pagination.total} pengajuan</p>
+            <p class="text-xs font-medium text-gray-500">Halaman ${pagination.current_page} dari ${pagination.last_page} - ${pagination.total} pengajuan</p>
             <div class="flex gap-2">
                 <button id="tendik-peminjaman-prev" type="button" ${pagination.current_page <= 1 ? 'disabled' : ''} class="rounded-lg border border-gray-200 px-3 py-2 text-xs font-bold text-gray-600 disabled:cursor-not-allowed disabled:opacity-40">Sebelumnya</button>
                 <button id="tendik-peminjaman-next" type="button" ${pagination.current_page >= pagination.last_page ? 'disabled' : ''} class="rounded-lg border border-gray-200 px-3 py-2 text-xs font-bold text-gray-600 disabled:cursor-not-allowed disabled:opacity-40">Berikutnya</button>
@@ -548,7 +548,7 @@ const detailRoot = (): HTMLElement => {
 const renderDetailRows = (booking: TendikBooking): string => [
     ['Pemohon', booking.requester?.name ?? '-'],
     ['Email Pemohon', booking.requester?.email ?? '-'],
-    ['Ruangan', `${booking.room.code} · ${booking.room.name}`],
+    ['Ruangan', `${booking.room.code} - ${booking.room.name}`],
     ['Lokasi', booking.room.location],
     ['Jenis', getRoomTypeLabel(booking.room.type)],
     ['Kapasitas', `${booking.room.capacity} orang`],
@@ -616,7 +616,7 @@ const renderDetailDrawer = (
                     <p class="text-xs font-bold uppercase tracking-wider text-teal-700">Detail Review</p>
                     <h2 id="tendik-peminjaman-detail-title" class="mt-1 text-xl font-bold text-gray-900">${booking ? escapeHtml(booking.activity_name) : 'Peminjaman Ruangan'}</h2>
                 </div>
-                <button id="close-tendik-peminjaman-detail" type="button" class="rounded-lg p-2 text-gray-400 hover:bg-gray-100" aria-label="Tutup detail">×</button>
+                <button id="close-tendik-peminjaman-detail" type="button" class="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700" aria-label="Tutup detail"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
             </header>
             <div class="flex-1 overflow-y-auto px-6 py-5">
                 ${loading ? `
@@ -651,6 +651,7 @@ const renderDetailDrawer = (
                         ${booking.revision_note ? `<p class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"><strong>Catatan revisi:</strong> ${escapeHtml(booking.revision_note)}</p>` : ''}
                         ${booking.rejection_reason ? `<p class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"><strong>Alasan penolakan:</strong> ${escapeHtml(booking.rejection_reason)}</p>` : ''}
                         ${renderSuratPeminjamanPanel(booking, { allowReplace: false })}
+                        ${renderReturnInfoPanel(booking)}
                         <section>
                             <h3 class="mb-3 text-sm font-bold text-gray-800">Riwayat Status</h3>
                             ${renderHistory(booking)}
@@ -676,7 +677,7 @@ const renderDetailDrawer = (
         root.querySelector('#reject-tendik-peminjaman')?.addEventListener('click', () =>
             openActionDialog(booking, 'reject'));
         // Surat peminjaman PDF: protected preview overlay + authenticated blob
-        // download. Read-only evidence for the reviewer — grants no authority.
+        // download. Read-only evidence for the reviewer - grants no authority.
         root.querySelector('#peminjaman-surat-preview')?.addEventListener('click', () => {
             openSuratPreview(booking);
         });
@@ -754,7 +755,7 @@ const openActionDialog = (booking: TendikBooking, action: ReviewerAction): void 
             <section role="dialog" aria-modal="true" aria-labelledby="tendik-peminjaman-action-title" class="fixed left-1/2 top-1/2 z-[211] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white p-6 shadow-2xl">
                 <h2 id="tendik-peminjaman-action-title" class="text-xl font-bold text-gray-900">${config.title}</h2>
                 <p class="mt-2 text-sm text-gray-500">${config.description}</p>
-                <p class="mt-4 rounded-xl bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-800">${escapeHtml(booking.activity_name)} · ${escapeHtml(booking.room.code)}</p>
+                <p class="mt-4 rounded-xl bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-800">${escapeHtml(booking.activity_name)} - ${escapeHtml(booking.room.code)}</p>
                 <form id="tendik-peminjaman-action-form" class="mt-5 space-y-4">
                     ${action === 'approve' ? '' : `
                         <label class="block text-sm font-bold text-gray-700">

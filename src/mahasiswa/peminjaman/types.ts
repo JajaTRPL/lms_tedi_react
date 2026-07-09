@@ -4,6 +4,8 @@ export type BookingStatus =
     | 'submitted'
     | 'revision_requested'
     | 'approved'
+    | 'return_pending'
+    | 'completed'
     | 'rejected'
     | 'cancelled';
 
@@ -13,9 +15,29 @@ export interface LaboratorySummary {
     name: string;
 }
 
+export interface DepartmentSummary {
+    id: number;
+    code: string;
+    name: string;
+}
+
+export interface LaboratoryUnit extends LaboratorySummary {
+    department_id: number | null;
+    department: DepartmentSummary | null;
+    rooms_count: number;
+    users_count: number;
+    is_active: boolean;
+}
+
+export interface LaboratoryUnitPayload {
+    code: string;
+    name: string;
+    department_id: number | null;
+}
+
 /**
  * Room photo metadata from the CP2 catalog API. Only authenticated media
- * endpoint references are exposed — never storage disks/paths. Everything is
+ * endpoint references are exposed - never storage disks/paths. Everything is
  * optional so legacy payloads (pre-photo backend) normalize to "no photo".
  */
 export interface RoomPhotoMeta {
@@ -64,7 +86,7 @@ export interface Room {
     description: string | null;
     is_active: boolean;
     owning_laboratory: LaboratorySummary | null;
-    // CP2 additive catalog hints — absent on legacy payloads.
+    // CP2 additive catalog hints - absent on legacy payloads.
     rules?: string | null;
     cover_photo?: RoomPhotoMeta | null;
     facilities_summary?: RoomFacilitiesSummary | null;
@@ -109,7 +131,7 @@ export interface BookingStatusHistory {
 
 /**
  * Safe attachment metadata for the uploaded surat peminjaman PDF. The backend
- * only ever exposes these display/URL fields — never disk/path/storage
+ * only ever exposes these display/URL fields - never disk/path/storage
  * internals. All fields optional so legacy rows (no attachment recorded) and
  * partial payloads normalize safely to "no attachment".
  */
@@ -123,6 +145,23 @@ export interface SuratPeminjamanPdfMeta {
     download_url?: string | null;
 }
 
+
+export interface ReturnPhotoMeta {
+    exists?: boolean;
+    original_name?: string | null;
+    mime_type?: string | null;
+    size_bytes?: number | null;
+    uploaded_at?: string | null;
+    preview_url?: string | null;
+    download_url?: string | null;
+}
+
+export interface BookingReturnInfo {
+    returned_to?: string | null;
+    returned_at?: string | null;
+    note?: string | null;
+    photo?: ReturnPhotoMeta | null;
+}
 export interface MahasiswaBooking {
     id: number;
     room: Room;
@@ -141,6 +180,7 @@ export interface MahasiswaBooking {
     updated_at: string | null;
     status_histories?: BookingStatusHistory[];
     surat_peminjaman_pdf?: SuratPeminjamanPdfMeta | null;
+    return_info?: BookingReturnInfo | null;
 }
 
 export interface TendikBooking extends MahasiswaBooking {

@@ -49,18 +49,67 @@ const confirmToggleAction = (period: AcademicPeriod): boolean => {
     );
 };
 
-/** Confirm copy for delete; adds an extra warning when the row is current today. */
-const confirmDeleteAction = (period: AcademicPeriod): boolean => {
-    if (isCurrentToday(period)) {
-        return confirm(
-            'Periode ini SEDANG BERJALAN hari ini.\n\n'
-            + 'Menghapusnya akan membuat sistem tidak memiliki periode berjalan sampai Anda mengaktifkan periode lain yang valid.\n\n'
-            + 'Apakah Anda yakin ingin menghapus periode akademik ini secara permanen?'
-        );
-    }
-    return confirm('Apakah Anda yakin ingin menghapus periode akademik ini secara permanen?');
-};
+const escapeConfirmHtml = (value: unknown): string => String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
 
+const formatSemesterLabel = (period: AcademicPeriod): string =>
+    `${period.semester_type === 'ganjil' ? 'Ganjil' : 'Genap'} ${period.academic_year}`;
+
+const openDeletePeriodModal = (period: AcademicPeriod): Promise<boolean> => new Promise((resolve) => {
+    document.getElementById('ap-delete-confirm-root')?.remove();
+    const root = document.createElement('div');
+    root.id = 'ap-delete-confirm-root';
+    document.body.appendChild(root);
+
+    let settled = false;
+    const close = (confirmed: boolean): void => {
+        if (settled) return;
+        settled = true;
+        document.removeEventListener('keydown', handleEscape);
+        root.remove();
+        resolve(confirmed);
+    };
+    const handleEscape = (event: KeyboardEvent): void => {
+        if (event.key === 'Escape') close(false);
+    };
+
+    const currentWarning = isCurrentToday(period)
+        ? `<div class="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-800">
+            Periode ini sedang berjalan hari ini. Jika dihapus, sistem tidak memiliki periode berjalan sampai Anda mengaktifkan periode lain yang valid.
+        </div>`
+        : '';
+
+    root.innerHTML = `
+        <div data-ap-delete-overlay class="fixed inset-0 z-[260] bg-black/50"></div>
+        <section role="dialog" aria-modal="true" aria-labelledby="ap-delete-confirm-title" class="fixed left-1/2 top-1/2 z-[261] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white p-6 shadow-2xl">
+            <div class="flex items-start gap-4">
+                <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-600">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M19 6l-1 14H6L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg>
+                </div>
+                <div class="min-w-0">
+                    <p class="text-xs font-bold uppercase tracking-wider text-red-600">Hapus Periode Akademik</p>
+                    <h2 id="ap-delete-confirm-title" class="mt-1 text-lg font-bold text-gray-900">${escapeConfirmHtml(formatSemesterLabel(period))}</h2>
+                    <p class="mt-2 text-sm leading-6 text-gray-600">Periode ${escapeConfirmHtml(formatLocalDateLong(period.start_date))} sampai ${escapeConfirmHtml(formatLocalDateLong(period.end_date))} akan dihapus permanen.</p>
+                </div>
+            </div>
+            ${currentWarning}
+            <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <button id="cancel-ap-delete" type="button" class="rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-50">Batal</button>
+                <button id="confirm-ap-delete" type="button" class="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-red-700">Hapus Periode</button>
+            </div>
+        </section>
+    `;
+
+    root.querySelector('[data-ap-delete-overlay]')?.addEventListener('click', () => close(false));
+    root.querySelector('#cancel-ap-delete')?.addEventListener('click', () => close(false));
+    root.querySelector('#confirm-ap-delete')?.addEventListener('click', () => close(true));
+    document.addEventListener('keydown', handleEscape);
+    root.querySelector<HTMLButtonElement>('#cancel-ap-delete')?.focus();
+});
 const attachRowListeners = (periods: AcademicPeriod[], onRefresh: () => void): void => {
     document.querySelectorAll('.ap-edit-btn').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -102,7 +151,7 @@ const attachRowListeners = (periods: AcademicPeriod[], onRefresh: () => void): v
             const id = parseInt((btn as HTMLElement).dataset.id ?? '');
             const period = periods.find(p => p.id === id);
             if (!period) return;
-            if (!confirmDeleteAction(period)) return;
+            if (!await openDeletePeriodModal(period)) return;
             try {
                 const response = await deleteAcademicPeriod(id);
                 const result = await response.json();

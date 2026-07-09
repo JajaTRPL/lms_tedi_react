@@ -1,17 +1,30 @@
+import Toastify from 'toastify-js';
 // `renderLogin` is loaded lazily inside the logout handler (below) so this shared
 // layout does not statically depend on the Login page. That page→page edge was the
 // root of the inherited import cycle (C1); the dynamic import matches the app's
 // existing navigation convention and preserves identical runtime behavior.
 import { renderSidebar } from '../components/Sidebar';
 import { getGreetingName } from '../utils/nameHelper';
-import Toastify from 'toastify-js';
+import { showSuccess } from '../shared/toast';
 import { apiFetch, loadProtectedImageObjectUrl, revokeProtectedImageObjectUrl } from '../shared/api-client';
 import { clearAllAuthenticationState } from '../login/password-rotation-state';
+import { fetchSuperAdminNotifications } from './notification-state';
+import { renderDashboardLoadingState } from '../shared/ui-primitives';
 
 let dashboardLayoutAvatarObjectUrl: string | null = null;
 let dashboardLayoutDrawerCleanup: (() => void) | null = null;
 
 const isNarrowDashboardViewport = (): boolean => window.innerWidth < 1024;
+
+const renderMahasiswaNavigationLoading = (title: string, activePage: string): void => {
+    renderDashboardLayout(title, renderDashboardLoadingState(), 'mahasiswa', activePage);
+};
+
+const afterLoadingPaint = (callback: () => void): void => {
+    window.requestAnimationFrame(() => {
+        window.setTimeout(callback, 180);
+    });
+};
 
 export const cleanupDashboardLayout = (): void => {
     dashboardLayoutDrawerCleanup?.();
@@ -108,25 +121,27 @@ export const renderDashboardLayout = (title: string, content: string, role: stri
             ${renderSidebar(role, activePage)}
 
             <!-- Main Content -->
-            <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+            <div class="flex-1 flex min-w-0 flex-col overflow-x-hidden overflow-y-visible">
                 <!-- Header -->
-                <header class="bg-transparent px-4 py-4 sm:px-6 lg:px-8 lg:py-6">
-                    <div class="flex justify-between items-center">
-                        <div class="flex min-w-0 items-center gap-3">
+                <header class="overflow-visible bg-transparent px-4 pt-6 pb-5 sm:px-6 lg:px-8 lg:pt-7 lg:pb-6">
+                    <div class="flex items-start justify-between gap-3 overflow-visible">
+                        <div class="flex min-w-0 flex-1 items-start gap-3 overflow-visible">
                             <button id="dashboard-sidebar-toggle" type="button" class="lg:hidden shrink-0 rounded-lg p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-teal/60" aria-label="Buka menu navigasi" aria-controls="dashboard-sidebar" aria-expanded="false">
                                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                     <line x1="3" y1="6" x2="21" y2="6"></line>
                                     <line x1="3" y1="12" x2="21" y2="12"></line>
                                     <line x1="3" y1="18" x2="21" y2="18"></line>
                                 </svg>
-                            </button>
-                            <h1 class="truncate text-2xl font-semibold text-[#111827] font-['Inter'] drop-shadow-[0_2px_4px_rgba(0,0,0,0.25)] lg:text-[32px]">
-                                ${title}
-                            </h1>
+                            </button>                            <div class="min-w-0 flex-1 overflow-visible py-2">
+                                <h1 class="m-0 block break-words font-semibold text-[#111827] font-['Inter']" style="font-size: clamp(1.75rem, 3vw, 2.25rem); line-height: 1.65; padding: 0.375rem 0; overflow: visible;">
+                                    ${title}
+                                </h1>
+                            </div>
                         </div>
                         
-                        <div class="flex items-center gap-6">
-                            <button id="notif-btn" class="relative p-2 text-gray-400 hover:text-gray-600 transition-colors">
+                        <div class="flex shrink-0 items-center gap-2 sm:gap-4 lg:gap-6">
+                            <button id="notif-btn" class="relative p-2 text-gray-400 hover:text-gray-600 transition-colors" aria-label="Buka notifikasi">
+                                <span id="notif-unread-dot" class="hidden absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white"></span>
                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
                                     <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
@@ -138,7 +153,7 @@ export const renderDashboardLayout = (title: string, content: string, role: stri
                                     <div class="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center border-2 border-white shadow-sm overflow-hidden text-teal-700 font-bold shrink-0">
                                         <img id="header-user-avatar" src="/ugm-logo.png" alt="Profile" class="w-8 h-8 object-contain">
                                     </div>
-                                    <div class="text-right">
+                                    <div class="hidden text-right sm:block">
                                         <p class="text-sm font-semibold text-gray-900 leading-none">${getGreetingName(localStorage.getItem('auth_name'))}</p>
                                         <p class="text-[10px] text-gray-500 font-medium uppercase mt-1 tracking-wider">${role.replace('_', ' ')}</p>
                                     </div>
@@ -169,7 +184,7 @@ export const renderDashboardLayout = (title: string, content: string, role: stri
                 </header>
 
                 <!-- Page Content -->
-                <main class="flex-1 overflow-y-auto px-4 pb-8 sm:px-6 lg:px-8">
+                <main class="flex-1 overflow-y-auto overflow-x-hidden px-4 pb-8 sm:px-6 lg:px-8">
                     <div id="dashboard-content" class="animate-fade-in">
                         ${content}
                     </div>
@@ -179,6 +194,10 @@ export const renderDashboardLayout = (title: string, content: string, role: stri
     `;
 
     dashboardLayoutDrawerCleanup = attachDashboardSidebarDrawer();
+
+    if (role === 'super_admin') {
+        void refreshSuperAdminNotificationBadge();
+    }
 
     // Async-load the header avatar from the auth-protected storage endpoint.
     // The img always renders the default logo first; if a real photo exists
@@ -233,8 +252,11 @@ export const renderDashboardLayout = (title: string, content: string, role: stri
         e.preventDefault();
         (window as any).clearDashboardInterval?.();
         if (role === 'mahasiswa') {
-            import('../dashboard/MahasiswaDashboard').then(({ renderMahasiswaDashboard }) => {
-                renderMahasiswaDashboard();
+            renderMahasiswaNavigationLoading('Dashboard', 'dashboard');
+            afterLoadingPaint(() => {
+                import('../dashboard/MahasiswaDashboard').then(({ renderMahasiswaDashboard }) => {
+                    renderMahasiswaDashboard();
+                });
             });
         } else if (role === 'super_admin') {
             import('../dashboard/AdminDashboard').then(({ renderAdminDashboard }) => {
@@ -255,7 +277,8 @@ export const renderDashboardLayout = (title: string, content: string, role: stri
         e.preventDefault();
         (window as any).clearDashboardInterval?.();
         import('./Notifikasi').then(({ renderNotifikasi }) => {
-            renderNotifikasi(role);
+            const hasUnread = document.getElementById('notif-unread-dot')?.classList.contains('hidden') === false;
+            void renderNotifikasi(role, hasUnread ? 'belum_dibaca' : 'semua');
         });
     });
 
@@ -324,24 +347,33 @@ export const renderDashboardLayout = (title: string, content: string, role: stri
     document.getElementById('sidebar-history-link')?.addEventListener('click', (e) => {
         e.preventDefault();
         (window as any).clearDashboardInterval?.();
-        import('../mahasiswa/RiwayatPengajuan').then(({ renderRiwayatPengajuan }) => {
-            renderRiwayatPengajuan();
+        if (role === 'mahasiswa') renderMahasiswaNavigationLoading('Riwayat Pengajuan', 'history');
+        afterLoadingPaint(() => {
+            import('../mahasiswa/RiwayatPengajuan').then(({ renderRiwayatPengajuan }) => {
+                renderRiwayatPengajuan();
+            });
         });
     });
 
     document.getElementById('sidebar-administrasi-link')?.addEventListener('click', (e) => {
         e.preventDefault();
         (window as any).clearDashboardInterval?.();
-        import('../mahasiswa/AdministrasiSurat').then(({ renderAdministrasiSurat }) => {
-            renderAdministrasiSurat();
+        if (role === 'mahasiswa') renderMahasiswaNavigationLoading('Administrasi Surat', 'administrasi');
+        afterLoadingPaint(() => {
+            import('../mahasiswa/AdministrasiSurat').then(({ renderAdministrasiSurat }) => {
+                renderAdministrasiSurat();
+            });
         });
     });
 
     document.getElementById('sidebar-peminjaman-link')?.addEventListener('click', (e) => {
         e.preventDefault();
         (window as any).clearDashboardInterval?.();
-        import('../mahasiswa/PeminjamanRuangan').then(({ renderPeminjamanRuangan }) => {
-            renderPeminjamanRuangan();
+        if (role === 'mahasiswa') renderMahasiswaNavigationLoading('Peminjaman Ruangan', 'peminjaman');
+        afterLoadingPaint(() => {
+            import('../mahasiswa/PeminjamanRuangan').then(({ renderPeminjamanRuangan }) => {
+                renderPeminjamanRuangan();
+            });
         });
     });
 
@@ -398,18 +430,31 @@ export const renderDashboardLayout = (title: string, content: string, role: stri
 
         clearAllAuthenticationState();
 
-        Toastify({
-            text: "Berhasil keluar!",
-            duration: 2000,
-            gravity: "top",
-            position: "right",
-            style: {
-                background: "#10B981",
-            }
-        }).showToast();
+        showSuccess('Berhasil keluar!');
 
         setTimeout(() => {
             void import('../login/Login').then(({ renderLogin }) => renderLogin());
         }, 500);
     });
+};
+
+const refreshSuperAdminNotificationBadge = async (): Promise<void> => {
+    const button = document.getElementById('notif-btn');
+    const dot = document.getElementById('notif-unread-dot');
+    if (!button || !dot) return;
+
+    try {
+        const notifications = await fetchSuperAdminNotifications();
+        const unreadCount = notifications.filter((item) => item.isUnread).length;
+        const hasUnread = unreadCount > 0;
+
+        dot.classList.toggle('hidden', !hasUnread);
+        button.classList.toggle('text-red-500', hasUnread);
+        button.classList.toggle('hover:text-red-600', hasUnread);
+        button.classList.toggle('text-gray-400', !hasUnread);
+        button.classList.toggle('hover:text-gray-600', !hasUnread);
+        button.setAttribute('aria-label', hasUnread ? `Buka notifikasi, ${unreadCount} belum dibaca` : 'Buka notifikasi');
+    } catch {
+        dot.classList.add('hidden');
+    }
 };

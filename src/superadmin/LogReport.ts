@@ -19,7 +19,7 @@ export const renderLogReport = async (page: number = 1) => {
 
                 <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                     <div class="overflow-x-auto">
-                        <table class="w-full text-left">
+                        <table class="min-w-[860px] w-full text-left">
                             <thead class="bg-gray-50/50 border-b border-gray-100">
                                 <tr>
                                     <th class="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Aktor</th>
@@ -43,7 +43,7 @@ export const renderLogReport = async (page: number = 1) => {
                                                 </div>
                                             </div>
                                         </td>
-                                        <td class="px-6 py-4">
+                                        <td class="px-6 py-4 whitespace-nowrap">
                                             <span class="px-2 py-1 rounded-lg bg-gray-100 text-gray-600 text-[10px] font-bold uppercase tracking-wider">
                                                 ${log.action}
                                             </span>
@@ -51,7 +51,7 @@ export const renderLogReport = async (page: number = 1) => {
                                         <td class="px-6 py-4 text-xs text-gray-600">
                                             ${log.target_user || '-'}
                                         </td>
-                                        <td class="px-6 py-4 text-[10px] text-gray-500 font-medium">
+                                        <td class="px-6 py-4 text-[10px] text-gray-500 font-medium whitespace-nowrap">
                                             ${new Date(log.created_at).toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                         </td>
                                         <td class="px-6 py-4 text-[10px] text-gray-400 italic">
@@ -64,7 +64,7 @@ export const renderLogReport = async (page: number = 1) => {
                     </div>
 
                     <!-- Pagination -->
-                    <div class="p-4 bg-gray-50/50 border-t border-gray-100 flex justify-between items-center">
+                    <div class="flex flex-col gap-3 border-t border-gray-100 bg-gray-50/50 p-4 sm:flex-row sm:items-center sm:justify-between">
                         <span class="text-xs text-gray-500">Menampilkan ${pagination.from || 0} - ${pagination.to || 0} dari ${pagination.total} data</span>
                         <div class="flex gap-2">
                              <button id="prev-page" ${!pagination.prev_page_url ? 'disabled' : ''} class="px-3 py-1 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-all">

@@ -107,11 +107,11 @@ export const canEditBooking = (booking: MahasiswaBooking): boolean =>
 
 export const canResubmitBooking = canEditBooking;
 
-// ── Surat peminjaman PDF (uploaded, never generated) ───────────────────────
+// Surat peminjaman PDF (uploaded, never generated)
 export const MAX_SURAT_PDF_BYTES = 5 * 1024 * 1024;
 
 /**
- * Client-side PDF guard — UX help only; the backend remains the source of
+ * Client-side PDF guard - UX help only; the backend remains the source of
  * truth. Returns an Indonesian error message or null when the file is valid.
  */
 export const validateSuratPdfFile = (file: File | null): string | null => {
@@ -147,6 +147,22 @@ export const canCancelBooking = (
         return true;
     }
 
-    return booking.status === 'approved'
+    return (booking.status === 'approved' || booking.status === 'return_pending')
         && new Date(booking.start_at).getTime() > now.getTime();
+};
+
+export const canSubmitReturn = (booking: MahasiswaBooking): boolean =>
+    booking.status === 'return_pending';
+
+export const MAX_RETURN_PHOTO_BYTES = 5 * 1024 * 1024;
+
+export const validateReturnPhotoFile = (file: File | null): string | null => {
+    if (!file) return 'Bukti foto pengembalian wajib diunggah.';
+    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+    const hasImageExtension = /\.(jpe?g|png|webp)$/i.test(file.name);
+    if (!allowed.includes(file.type) && !hasImageExtension) {
+        return 'Bukti pengembalian harus berupa gambar JPG, PNG, atau WebP.';
+    }
+    if (file.size > MAX_RETURN_PHOTO_BYTES) return 'Ukuran foto melebihi 5 MB.';
+    return null;
 };

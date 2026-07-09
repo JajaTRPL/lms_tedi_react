@@ -128,9 +128,7 @@ describe('Mahasiswa Peminjaman page API foundation', () => {
         m.getAvailability.mockReturnValue(availabilityRequest.promise);
 
         const rendering = renderPeminjamanRuangan();
-
-        expect(document.querySelector('[data-state="loading"]')).not.toBeNull();
-        expect(document.body.textContent).toContain('Memuat layanan peminjaman ruangan');
+        expect(document.querySelector('.h-12.w-12.animate-spin')).not.toBeNull();
 
         roomsRequest.resolve([]);
         availabilityRequest.resolve([]);

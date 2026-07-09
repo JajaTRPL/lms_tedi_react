@@ -1,4 +1,5 @@
 import { renderDashboardLayout } from './DashboardLayout';
+import { renderDashboardLoadingState } from '../shared/ui-primitives';
 import { renderProfilMahasiswa } from '../mahasiswa/ProfilMahasiswa';
 import { renderScholarshipDetail, renderScholarshipForm } from '../mahasiswa/ScholarshipForm';
 import { renderSuratPengantarMagangDetail } from '../mahasiswa/SuratPengantarMagangForm';
@@ -284,7 +285,7 @@ interface TrackingCardParts {
 }
 
 const renderTrackingCardShell = (parts: TrackingCardParts): string => `
-    <article class="${surfaceClass('interactive', 'flex h-full flex-col p-6')}">
+    <article class="${surfaceClass('interactive', 'flex h-full w-[min(560px,calc(100vw-3rem))] xl:w-[calc((100%-1.5rem)/2)] shrink-0 snap-start flex-col p-6')}">
         <div class="flex flex-wrap items-start justify-between gap-3">
             <span class="${badgeClass('primary')}">Administrasi Surat</span>
             <span class="${parts.statusTone} px-3 py-1.5 rounded-full font-bold text-[11px] border">${escapeHtml(parts.statusLabel)}</span>
@@ -379,6 +380,8 @@ const renderTrackingCard = (item: TrackingItem): string => {
 };
 
 export const renderMahasiswaDashboard = async () => {
+    renderDashboardLayout('Dashboard', renderDashboardLoadingState(), 'mahasiswa', 'dashboard');
+
     // Aggregate all five letter types so the count cards and Recent Riwayat
     // table reflect the same total set the dedicated Riwayat page shows. The
     // fetch + normalize + newest-first sort are now owned by the shared
@@ -550,7 +553,7 @@ export const renderMahasiswaDashboard = async () => {
                 <h3 class="text-2xl font-normal text-gray-800 mb-6 flex items-center gap-2">
                     Pelacakan Pengajuan Aktif
                 </h3>
-                <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                <div id="active-tracking-scroll" class="flex snap-x snap-mandatory gap-6 overflow-x-auto overscroll-x-contain pb-4">
                     ${trackingHtml}
                 </div>
             </div>

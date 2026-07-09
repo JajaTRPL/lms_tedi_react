@@ -79,7 +79,7 @@ function renderContent(managed: ManagedTemplate[]) {
                     <div class="text-xs text-gray-400 font-medium">${totalCount} template</div>
                 </div>
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left">
+                    <table class="min-w-[860px] w-full text-left">
                         <thead class="bg-gray-50/50 border-b border-gray-100">
                             <tr>
                                 <th class="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider w-12">No</th>

@@ -16,6 +16,7 @@ import {
     canEditBooking,
     canReplaceSuratPdf,
     canResubmitBooking,
+    canSubmitReturn,
     formatFileSize,
     hasSuratPeminjamanPdf,
 } from './workflow';
@@ -85,12 +86,12 @@ export const renderBookingFormDialog = (
                             <option value="">Pilih ruangan aktif</option>
                             ${rooms.map((room) => `
                                 <option value="${room.id}" ${values.roomId === String(room.id) ? 'selected' : ''}>
-                                    ${escapeHtml(room.code)} · ${escapeHtml(room.name)} (${getRoomTypeLabel(room.type)})
+                                    ${escapeHtml(room.code)} - ${escapeHtml(room.name)} (${getRoomTypeLabel(room.type)})
                                 </option>
                             `).join('')}
                         </select>
                         ${fieldError(errors.roomId)}
-                        <p id="peminjaman-room-capacity" class="mt-1 text-xs text-gray-500">${selectedRoom ? `Kapasitas maksimal ${selectedRoom.capacity} orang · ${escapeHtml(selectedRoom.location)}` : 'Pilih ruangan untuk melihat kapasitas.'}</p>
+                        <p id="peminjaman-room-capacity" class="mt-1 text-xs text-gray-500">${selectedRoom ? `Kapasitas maksimal ${selectedRoom.capacity} orang - ${escapeHtml(selectedRoom.location)}` : 'Pilih ruangan untuk melihat kapasitas.'}</p>
                     </div>
                     <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
                         <div>
@@ -135,7 +136,7 @@ export const renderBookingFormDialog = (
                         </div>
                         ${surat.fileName ? `
                             <div class="mt-2 flex items-center justify-between gap-3 rounded-xl border border-teal-100 bg-teal-50/60 px-3 py-2">
-                                <span class="min-w-0 truncate text-xs font-semibold text-gray-700">${escapeHtml(surat.fileName)}${surat.sizeLabel ? ` <span class="font-normal text-gray-500">· ${escapeHtml(surat.sizeLabel)}</span>` : ''}</span>
+                                <span class="min-w-0 truncate text-xs font-semibold text-gray-700">${escapeHtml(surat.fileName)}${surat.sizeLabel ? ` <span class="font-normal text-gray-500">- ${escapeHtml(surat.sizeLabel)}</span>` : ''}</span>
                                 <button id="peminjaman-surat-clear" type="button" class="shrink-0 text-xs font-bold text-red-600 hover:underline">Hapus</button>
                             </div>
                         ` : ''}
@@ -175,7 +176,7 @@ const formatUpdatedDate = (value: string | null): string => {
 const formatSchedule = (start: string, end: string): string => {
     const dateKey = formatIsoDateKeyInJakarta(start);
     const date = dateKey ? formatIndonesianDate(parseDateKey(dateKey)) : '-';
-    return `${date} · ${formatTimeRange(start, end)}`;
+    return `${date} - ${formatTimeRange(start, end)}`;
 };
 
 /**
@@ -189,12 +190,13 @@ export const isActivePeminjamanBooking = (
 ): boolean =>
     booking.status === 'submitted'
     || booking.status === 'revision_requested'
+    || booking.status === 'return_pending'
     || (booking.status === 'approved'
         && new Date(booking.end_at).getTime() >= now.getTime());
 
 /**
  * Dashboard active tracking cards. Uses the Peminjaman status
- * vocabulary (getBookingStatusLabel/Tone) — intentionally NOT the
+ * vocabulary (getBookingStatusLabel/Tone) - intentionally NOT the
  * Administrasi Surat letter-workflow labels or timeline.
  */
 export const renderPeminjamanTrackingCards = (
@@ -210,24 +212,24 @@ export const renderPeminjamanTrackingCards = (
     }
 
     return bookings.map((booking) => `
-        <article class="${surfaceClass('interactive', 'flex h-full flex-col gap-4 p-6')}">
+        <article class="${surfaceClass('interactive', 'flex h-full w-[min(560px,calc(100vw-3rem))] xl:w-[calc((100%-1.5rem)/2)] shrink-0 snap-start flex-col gap-4 p-6')}">
             <div class="flex flex-wrap items-start justify-between gap-3">
                 <div class="min-w-0">
                     <p class="${badgeClass('info')}">Peminjaman Ruangan</p>
-                    <h4 class="mt-1 break-words text-base font-bold text-gray-800">${escapeHtml(booking.room.code)} · ${escapeHtml(booking.room.name)}</h4>
+                    <h4 class="mt-1 break-words text-base font-bold text-gray-800">${escapeHtml(booking.room.code)} - ${escapeHtml(booking.room.name)}</h4>
                 </div>
                 <span class="shrink-0 rounded-full border px-3 py-1.5 text-[11px] font-bold ${getBookingStatusTone(booking.status)}">${getBookingStatusLabel(booking.status)}</span>
             </div>
             <p class="break-words text-sm font-semibold text-gray-700">${escapeHtml(booking.activity_name)}</p>
-            <p class="text-xs text-gray-500">${getRoomTypeLabel(booking.room.type)} · ${escapeHtml(formatSchedule(booking.start_at, booking.end_at))}</p>
+            <p class="text-xs text-gray-500">${getRoomTypeLabel(booking.room.type)} - ${escapeHtml(formatSchedule(booking.start_at, booking.end_at))}</p>
             ${booking.status === 'revision_requested' && booking.revision_note ? `
                 <div class="rounded-xl border border-amber-100 bg-amber-50 px-4 py-3">
                     <p class="text-xs font-semibold text-amber-800">Catatan Revisi: <span class="font-medium text-amber-700">${escapeHtml(booking.revision_note)}</span></p>
                 </div>
             ` : ''}
             <div class="${surfaceClass('muted', 'mt-auto rounded-xl px-4 py-3')}">
-                <p class="text-sm font-semibold text-gray-800">${booking.status === 'submitted' ? 'Menunggu pemeriksaan ketersediaan dan persetujuan ruangan.' : booking.status === 'revision_requested' ? 'Perlu perbaikan sebelum pengajuan dikirim ulang.' : 'Peminjaman ruangan sudah disetujui.'}</p>
-                <p class="${cx(textClass.helper, 'mt-1')}">${booking.status === 'revision_requested' ? 'Buka detail untuk memperbaiki dan mengirim ulang.' : 'Buka detail untuk melihat jadwal dan tindakan yang tersedia.'}</p>
+                <p class="text-sm font-semibold text-gray-800">${booking.status === 'submitted' ? 'Menunggu pemeriksaan ketersediaan dan persetujuan ruangan.' : booking.status === 'revision_requested' ? 'Perlu perbaikan sebelum pengajuan dikirim ulang.' : booking.status === 'return_pending' ? 'Peminjaman disetujui. Lengkapi pengembalian setelah selesai digunakan.' : 'Peminjaman ruangan sudah disetujui.'}</p>
+                <p class="${cx(textClass.helper, 'mt-1')}">${booking.status === 'revision_requested' ? 'Buka detail untuk memperbaiki dan mengirim ulang.' : booking.status === 'return_pending' ? 'Buka detail untuk mengisi penerima dan bukti foto pengembalian.' : 'Buka detail untuk melihat jadwal dan tindakan yang tersedia.'}</p>
             </div>
             <button type="button" data-action="open-peminjaman-detail" data-booking-id="${booking.id}" class="${buttonClass('secondary', 'sm', 'w-full')}">
                 Lihat Detail
@@ -267,7 +269,7 @@ export const renderPeminjamanRiwayatSection = (
                         <tr class="transition-colors hover:bg-gray-50/50">
                             <td class="px-8 py-5 text-sm text-gray-500">${escapeHtml(formatUpdatedDate(booking.created_at))}</td>
                             <td class="px-8 py-5">
-                                <p class="break-words text-sm font-semibold text-gray-800">${escapeHtml(booking.room.code)} · ${escapeHtml(booking.room.name)}</p>
+                                <p class="break-words text-sm font-semibold text-gray-800">${escapeHtml(booking.room.code)} - ${escapeHtml(booking.room.name)}</p>
                                 <p class="mt-1 break-words text-xs text-gray-500">${escapeHtml(booking.activity_name)}</p>
                             </td>
                             <td class="px-8 py-5 text-xs text-gray-600">${escapeHtml(formatSchedule(booking.start_at, booking.end_at))}</td>
@@ -317,7 +319,7 @@ const renderHistory = (histories: readonly BookingStatusHistory[]): string => hi
 /**
  * Surat peminjaman panel for the booking detail: safe metadata + protected
  * preview/download actions, plus a revision-only replacement upload. Renders no
- * disk/path/storage URL — action buttons carry only the booking id and the
+ * disk/path/storage URL - action buttons carry only the booking id and the
  * controller resolves the protected endpoint.
  */
 export const renderSuratPeminjamanPanel = (
@@ -336,7 +338,7 @@ export const renderSuratPeminjamanPanel = (
             <div class="flex items-start justify-between gap-3">
                 <div class="min-w-0">
                     <p class="break-words text-sm font-bold text-gray-800">${escapeHtml(meta?.original_name || 'Surat Peminjaman.pdf')}</p>
-                    <p class="mt-1 text-xs text-gray-500">${escapeHtml(formatFileSize(meta?.size_bytes))}${meta?.uploaded_at ? ` · Diunggah ${escapeHtml(formatUpdatedDate(meta.uploaded_at))}` : ''}</p>
+                    <p class="mt-1 text-xs text-gray-500">${escapeHtml(formatFileSize(meta?.size_bytes))}${meta?.uploaded_at ? ` - Diunggah ${escapeHtml(formatUpdatedDate(meta.uploaded_at))}` : ''}</p>
                 </div>
                 <span class="shrink-0 rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-700">PDF</span>
             </div>
@@ -371,6 +373,69 @@ export const renderSuratPeminjamanPanel = (
     `;
 };
 
+export const renderReturnInfoPanel = (
+    booking: MahasiswaBooking,
+    options: { allowSubmit?: boolean; submitting?: boolean } = {},
+): string => {
+    const info = booking.return_info ?? null;
+    const photo = info?.photo ?? null;
+    const hasPhoto = Boolean(photo?.exists);
+    const canSubmit = (options.allowSubmit ?? false) && canSubmitReturn(booking);
+    const submitting = Boolean(options.submitting);
+
+    const completedBlock = booking.status === 'completed' || hasPhoto ? `
+        <div class="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4">
+            <p class="text-sm font-bold text-emerald-900">Pengembalian sudah dicatat</p>
+            <dl class="mt-3 space-y-2 text-sm text-emerald-900">
+                <div><dt class="text-xs font-bold uppercase tracking-wider text-emerald-700">Dikembalikan kepada</dt><dd class="mt-0.5 break-words">${escapeHtml(info?.returned_to || '-')}</dd></div>
+                <div><dt class="text-xs font-bold uppercase tracking-wider text-emerald-700">Waktu</dt><dd class="mt-0.5">${escapeHtml(formatUpdatedDate(info?.returned_at ?? null))}</dd></div>
+                ${info?.note ? `<div><dt class="text-xs font-bold uppercase tracking-wider text-emerald-700">Catatan</dt><dd class="mt-0.5 break-words">${escapeHtml(info.note)}</dd></div>` : ''}
+            </dl>
+            ${hasPhoto ? `
+                <div class="mt-3 flex flex-wrap items-center gap-2">
+                    <span class="text-xs font-semibold text-emerald-800">${escapeHtml(photo?.original_name || 'Bukti pengembalian')}</span>
+                    <a href="${escapeHtml(photo?.preview_url || '#')}" target="_blank" rel="noopener" class="text-xs font-bold text-primary-teal hover:underline">Lihat Foto</a>
+                    <a href="${escapeHtml(photo?.download_url || '#')}" class="text-xs font-bold text-primary-teal hover:underline">Unduh</a>
+                </div>
+            ` : ''}
+        </div>
+    ` : '';
+
+    const submitBlock = canSubmit ? `
+        <form id="peminjaman-return-form" class="rounded-xl border border-cyan-100 bg-cyan-50/60 p-4">
+            <p class="text-sm font-bold text-cyan-900">Lengkapi Pengembalian</p>
+            <p class="mt-1 text-xs leading-relaxed text-cyan-700">Isi penerima pengembalian dan unggah foto bukti kondisi/serah terima ruangan.</p>
+            <div class="mt-3 space-y-3">
+                <div>
+                    <label for="peminjaman-returned-to" class="text-xs font-bold uppercase tracking-wider text-cyan-800">Dikembalikan kepada</label>
+                    <input id="peminjaman-returned-to" type="text" maxlength="255" class="mt-1 w-full rounded-xl border border-cyan-100 bg-white px-3.5 py-2.5 text-sm outline-none focus:border-cyan-500" placeholder="Contoh: Pak/Bu Tendik atau Kepala Lab">
+                </div>
+                <div>
+                    <label for="peminjaman-return-note" class="text-xs font-bold uppercase tracking-wider text-cyan-800">Catatan opsional</label>
+                    <textarea id="peminjaman-return-note" rows="3" maxlength="2000" class="mt-1 w-full rounded-xl border border-cyan-100 bg-white px-3.5 py-2.5 text-sm outline-none focus:border-cyan-500" placeholder="Catatan kondisi ruangan bila diperlukan."></textarea>
+                </div>
+                <div>
+                    <label for="peminjaman-return-photo" class="text-xs font-bold uppercase tracking-wider text-cyan-800">Foto bukti</label>
+                    <input id="peminjaman-return-photo" type="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" class="mt-1 block w-full text-sm text-gray-700 file:mr-3 file:rounded-lg file:border-0 file:bg-white file:px-3 file:py-2 file:text-sm file:font-bold file:text-primary-teal">
+                    <p class="mt-1 text-xs text-cyan-700">Format JPG, PNG, atau WebP. Maksimal 5 MB.</p>
+                </div>
+            </div>
+            <p id="peminjaman-return-feedback" class="mt-3 hidden text-xs font-semibold" role="alert"></p>
+            <button id="peminjaman-return-submit" type="submit" ${submitting ? 'disabled' : ''} class="${buttonClass('primary', 'sm', 'mt-3 w-full')}">${submitting ? 'Menyimpan...' : 'Simpan Pengembalian'}</button>
+        </form>
+    ` : '';
+
+    if (!completedBlock && !submitBlock) {
+        return '';
+    }
+
+    return `
+        <section>
+            <h3 class="mb-3 text-sm font-bold text-gray-800">Pengembalian Ruangan</h3>
+            <div class="space-y-3">${completedBlock}${submitBlock}</div>
+        </section>
+    `;
+};
 export const renderBookingDetailDialog = (
     booking: MahasiswaBooking | null,
     loading: boolean,
@@ -395,8 +460,8 @@ export const renderBookingDetailDialog = (
                 <div data-detail-state="success" class="space-y-6">
                     <div class="flex flex-wrap items-start justify-between gap-3">
                         <div>
-                            <h3 class="text-lg font-bold text-gray-900 break-words">${escapeHtml(booking.room.code)} · ${escapeHtml(booking.room.name)}</h3>
-                            <p class="mt-1 text-xs text-gray-500">${getRoomTypeLabel(booking.room.type)} · Kapasitas ${booking.room.capacity} orang</p>
+                            <h3 class="text-lg font-bold text-gray-900 break-words">${escapeHtml(booking.room.code)} - ${escapeHtml(booking.room.name)}</h3>
+                            <p class="mt-1 text-xs text-gray-500">${getRoomTypeLabel(booking.room.type)} - Kapasitas ${booking.room.capacity} orang</p>
                         </div>
                         <span class="rounded-full border px-3 py-1 text-xs font-bold ${getBookingStatusTone(booking.status)}">${getBookingStatusLabel(booking.status)}</span>
                     </div>
@@ -411,6 +476,7 @@ export const renderBookingDetailDialog = (
                         ${booking.cancellation_reason ? detailRow('Alasan Pembatalan', booking.cancellation_reason) : ''}
                     </dl>
                     ${renderSuratPeminjamanPanel(booking)}
+                    ${renderReturnInfoPanel(booking, { allowSubmit: true, submitting: actionLoading })}
                     <section>
                         <h3 class="mb-4 text-sm font-bold text-gray-800">Riwayat Status</h3>
                         ${renderHistory(booking.status_histories ?? [])}

@@ -1,7 +1,7 @@
 import { renderDashboardLayout } from '../dashboard/DashboardLayout';
 import { buttonClass, cx, inputClass, selectClass, surfaceClass, textClass, type UiTone } from '../shared/design-system';
 import { escapeFormAttribute, escapeFormHtml } from '../shared/form-primitives';
-import { renderEmptyState, renderErrorState, renderLoadingState, renderStatusBadge } from '../shared/ui-primitives';
+import { renderEmptyState, renderErrorState, renderStatusBadge } from '../shared/ui-primitives';
 import { showError, showSuccess } from '../shared/toast';
 import {
     executeRetentionItem,
@@ -79,15 +79,15 @@ const EMPTY_META: RetentionPaginationMeta = {
 
 const CATEGORY_LABELS: Record<RetentionCategory, string> = {
     supporting_document: 'Dokumen pendukung',
-    intermediate_artifact: 'Artefak antara',
-    final_official_pdf: 'PDF final aktif',
+    intermediate_artifact: 'File proses sementara',
+    final_official_pdf: 'PDF final sebelum arsip',
     archived_final_pdf: 'Arsip PDF final',
 };
 
 const POLICY_LABELS: Record<keyof RetentionPolicyValues, string> = {
     supporting_document_retention_days: 'Dokumen pendukung',
-    intermediate_artifact_retention_days: 'Artefak antara',
-    final_pdf_active_days: 'PDF final aktif',
+    intermediate_artifact_retention_days: 'File proses sementara',
+    final_pdf_active_days: 'PDF final sebelum arsip',
     archive_retention_days: 'Arsip PDF final',
 };
 
@@ -111,7 +111,12 @@ function initialState(): RetentionPanelState {
 
 export async function renderRetentionControlPanel(): Promise<void> {
     state = initialState();
-    renderPage();
+    renderDashboardLayout(
+        'Pengelolaan Arsip Surat',
+        '<div class="flex items-center justify-center h-64"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div></div>',
+        'super_admin',
+        'retention'
+    );
     await loadAllData();
 }
 
@@ -119,7 +124,7 @@ async function loadAllData(): Promise<void> {
     try {
         state.loading = true;
         state.error = null;
-        renderPage();
+
         const [overview, policy, candidates, archives, actions] = await Promise.all([
             getRetentionOverview(),
             getRetentionPolicy(),
@@ -147,12 +152,12 @@ async function loadAllData(): Promise<void> {
 }
 
 function renderPage(): void {
-    renderDashboardLayout('Retensi & Arsip Surat', renderPanelContent(), 'super_admin', 'retention');
+    renderDashboardLayout('Pengelolaan Arsip Surat', renderPanelContent(), 'super_admin', 'retention');
     attachPanelListeners();
 }
 
 function renderPanelContent(): string {
-    if (state.loading) return renderLoadingState('Memuat kontrol retensi surat...');
+    if (state.loading) return '<div class="flex items-center justify-center h-64"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div></div>';
     if (state.error) return renderErrorState(state.error);
 
     return `
@@ -169,10 +174,10 @@ function renderPanelContent(): string {
 
 function renderOverview(): string {
     const overview = state.overview;
-    if (!overview) return renderEmptyState('Ikhtisar retensi belum tersedia.');
+    if (!overview) return renderEmptyState('Ringkasan penyimpanan surat belum tersedia.');
 
     const failedActions = overview.actions.by_status.failed ?? 0;
-    const schedulerLabel = overview.scheduler.enabled ? 'Aktif dari konfigurasi' : 'Nonaktif dari konfigurasi';
+    const schedulerLabel = overview.scheduler.enabled ? 'Proses otomatis aktif' : 'Proses otomatis nonaktif';
     const schedulerTone: UiTone = overview.scheduler.enabled ? 'success' : 'neutral';
     const policyValues = overview.policy.values;
 
@@ -180,20 +185,20 @@ function renderOverview(): string {
         <section class="${surfaceClass('card', 'p-5 sm:p-6 space-y-5')}">
             <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                 <div>
-                    <h2 class="text-lg font-bold text-gray-900">Ikhtisar</h2>
-                    <p class="${textClass.helper} mt-1">Ringkasan kandidat, arsip, aksi gagal, dan status scheduler hanya-baca.</p>
+                    <h2 class="text-lg font-bold text-gray-900">Ringkasan Penyimpanan Surat</h2>
+                    <p class="${textClass.helper} mt-1">Gambaran cepat data yang siap dibersihkan, arsip yang tersimpan, proses yang perlu dicek, dan status proses otomatis.</p>
                 </div>
                 <div class="flex flex-wrap gap-2">
-                    ${renderStatusBadge(overview.schema_ready ? 'success' : 'danger', overview.schema_ready ? 'Skema siap' : 'Skema belum siap')}
+                    ${renderStatusBadge(overview.schema_ready ? 'success' : 'danger', overview.schema_ready ? 'Database siap' : 'Database belum siap')}
                     ${renderStatusBadge(schedulerTone, schedulerLabel)}
-                    ${renderStatusBadge(overview.scheduler.api_managed ? 'warning' : 'neutral', overview.scheduler.api_managed ? 'API mengelola scheduler' : 'Scheduler tidak dikelola API')}
+                    ${renderStatusBadge(overview.scheduler.api_managed ? 'warning' : 'neutral', overview.scheduler.api_managed ? 'Diatur dari halaman ini' : 'Diatur dari konfigurasi server')}
                 </div>
             </div>
             <div class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-                ${renderMetricCard('Kandidat', String(overview.candidates.total), renderCategorySummary(overview.candidates.by_category))}
-                ${renderMetricCard('Arsip aktif', String(overview.archives.available), `${overview.archives.purged} arsip sudah purge`)}
-                ${renderMetricCard('Aksi gagal', String(failedActions), `${overview.actions.total} aksi tercatat`)}
-                ${renderMetricCard('Policy global', `${policyValues.final_pdf_active_days} hari`, 'PDF final aktif sebelum arsip')}
+                ${renderMetricCard('Siap Dibersihkan', String(overview.candidates.total), renderCategorySummary(overview.candidates.by_category))}
+                ${renderMetricCard('Arsip Tersimpan', String(overview.archives.available), `${overview.archives.purged} arsip sudah dihapus permanen`)}
+                ${renderMetricCard('Perlu Dicek', String(failedActions), `${overview.actions.total} proses tercatat`)}
+                ${renderMetricCard('Aturan PDF Final', `${policyValues.final_pdf_active_days} hari`, 'PDF final disimpan sebelum dipindahkan ke arsip')}
             </div>
         </section>
     `;
@@ -218,12 +223,12 @@ function renderPolicy(): string {
         <section class="${surfaceClass('card', 'p-5 sm:p-6 space-y-5')}">
             <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                 <div>
-                    <h2 class="text-lg font-bold text-gray-900">Kebijakan Global</h2>
-                    <p class="${textClass.helper} mt-1">Nilai berlaku global. Panel ini tidak menyediakan override per jenis surat.</p>
+                    <h2 class="text-lg font-bold text-gray-900">Atur Lama Penyimpanan</h2>
+                    <p class="${textClass.helper} mt-1">Tentukan berapa hari setiap jenis file disimpan sebelum sistem memindahkan atau membersihkannya. Aturan ini berlaku untuk semua jenis surat.</p>
                 </div>
                 <div class="flex flex-wrap gap-2">
-                    ${renderStatusBadge(policy.scope === 'global' ? 'primary' : 'warning', `Scope: ${policy.scope}`)}
-                    ${renderStatusBadge(policy.scheduler.enabled ? 'success' : 'neutral', policy.scheduler.enabled ? 'Scheduler aktif' : 'Scheduler nonaktif')}
+                    ${renderStatusBadge(policy.scope === 'global' ? 'primary' : 'warning', policy.scope === 'global' ? 'Cakupan: semua surat' : `Cakupan: ${policy.scope}`)}
+                    ${renderStatusBadge(policy.scheduler.enabled ? 'success' : 'neutral', policy.scheduler.enabled ? 'Otomatis aktif' : 'Otomatis nonaktif')}
                 </div>
             </div>
             <form id="retention-policy-form" class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -240,9 +245,17 @@ function renderPolicy(): string {
 }
 
 function renderPolicyField(key: keyof RetentionPolicyValues, value: number, fallback: number): string {
+    const descriptions: Record<keyof RetentionPolicyValues, string> = {
+        supporting_document_retention_days: 'File yang diunggah mahasiswa sebagai lampiran pengajuan.',
+        intermediate_artifact_retention_days: 'File sementara yang dibuat sistem selama proses pembuatan surat.',
+        final_pdf_active_days: 'PDF final yang masih tersedia langsung di halaman pengguna.',
+        archive_retention_days: 'PDF final yang sudah dipindahkan ke arsip.',
+    };
+
     return `
-        <label class="block">
+        <label class="flex h-full flex-col">
             <span class="text-sm font-bold text-gray-800">${escapeFormHtml(POLICY_LABELS[key])}</span>
+            <span class="${textClass.helper} mt-1 block min-h-[40px] leading-5">${escapeFormHtml(descriptions[key])}</span>
             <input
                 id="retention-policy-${escapeFormAttribute(key)}"
                 name="${escapeFormAttribute(key)}"
@@ -252,17 +265,16 @@ function renderPolicyField(key: keyof RetentionPolicyValues, value: number, fall
                 value="${escapeFormAttribute(value)}"
                 class="${inputClass('default', 'mt-2')}"
             />
-            <span class="${textClass.helper} mt-2 block">Default ${escapeFormHtml(fallback)} hari</span>
+            <span class="${textClass.helper} mt-2 block">Bawaan sistem ${escapeFormHtml(fallback)} hari</span>
         </label>
     `;
 }
-
 function renderCandidates(): string {
     return renderTableSection({
-        title: 'Kandidat Retensi',
-        helper: 'Daftar item eligible menurut dry-run server. Eksekusi selalu memeriksa ulang eligibility.',
+        title: 'Surat Siap Dibersihkan',
+        helper: 'Daftar surat yang sudah melewati batas simpan. Gunakan cek tanpa memproses untuk melihat hasilnya terlebih dahulu.',
         filterHtml: renderCandidateFilters(),
-        actionsHtml: `<button type="button" id="retention-dry-run-button" class="${buttonClass('secondary', 'sm')}">Dry-run Filter</button>`,
+        actionsHtml: `<button type="button" id="retention-dry-run-button" class="${buttonClass('secondary', 'sm')}">Cek Tanpa Memproses</button>`,
         bodyHtml: renderCandidateTable(),
         paginationHtml: renderPagination('candidate', state.candidates.meta),
     });
@@ -283,7 +295,7 @@ function renderCandidateFilters(): string {
 }
 
 function renderCandidateTable(): string {
-    if (state.candidates.data.length === 0) return renderEmptyState('Tidak ada kandidat retensi.');
+    if (state.candidates.data.length === 0) return renderEmptyState('Belum ada surat yang perlu dibersihkan.');
 
     const rows = state.candidates.data.map((item, index) => `
         <tr class="border-t border-gray-100">
@@ -302,7 +314,7 @@ function renderCandidateTable(): string {
                     data-retention-index="${escapeFormAttribute(index)}"
                     ${item.subject_id === null ? 'disabled' : ''}
                 >
-                    Eksekusi
+                    Proses
                 </button>
             </td>
         </tr>
@@ -312,13 +324,13 @@ function renderCandidateTable(): string {
         <thead class="bg-gray-50 text-left text-xs font-bold uppercase tracking-wide text-gray-500">
             <tr>
                 <th class="px-4 py-3">Surat</th>
-                <th class="px-4 py-3">Kategori</th>
-                <th class="px-4 py-3">Aksi</th>
+                <th class="px-4 py-3">Jenis Data</th>
+                <th class="px-4 py-3">Rencana Proses</th>
                 <th class="px-4 py-3">Status</th>
                 <th class="px-4 py-3">Verifikasi</th>
-                <th class="px-4 py-3">Eligible</th>
-                <th class="px-4 py-3">Error</th>
-                <th class="px-4 py-3 text-right">Manual</th>
+                <th class="px-4 py-3">Siap sejak</th>
+                <th class="px-4 py-3">Kendala</th>
+                <th class="px-4 py-3 text-right">Aksi</th>
             </tr>
         </thead>
         <tbody>${rows}</tbody>
@@ -327,8 +339,8 @@ function renderCandidateTable(): string {
 
 function renderArchives(): string {
     return renderTableSection({
-        title: 'Archive Pool',
-        helper: 'Metadata arsip PDF final. Panel ini tidak menampilkan lokasi teknis atau browser file.',
+        title: 'Arsip PDF Final',
+        helper: 'Daftar PDF final yang sudah dipindahkan ke arsip. Lokasi file teknis tidak ditampilkan agar tetap aman.',
         filterHtml: renderArchiveFilters(),
         actionsHtml: '',
         bodyHtml: renderArchiveTable(),
@@ -350,7 +362,7 @@ function renderArchiveFilters(): string {
 }
 
 function renderArchiveTable(): string {
-    if (state.archives.data.length === 0) return renderEmptyState('Belum ada arsip PDF final.');
+    if (state.archives.data.length === 0) return renderEmptyState('Belum ada PDF final yang masuk arsip.');
 
     const rows = state.archives.data.map((item, index) => `
         <tr class="border-t border-gray-100">
@@ -361,8 +373,8 @@ function renderArchiveTable(): string {
             <td class="px-4 py-3">${renderVerificationBadge(item.verification_state)}</td>
             <td class="px-4 py-3 text-right">
                 <div class="flex justify-end gap-2">
-                    <button type="button" class="${buttonClass('secondary', 'sm')}" data-retention-action="restore" data-retention-index="${escapeFormAttribute(index)}">Restore</button>
-                    <button type="button" class="${buttonClass('danger', 'sm')}" data-retention-action="purge" data-retention-index="${escapeFormAttribute(index)}" ${item.archive_purged_at ? 'disabled' : ''}>Purge</button>
+                    <button type="button" class="${buttonClass('secondary', 'sm')}" data-retention-action="restore" data-retention-index="${escapeFormAttribute(index)}">Pulihkan</button>
+                    <button type="button" class="${buttonClass('danger', 'sm')}" data-retention-action="purge" data-retention-index="${escapeFormAttribute(index)}" ${item.archive_purged_at ? 'disabled' : ''}>Hapus Permanen</button>
                 </div>
             </td>
         </tr>
@@ -372,9 +384,9 @@ function renderArchiveTable(): string {
         <thead class="bg-gray-50 text-left text-xs font-bold uppercase tracking-wide text-gray-500">
             <tr>
                 <th class="px-4 py-3">Surat</th>
-                <th class="px-4 py-3">Fase</th>
+                <th class="px-4 py-3">Versi</th>
                 <th class="px-4 py-3">Status</th>
-                <th class="px-4 py-3">Diarsipkan</th>
+                <th class="px-4 py-3">Masuk arsip</th>
                 <th class="px-4 py-3">Verifikasi</th>
                 <th class="px-4 py-3 text-right">Aksi</th>
             </tr>
@@ -385,8 +397,8 @@ function renderArchiveTable(): string {
 
 function renderActions(): string {
     return renderTableSection({
-        title: 'Audit Actions',
-        helper: 'Riwayat aksi retensi manual dan sistem dengan ringkasan error aman.',
+        title: 'Riwayat Penyimpanan',
+        helper: 'Catatan proses penyimpanan dan pembersihan yang pernah dijalankan, baik otomatis maupun manual.',
         filterHtml: renderActionFilters(),
         actionsHtml: '',
         bodyHtml: renderActionTable(),
@@ -410,7 +422,7 @@ function renderActionFilters(): string {
 }
 
 function renderActionTable(): string {
-    if (state.actions.data.length === 0) return renderEmptyState('Belum ada aksi retensi.');
+    if (state.actions.data.length === 0) return renderEmptyState('Belum ada riwayat proses penyimpanan.');
 
     const rows = state.actions.data.map((item) => `
         <tr class="border-t border-gray-100">
@@ -421,7 +433,7 @@ function renderActionTable(): string {
             <td class="px-4 py-3">${renderVerificationBadge(item.verification_state)}</td>
             <td class="px-4 py-3 text-sm text-gray-600">${escapeFormHtml(formatDate(item.executed_at ?? item.created_at))}</td>
             <td class="px-4 py-3 text-sm text-gray-600">${escapeFormHtml(item.error_code ?? '-')}</td>
-            <td class="px-4 py-3 text-sm text-gray-600">${escapeFormHtml(item.metadata.trigger)}${item.metadata.reason_present ? ' / reason' : ''}</td>
+            <td class="px-4 py-3 text-sm text-gray-600">${escapeFormHtml(triggerLabel(item.metadata.trigger))}${item.metadata.reason_present ? ' / dengan alasan' : ''}</td>
         </tr>
     `).join('');
 
@@ -429,19 +441,26 @@ function renderActionTable(): string {
         <thead class="bg-gray-50 text-left text-xs font-bold uppercase tracking-wide text-gray-500">
             <tr>
                 <th class="px-4 py-3">Surat</th>
-                <th class="px-4 py-3">Kategori</th>
-                <th class="px-4 py-3">Aksi</th>
+                <th class="px-4 py-3">Jenis Data</th>
+                <th class="px-4 py-3">Rencana Proses</th>
                 <th class="px-4 py-3">Status</th>
                 <th class="px-4 py-3">Verifikasi</th>
                 <th class="px-4 py-3">Waktu</th>
-                <th class="px-4 py-3">Error</th>
-                <th class="px-4 py-3">Sumber</th>
+                <th class="px-4 py-3">Kendala</th>
+                <th class="px-4 py-3">Pemicu</th>
             </tr>
         </thead>
         <tbody>${rows}</tbody>
     `);
 }
 
+
+function triggerLabel(trigger: string): string {
+    if (trigger === 'manual') return 'Manual';
+    if (trigger === 'scheduler') return 'Otomatis';
+    if (trigger === 'system') return 'Sistem';
+    return trigger;
+}
 function renderTableSection(options: {
     title: string;
     helper: string;
@@ -479,7 +498,7 @@ function renderResponsiveTable(innerHtml: string): string {
 function renderPagination(scope: 'candidate' | 'archive' | 'action', meta: RetentionPaginationMeta): string {
     const previousDisabled = meta.current_page <= 1;
     const nextDisabled = meta.current_page >= meta.last_page;
-    const pageInfo = `Halaman ${meta.current_page} dari ${meta.last_page} (${meta.total} item${meta.truncated ? ', dibatasi batch' : ''})`;
+    const pageInfo = `Halaman ${meta.current_page} dari ${meta.last_page} (${meta.total} data${meta.truncated ? ', dibatasi per proses' : ''})`;
 
     return `
         <div class="flex flex-col gap-3 border-t border-gray-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
@@ -555,10 +574,10 @@ async function savePolicy(): Promise<void> {
         };
         state.policy = await updateRetentionPolicy(values);
         state.overview = await getRetentionOverview();
-        showSuccess('Kebijakan retensi diperbarui.');
+        showSuccess('Kebijakan penyimpanan berhasil diperbarui.');
         renderPage();
     } catch (error) {
-        showError(error instanceof Error ? error.message : 'Kebijakan retensi gagal diperbarui.');
+        showError(error instanceof Error ? error.message : 'Kebijakan penyimpanan gagal diperbarui.');
     }
 }
 
@@ -566,7 +585,7 @@ function readPolicyNumber(key: keyof RetentionPolicyValues): number {
     const input = document.getElementById(`retention-policy-${key}`) as HTMLInputElement | null;
     const value = Number(input?.value ?? 0);
     if (!Number.isInteger(value) || value < 1 || value > 3650) {
-        throw new Error(`${POLICY_LABELS[key]} harus berisi 1 sampai 3650 hari.`);
+        throw new Error(`${POLICY_LABELS[key]} harus diisi 1 sampai 3650 hari.`);
     }
     return value;
 }
@@ -618,7 +637,7 @@ async function reloadCandidates(page: number): Promise<void> {
         state.candidates = await getRetentionCandidates(buildCandidateQuery(state.candidateFilters, page));
         renderPage();
     } catch (error) {
-        showError(error instanceof Error ? error.message : 'Kandidat retensi gagal dimuat.');
+        showError(error instanceof Error ? error.message : 'Daftar surat siap dibersihkan gagal dimuat.');
     }
 }
 
@@ -627,7 +646,7 @@ async function reloadArchives(page: number): Promise<void> {
         state.archives = await getRetentionArchives(buildArchiveQuery(state.archiveFilters, page));
         renderPage();
     } catch (error) {
-        showError(error instanceof Error ? error.message : 'Archive pool gagal dimuat.');
+        showError(error instanceof Error ? error.message : 'Daftar arsip PDF final gagal dimuat.');
     }
 }
 
@@ -636,7 +655,7 @@ async function reloadActions(page: number): Promise<void> {
         state.actions = await getRetentionActions(buildActionQuery(state.actionFilters, page));
         renderPage();
     } catch (error) {
-        showError(error instanceof Error ? error.message : 'Riwayat aksi retensi gagal dimuat.');
+        showError(error instanceof Error ? error.message : 'Riwayat penyimpanan gagal dimuat.');
     }
 }
 
@@ -651,7 +670,7 @@ async function runCurrentDryRun(): Promise<void> {
     try {
         const category = state.candidateFilters.category;
         if (!category) {
-            showError('Pilih kategori sebelum menjalankan dry-run manual.');
+            showError('Pilih jenis data terlebih dahulu sebelum mengecek.');
             return;
         }
         const result = await runRetentionDryRun({
@@ -659,11 +678,11 @@ async function runCurrentDryRun(): Promise<void> {
             category,
             batch: 100,
         });
-        showSuccess(`Dry-run selesai: ${result.total} aksi kandidat.`);
+        showSuccess(`Pengecekan selesai: ${result.total} data siap dibersihkan.`);
         state.candidates = await getRetentionCandidates(buildCandidateQuery(state.candidateFilters, state.candidates.meta.current_page));
         renderPage();
     } catch (error) {
-        showError(error instanceof Error ? error.message : 'Dry-run retensi gagal dijalankan.');
+        showError(error instanceof Error ? error.message : 'Pengecekan data gagal dijalankan.');
     }
 }
 
@@ -676,9 +695,9 @@ function openReasonModal(action: string | undefined, index: string | undefined):
         if (!item || item.subject_id === null) return;
         pendingReasonAction = {
             kind: 'execute',
-            title: 'Eksekusi Kandidat Retensi',
+            title: 'Bersihkan Data Surat',
             summary: `${CATEGORY_LABELS[item.category]} - ${item.letter_type} #${item.application_id}`,
-            confirmLabel: 'Eksekusi',
+            confirmLabel: 'Proses',
             item,
         };
     } else if (action === 'restore') {
@@ -686,9 +705,9 @@ function openReasonModal(action: string | undefined, index: string | undefined):
         if (!archive) return;
         pendingReasonAction = {
             kind: 'restore',
-            title: 'Restore Arsip PDF Final',
+            title: 'Pulihkan Arsip PDF Final',
             summary: `${archive.letter_type} #${archive.application_id}`,
-            confirmLabel: 'Restore',
+            confirmLabel: 'Pulihkan',
             archiveId: archive.id,
         };
     } else if (action === 'purge') {
@@ -696,9 +715,9 @@ function openReasonModal(action: string | undefined, index: string | undefined):
         if (!archive || archive.archive_purged_at) return;
         pendingReasonAction = {
             kind: 'purge',
-            title: 'Purge Arsip PDF Final',
+            title: 'Hapus Permanen Arsip PDF Final',
             summary: `${archive.letter_type} #${archive.application_id}`,
-            confirmLabel: 'Purge',
+            confirmLabel: 'Hapus Permanen',
             archiveId: archive.id,
         };
     } else {
@@ -720,9 +739,9 @@ function renderReasonModal(): void {
                     <p class="${textClass.helper} mt-1">${escapeFormHtml(pendingReasonAction.summary)}</p>
                 </div>
                 <label class="block">
-                    <span class="text-sm font-bold text-gray-800">Alasan eksplisit</span>
-                    <textarea id="retention-action-reason" class="${cx(inputClass(), 'mt-2 min-h-28 resize-y')}" minlength="10" maxlength="1000" placeholder="Tuliskan alasan aksi retensi manual"></textarea>
-                    <span class="${textClass.helper} mt-2 block">Minimal 10 karakter. Alasan disimpan dalam audit backend.</span>
+                    <span class="text-sm font-bold text-gray-800">Alasan tindakan</span>
+                    <textarea id="retention-action-reason" class="${cx(inputClass(), 'mt-2 min-h-28 resize-y')}" minlength="10" maxlength="1000" placeholder="Contoh: pembersihan rutin sesuai kebijakan penyimpanan"></textarea>
+                    <span class="${textClass.helper} mt-2 block">Minimal 10 karakter. Alasan ini akan tersimpan di riwayat audit.</span>
                 </label>
                 <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                     <button type="button" id="retention-modal-cancel" class="${buttonClass('outline', 'md')}">Batal</button>
@@ -750,7 +769,7 @@ async function submitReasonAction(): Promise<void> {
     if (!pendingReasonAction) return;
     const reason = readInput('retention-action-reason');
     if (reason.length < 10) {
-        showError('Alasan aksi retensi minimal 10 karakter.');
+        showError('Alasan tindakan minimal 10 karakter.');
         return;
     }
 
@@ -772,11 +791,11 @@ async function submitReasonAction(): Promise<void> {
             await purgeRetentionArchive(pendingReasonAction.archiveId, reason);
         }
 
-        showSuccess('Aksi retensi selesai diproses.');
+        showSuccess('Proses selesai. Data sudah diperbarui.');
         closeReasonModal();
         await loadAllData();
     } catch (error) {
-        showError(error instanceof Error ? error.message : 'Aksi retensi gagal diproses.');
+        showError(error instanceof Error ? error.message : 'Proses gagal dijalankan.');
     }
 }
 

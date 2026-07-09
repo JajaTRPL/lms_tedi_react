@@ -8,6 +8,61 @@ import { renderUserModal } from './modals';
 import { renderExportDrawer } from './export-drawer';
 import { renderImportDrawer } from './import-drawer';
 
+const escapeConfirmHtml = (value: unknown): string => String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+type DeleteConfirmOptions = {
+    title: string;
+    message: string;
+    confirmLabel?: string;
+};
+
+const openDeleteConfirmModal = ({ title, message, confirmLabel = 'Hapus' }: DeleteConfirmOptions): Promise<boolean> => new Promise((resolve) => {
+    document.getElementById('user-delete-confirm-root')?.remove();
+    const root = document.createElement('div');
+    root.id = 'user-delete-confirm-root';
+    document.body.appendChild(root);
+
+    let settled = false;
+    const close = (confirmed: boolean) => {
+        if (settled) return;
+        settled = true;
+        document.removeEventListener('keydown', handleEscape);
+        root.remove();
+        resolve(confirmed);
+    };
+    const handleEscape = (event: KeyboardEvent) => {
+        if (event.key === 'Escape') close(false);
+    };
+
+    root.innerHTML = `
+        <div data-delete-confirm-overlay class="fixed inset-0 z-[1100] bg-black/50"></div>
+        <section role="dialog" aria-modal="true" aria-labelledby="user-delete-confirm-title" class="fixed left-1/2 top-1/2 z-[1101] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white p-6 shadow-2xl">
+            <div class="flex items-start gap-4">
+                <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-600">
+                    <i data-lucide="trash-2" class="h-5 w-5"></i>
+                </div>
+                <div class="min-w-0">
+                    <h2 id="user-delete-confirm-title" class="text-lg font-bold text-gray-900">${escapeConfirmHtml(title)}</h2>
+                    <p class="mt-2 text-sm leading-6 text-gray-600">${escapeConfirmHtml(message)}</p>
+                </div>
+            </div>
+            <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <button id="cancel-user-delete" type="button" class="rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-50">Batal</button>
+                <button id="confirm-user-delete" type="button" class="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-red-700">${escapeConfirmHtml(confirmLabel)}</button>
+            </div>
+        </section>
+    `;
+
+    root.querySelector('[data-delete-confirm-overlay]')?.addEventListener('click', () => close(false));
+    root.querySelector('#cancel-user-delete')?.addEventListener('click', () => close(false));
+    root.querySelector('#confirm-user-delete')?.addEventListener('click', () => close(true));
+    document.addEventListener('keydown', handleEscape);
+    root.querySelector<HTMLButtonElement>('#cancel-user-delete')?.focus();
+});
 export const setupListeners = (renderContent: () => void) => {
     // --- Helper: update toolbar berdasarkan jumlah yang dipilih ---
     const updateSelectionToolbar = () => {
@@ -156,7 +211,12 @@ export const setupListeners = (renderContent: () => void) => {
         const selectedIds = Array.from(document.querySelectorAll('.user-checkbox:checked'))
             .map(cb => (cb as HTMLElement).dataset.id);
         if (selectedIds.length === 0) return;
-        if (!confirm(`Hapus ${selectedIds.length} akun secara permanen?`)) return;
+        const confirmed = await openDeleteConfirmModal({
+            title: 'Hapus akun terpilih?',
+            message: `${selectedIds.length} akun akan dihapus secara permanen. Tindakan ini tidak dapat dibatalkan.`,
+            confirmLabel: `Hapus ${selectedIds.length} akun`,
+        });
+        if (!confirmed) return;
 
         try {
             await Promise.all(selectedIds.map(id =>
@@ -273,8 +333,14 @@ export const attachActionListeners = (renderContent: () => void, onSelectionChan
     // Delete
     document.querySelectorAll('.delete-user-btn').forEach(btn => {
         btn.addEventListener('click', async () => {
-            if (!confirm('Apakah Anda yakin ingin menghapus akun ini secara permanen?')) return;
             const id = (btn as HTMLElement).dataset.id;
+            const user = state.allUsers.find(u => String(u.id) === String(id));
+            const label = user?.name || user?.email || 'akun ini';
+            const confirmed = await openDeleteConfirmModal({
+                title: 'Hapus akun?',
+                message: `Akun ${label} akan dihapus secara permanen. Tindakan ini tidak dapat dibatalkan.`,
+            });
+            if (!confirmed) return;
             try {
                 const response = await apiFetch(`/api/super-admin/users/${id}`, {
                     method: 'DELETE',
@@ -289,7 +355,7 @@ export const attachActionListeners = (renderContent: () => void, onSelectionChan
         });
     });
 
-    // Row click (all roles) → open role-aware detail modal
+    // Row click (all roles) -> open role-aware detail modal
     document.querySelectorAll('.user-row-clickable').forEach(row => {
         row.addEventListener('click', (e) => {
             const target = e.target as HTMLElement;
@@ -337,8 +403,14 @@ const attachDetailModalListeners = (renderContent: () => void) => {
 
     // Delete from detail modal
     document.querySelector('.user-detail-delete-btn')?.addEventListener('click', async () => {
-        if (!confirm('Apakah Anda yakin ingin menghapus akun ini secara permanen?')) return;
         const id = (document.querySelector('.user-detail-delete-btn') as HTMLElement)?.dataset.id;
+        const user = state.allUsers.find(u => String(u.id) === String(id));
+        const label = user?.name || user?.email || 'akun ini';
+        const confirmed = await openDeleteConfirmModal({
+            title: 'Hapus akun?',
+            message: `Akun ${label} akan dihapus secara permanen. Tindakan ini tidak dapat dibatalkan.`,
+        });
+        if (!confirmed) return;
         try {
             const response = await apiFetch(`/api/super-admin/users/${id}`, {
                 method: 'DELETE',

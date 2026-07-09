@@ -1,20 +1,27 @@
-import Toastify from 'toastify-js';
 import { renderDashboardLayout } from '../dashboard/DashboardLayout';
 import {
+    createSuperAdminLaboratoryUnit,
     downloadSuratPeminjamanPdf,
     getSuperAdminBooking,
     getSuperAdminBookings,
+    getSuperAdminDepartments,
     getSuperAdminLaboratories,
+    listSuperAdminLaboratoryUnits,
     PeminjamanApiError,
+    toggleSuperAdminLaboratoryUnit,
+    updateSuperAdminLaboratoryUnit,
 } from '../mahasiswa/peminjaman/api';
-import { renderSuratPeminjamanPanel } from '../mahasiswa/peminjaman/views';
+import { renderReturnInfoPanel, renderSuratPeminjamanPanel } from '../mahasiswa/peminjaman/views';
 import {
     closeSuratPreview,
     openSuratPreview,
 } from '../mahasiswa/peminjaman/detail';
 import type {
     BookingStatus,
+    DepartmentSummary,
     LaboratorySummary,
+    LaboratoryUnit,
+    LaboratoryUnitPayload,
     PaginationMeta,
     RoomType,
     SuperAdminBooking,
@@ -44,8 +51,9 @@ import {
     openRoomFormModal,
 } from '../shared/room-management/room-form';
 import type { ManagedRoom } from '../shared/room-management/types';
+import { showError, showSuccess } from '../shared/toast';
 
-type ActiveTab = 'rooms' | 'monitoring';
+type ActiveTab = 'rooms' | 'laboratories' | 'monitoring';
 
 const PER_PAGE = 10;
 const EMPTY_META: PaginationMeta = {
@@ -59,6 +67,11 @@ let renderSequence = 0;
 let activeTab: ActiveTab = 'rooms';
 let laboratories: LaboratorySummary[] = [];
 let laboratoriesError: string | null = null;
+let laboratoryUnits: LaboratoryUnit[] = [];
+let laboratoryUnitsLoading = true;
+let laboratoryUnitsError: string | null = null;
+let departments: DepartmentSummary[] = [];
+let departmentsError: string | null = null;
 let roomCatalog: ManagedRoom[] = [];
 let rooms: ManagedRoom[] = [];
 let roomFilters: RoomListFilters = {};
@@ -81,16 +94,6 @@ const escapeHtml = (value: unknown): string => String(value ?? '')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
-
-const showToast = (text: string, success: boolean): void => {
-    Toastify({
-        text,
-        duration: 3000,
-        gravity: 'top',
-        position: 'right',
-        style: { background: success ? '#0f766e' : '#b91c1c' },
-    }).showToast();
-};
 
 const formatDateTime = (iso?: string | null): string => {
     if (!iso) return '-';
@@ -135,23 +138,24 @@ const selected = (actual: unknown, expected: unknown): string =>
 const pageContent = (): string => `
     <div class="mx-auto max-w-7xl space-y-6 pb-12">
         <section class="rounded-[24px] border border-gray-100 bg-white p-5 shadow-sm sm:p-6">
+            <div class="mb-4 inline-flex max-w-fit rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs font-semibold text-blue-800">
+                Super Admin bersifat monitoring dan tidak menyetujui pengajuan.
+            </div>
             <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div>
                     <p class="text-xs font-bold uppercase tracking-[0.18em] text-teal-700">Master & Monitoring</p>
                     <h2 class="mt-1 text-2xl font-bold text-gray-900">Peminjaman Ruangan</h2>
                     <p class="mt-2 max-w-3xl text-sm text-gray-500">Kelola data master ruangan dan pantau seluruh pengajuan. Persetujuan tetap dilakukan oleh reviewer Tendik sesuai lingkupnya.</p>
                 </div>
-                <div class="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs font-semibold text-blue-800">
-                    Super Admin bersifat monitoring dan tidak menyetujui pengajuan.
-                </div>
             </div>
             <div class="mt-5 flex flex-wrap gap-2" role="tablist" aria-label="Bagian Peminjaman Ruangan">
                 <button id="admin-peminjaman-tab-rooms" type="button" role="tab" aria-selected="${activeTab === 'rooms'}" class="rounded-xl px-4 py-2.5 text-sm font-bold ${activeTab === 'rooms' ? 'bg-teal-700 text-white' : 'border border-gray-200 bg-white text-gray-600'}">Master Ruangan</button>
+                <button id="admin-peminjaman-tab-laboratories" type="button" role="tab" aria-selected="${activeTab === 'laboratories'}" class="rounded-xl px-4 py-2.5 text-sm font-bold ${activeTab === 'laboratories' ? 'bg-teal-700 text-white' : 'border border-gray-200 bg-white text-gray-600'}">Unit Laboratorium</button>
                 <button id="admin-peminjaman-tab-monitoring" type="button" role="tab" aria-selected="${activeTab === 'monitoring'}" class="rounded-xl px-4 py-2.5 text-sm font-bold ${activeTab === 'monitoring' ? 'bg-teal-700 text-white' : 'border border-gray-200 bg-white text-gray-600'}">Monitoring Pengajuan</button>
             </div>
         </section>
         <div id="admin-peminjaman-tab-content">
-            ${activeTab === 'rooms' ? renderRoomManagement() : renderMonitoring()}
+            ${activeTab === 'rooms' ? renderRoomManagement() : activeTab === 'laboratories' ? renderLaboratoryUnits() : renderMonitoring()}
         </div>
     </div>
 `;
@@ -180,13 +184,17 @@ const renderRoomManagement = (): string => `
 
 const renderRoomFilters = (): string => `
     <form id="admin-peminjaman-room-filters" class="rounded-[24px] border border-gray-100 bg-white p-5 shadow-sm">
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div class="mb-3 flex items-center justify-between gap-3">
+            <h3 class="text-sm font-bold text-gray-800">Filter Ruangan</h3>
+            ${isRoomFilterActive() ? '<span class="rounded-full bg-teal-50 px-3 py-1 text-[11px] font-bold text-teal-700">Filter aktif</span>' : ''}
+        </div>
+        <div class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-[minmax(240px,1.25fr)_minmax(150px,0.7fr)_minmax(150px,0.7fr)_minmax(220px,1fr)_auto] xl:items-end">
             <label class="text-xs font-bold text-gray-600">
-                Pencarian
+                Cari Ruangan
                 <input id="admin-peminjaman-room-search" type="search" maxlength="100" value="${escapeHtml(roomFilters.search ?? '')}" placeholder="Kode, nama, atau lokasi" class="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm font-medium text-gray-700">
             </label>
             <label class="text-xs font-bold text-gray-600">
-                Jenis Ruangan
+                Jenis
                 <select id="admin-peminjaman-room-type" class="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm font-medium text-gray-700">
                     <option value="">Semua jenis</option>
                     <option value="classroom" ${selected(roomFilters.type, 'classroom')}>Ruang Kelas</option>
@@ -202,18 +210,18 @@ const renderRoomFilters = (): string => `
                 </select>
             </label>
             <label class="text-xs font-bold text-gray-600">
-                Laboratorium Pemilik
+                Unit Lab
                 <select id="admin-peminjaman-room-laboratory" class="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm font-medium text-gray-700">
                     <option value="">Semua laboratorium</option>
                     ${laboratories.map((lab) => `
-                        <option value="${lab.id}" ${selected(roomFilters.laboratoryId, lab.id)}>${escapeHtml(lab.code)} · ${escapeHtml(lab.name)}</option>
+                        <option value="${lab.id}" ${selected(roomFilters.laboratoryId, lab.id)}>${escapeHtml(lab.code)} - ${escapeHtml(lab.name)}</option>
                     `).join('')}
                 </select>
             </label>
         </div>
-        <div class="mt-4 flex flex-wrap justify-end gap-3">
+        <div class="mt-4 flex flex-wrap justify-start gap-2">
             <button id="admin-peminjaman-reset-room-filters" type="button" class="rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-50">Reset</button>
-            <button type="submit" class="rounded-xl bg-teal-700 px-5 py-2.5 text-sm font-bold text-white hover:bg-teal-800">Terapkan Filter</button>
+            <button type="submit" class="rounded-xl bg-teal-700 px-5 py-2.5 text-sm font-bold text-white hover:bg-teal-800">Terapkan</button>
         </div>
     </form>
 `;
@@ -247,6 +255,96 @@ const renderRoomState = (): string => {
     return `<div data-admin-room-state="success">${renderRoomManagementTable(rooms)}</div>`;
 };
 
+const renderLaboratoryUnits = (): string => `
+    <section class="overflow-hidden rounded-[24px] border border-gray-100 bg-white shadow-sm" aria-live="polite">
+        <div class="flex flex-col gap-3 border-b border-gray-100 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+                <h3 class="text-base font-bold text-gray-800">Unit Laboratorium</h3>
+                <p class="mt-1 text-xs text-gray-500">Status aktif dikelola terpisah. Unit lab tidak dihapus dari sistem.</p>
+            </div>
+            <button id="admin-peminjaman-add-laboratory" type="button" class="rounded-xl bg-teal-700 px-4 py-2.5 text-sm font-bold text-white hover:bg-teal-800">Tambah Unit Lab</button>
+        </div>
+        ${departmentsError ? `
+            <div role="alert" class="mx-5 mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                ${escapeHtml(departmentsError)} Form tetap dapat dipakai tanpa memilih departemen.
+            </div>
+        ` : ''}
+        ${renderLaboratoryUnitState()}
+    </section>
+`;
+
+const renderLaboratoryUnitState = (): string => {
+    if (laboratoryUnitsLoading) {
+        return `
+            <div data-admin-laboratory-state="loading" class="px-6 py-16 text-center">
+                <div class="mx-auto h-9 w-9 animate-spin rounded-full border-4 border-teal-100 border-t-teal-700"></div>
+                <p class="mt-4 text-sm font-bold text-gray-700">Memuat unit laboratorium...</p>
+            </div>
+        `;
+    }
+
+    if (laboratoryUnitsError) {
+        return `
+            <div data-admin-laboratory-state="error" class="px-6 py-16 text-center">
+                <h3 class="text-base font-bold text-gray-800">Unit laboratorium gagal dimuat</h3>
+                <p class="mt-2 text-sm text-gray-500">${escapeHtml(laboratoryUnitsError)}</p>
+                <button id="admin-peminjaman-retry-laboratory-units" type="button" class="mt-5 rounded-xl bg-teal-700 px-4 py-2.5 text-sm font-bold text-white">Coba Lagi</button>
+            </div>
+        `;
+    }
+
+    if (laboratoryUnits.length === 0) {
+        return `
+            <div data-admin-laboratory-state="empty" class="px-6 py-16 text-center">
+                <h3 class="text-base font-bold text-gray-800">Belum ada unit laboratorium</h3>
+                <p class="mt-2 text-sm text-gray-500">Tambahkan unit lab agar bisa dipakai pada ruangan dan akun laboratorium.</p>
+            </div>
+        `;
+    }
+
+    return `
+        <div data-admin-laboratory-state="success" class="overflow-x-auto">
+            <table class="min-w-[760px] w-full text-left">
+                <thead class="bg-gray-50 text-xs font-bold uppercase tracking-wide text-gray-500">
+                    <tr>
+                        <th class="px-5 py-4">Unit Laboratorium</th>
+                        <th class="px-5 py-4">Departemen</th>
+                        <th class="px-5 py-4">Dipakai</th>
+                        <th class="px-5 py-4">Status</th>
+                        <th class="px-5 py-4"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${laboratoryUnits.map((lab) => `
+                        <tr class="border-b border-gray-100 last:border-0">
+                            <td class="px-5 py-4 align-top">
+                                <p class="text-sm font-bold text-gray-800">${escapeHtml(lab.code)} - ${escapeHtml(lab.name)}</p>
+                            </td>
+                            <td class="px-5 py-4 align-top">
+                                <p class="text-sm font-semibold text-gray-700">${lab.department ? escapeHtml(lab.department.code) + ' - ' + escapeHtml(lab.department.name) : '-'}</p>
+                            </td>
+                            <td class="px-5 py-4 align-top">
+                                <div class="flex flex-wrap gap-2">
+                                    <span class="rounded-full bg-gray-50 px-3 py-1 text-xs font-bold text-gray-600">${lab.rooms_count} ruangan</span>
+                                    <span class="rounded-full bg-gray-50 px-3 py-1 text-xs font-bold text-gray-600">${lab.users_count} akun</span>
+                                </div>
+                            </td>
+                            <td class="px-5 py-4 align-top">
+                                <span class="rounded-full px-3 py-1 text-xs font-bold ${lab.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-600'}">${lab.is_active ? 'Aktif' : 'Nonaktif'}</span>
+                            </td>
+                            <td class="px-5 py-4 text-right align-top">
+                                <div class="flex justify-end gap-2">
+                                    <button type="button" data-admin-laboratory-edit="${lab.id}" class="rounded-xl border border-teal-700 px-4 py-2 text-xs font-bold text-teal-700 hover:bg-teal-50">Edit</button>
+                                    <button type="button" data-admin-laboratory-toggle="${lab.id}" class="rounded-xl border px-4 py-2 text-xs font-bold ${lab.is_active ? 'border-amber-200 text-amber-700 hover:bg-amber-50' : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'}">${lab.is_active ? 'Nonaktifkan' : 'Aktifkan'}</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+};
 const renderMonitoring = (): string => `
     <div class="space-y-5">
         ${renderBookingFilters()}
@@ -262,18 +360,22 @@ const renderMonitoring = (): string => `
 
 const renderBookingFilters = (): string => `
     <form id="admin-peminjaman-booking-filters" class="rounded-[24px] border border-gray-100 bg-white p-5 shadow-sm">
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <div class="mb-3 flex items-center justify-between gap-3">
+            <h3 class="text-sm font-bold text-gray-800">Filter Pengajuan</h3>
+            ${bookingFilterError ? '<span class="rounded-full bg-red-50 px-3 py-1 text-[11px] font-bold text-red-700">Tanggal tidak valid</span>' : ''}
+        </div>
+        <div class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-[minmax(150px,0.75fr)_minmax(150px,0.75fr)_minmax(220px,1fr)_minmax(260px,1.25fr)_auto] xl:items-end">
             <label class="text-xs font-bold text-gray-600">
                 Status
                 <select id="admin-peminjaman-booking-status" class="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm font-medium text-gray-700">
                     <option value="">Semua status</option>
-                    ${(['submitted', 'revision_requested', 'approved', 'rejected', 'cancelled'] as BookingStatus[]).map((status) => `
+                    ${(['submitted', 'revision_requested', 'return_pending', 'completed', 'approved', 'rejected', 'cancelled'] as BookingStatus[]).map((status) => `
                         <option value="${status}" ${selected(bookingFilters.status, status)}>${escapeHtml(getBookingStatusLabel(status))}</option>
                     `).join('')}
                 </select>
             </label>
             <label class="text-xs font-bold text-gray-600">
-                Jenis Ruangan
+                Jenis
                 <select id="admin-peminjaman-booking-room-type" class="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm font-medium text-gray-700">
                     <option value="">Semua jenis</option>
                     <option value="classroom" ${selected(bookingFilters.roomType, 'classroom')}>Ruang Kelas</option>
@@ -285,23 +387,22 @@ const renderBookingFilters = (): string => `
                 <select id="admin-peminjaman-booking-room-id" class="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm font-medium text-gray-700">
                     <option value="">Semua ruangan</option>
                     ${roomCatalog.map((room) => `
-                        <option value="${room.id}" ${selected(bookingFilters.roomId, room.id)}>${escapeHtml(room.code)} · ${escapeHtml(room.name)}</option>
+                        <option value="${room.id}" ${selected(bookingFilters.roomId, room.id)}>${escapeHtml(room.code)} - ${escapeHtml(room.name)}</option>
                     `).join('')}
                 </select>
             </label>
-            <label class="text-xs font-bold text-gray-600">
-                Dari Tanggal
-                <input id="admin-peminjaman-booking-date-from" type="date" value="${escapeHtml(bookingFilters.dateFrom ?? '')}" class="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm font-medium text-gray-700">
-            </label>
-            <label class="text-xs font-bold text-gray-600">
-                Sampai Tanggal
-                <input id="admin-peminjaman-booking-date-to" type="date" value="${escapeHtml(bookingFilters.dateTo ?? '')}" class="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm font-medium text-gray-700">
-            </label>
+            <div>
+                <p class="text-xs font-bold text-gray-600">Tanggal Kegiatan</p>
+                <div class="mt-2 grid grid-cols-2 gap-2">
+                    <input id="admin-peminjaman-booking-date-from" type="date" aria-label="Tanggal mulai" value="${escapeHtml(bookingFilters.dateFrom ?? '')}" class="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm font-medium text-gray-700">
+                    <input id="admin-peminjaman-booking-date-to" type="date" aria-label="Tanggal sampai" value="${escapeHtml(bookingFilters.dateTo ?? '')}" class="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm font-medium text-gray-700">
+                </div>
+            </div>
         </div>
         ${bookingFilterError ? `<p role="alert" class="mt-3 text-sm font-semibold text-red-700">${escapeHtml(bookingFilterError)}</p>` : ''}
-        <div class="mt-4 flex flex-wrap justify-end gap-3">
+        <div class="mt-4 flex flex-wrap justify-start gap-2">
             <button id="admin-peminjaman-reset-booking-filters" type="button" class="rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-50">Reset</button>
-            <button type="submit" class="rounded-xl bg-teal-700 px-5 py-2.5 text-sm font-bold text-white hover:bg-teal-800">Terapkan Filter</button>
+            <button type="submit" class="rounded-xl bg-teal-700 px-5 py-2.5 text-sm font-bold text-white hover:bg-teal-800">Terapkan</button>
         </div>
     </form>
 `;
@@ -352,7 +453,7 @@ const renderBookingState = (): string => {
                                 <p class="mt-1 text-xs text-gray-500">${escapeHtml(booking.requester?.name ?? 'Pemohon tidak tersedia')}</p>
                             </td>
                             <td class="px-5 py-4 align-top">
-                                <p class="break-words text-sm font-semibold text-gray-700">${escapeHtml(booking.room.code)} · ${escapeHtml(booking.room.name)}</p>
+                                <p class="break-words text-sm font-semibold text-gray-700">${escapeHtml(booking.room.code)} - ${escapeHtml(booking.room.name)}</p>
                                 <p class="mt-1 text-xs text-gray-500">${escapeHtml(getRoomTypeLabel(booking.room.type))}</p>
                             </td>
                             <td class="px-5 py-4 align-top text-sm text-gray-600">
@@ -378,7 +479,7 @@ const renderBookingPagination = (): string => {
     if (bookingMeta.last_page <= 1) return '';
     return `
         <div class="flex items-center justify-between gap-4 border-t border-gray-100 px-5 py-4">
-            <p class="text-xs font-medium text-gray-500">Halaman ${bookingMeta.current_page} dari ${bookingMeta.last_page} · ${bookingMeta.total} pengajuan</p>
+            <p class="text-xs font-medium text-gray-500">Halaman ${bookingMeta.current_page} dari ${bookingMeta.last_page} - ${bookingMeta.total} pengajuan</p>
             <div class="flex gap-2">
                 <button id="admin-peminjaman-booking-prev" type="button" ${bookingMeta.current_page <= 1 ? 'disabled' : ''} class="rounded-lg border border-gray-200 px-3 py-2 text-xs font-bold text-gray-600 disabled:opacity-40">Sebelumnya</button>
                 <button id="admin-peminjaman-booking-next" type="button" ${bookingMeta.current_page >= bookingMeta.last_page ? 'disabled' : ''} class="rounded-lg border border-gray-200 px-3 py-2 text-xs font-bold text-gray-600 disabled:opacity-40">Berikutnya</button>
@@ -402,11 +503,16 @@ const attachPageListeners = (): void => {
         activeTab = 'rooms';
         renderPage();
     });
+    document.getElementById('admin-peminjaman-tab-laboratories')?.addEventListener('click', () => {
+        activeTab = 'laboratories';
+        renderPage();
+    });
     document.getElementById('admin-peminjaman-tab-monitoring')?.addEventListener('click', () => {
         activeTab = 'monitoring';
         renderPage();
     });
     attachRoomListeners();
+    attachLaboratoryListeners();
     attachBookingListeners();
 };
 
@@ -435,7 +541,7 @@ const attachRoomListeners = (): void => {
             laboratories,
             allowedTypes: ['classroom', 'laboratory'],
             onSaved: (saved) => {
-                showToast('Ruangan berhasil dibuat.', true);
+                showSuccess('Ruangan berhasil dibuat.');
                 void loadRooms(false).then(() => {
                     void openRoomManagementDrawer(saved.id, roomDrawerOptions());
                 });
@@ -462,6 +568,35 @@ const roomDrawerOptions = () => ({
     onRoomMutated: () => { void loadRooms(false); },
 });
 
+const attachLaboratoryListeners = (): void => {
+    document.getElementById('admin-peminjaman-add-laboratory')?.addEventListener('click', () => {
+        openLaboratoryUnitModal();
+    });
+    document.getElementById('admin-peminjaman-retry-laboratory-units')?.addEventListener('click', () => {
+        void loadLaboratoryUnits();
+    });
+    document.querySelectorAll<HTMLElement>('[data-admin-laboratory-edit]').forEach((button) => {
+        button.addEventListener('click', () => {
+            const id = Number(button.dataset.adminLaboratoryEdit);
+            const lab = laboratoryUnits.find((item) => item.id === id);
+            if (lab) openLaboratoryUnitModal(lab);
+        });
+    });
+    document.querySelectorAll<HTMLElement>('[data-admin-laboratory-toggle]').forEach((button) => {
+        button.addEventListener('click', async () => {
+            const id = Number(button.dataset.adminLaboratoryToggle);
+            const lab = laboratoryUnits.find((item) => item.id === id);
+            if (!lab) return;
+            try {
+                await toggleSuperAdminLaboratoryUnit(id);
+                showSuccess(lab.is_active ? 'Unit laboratorium berhasil dinonaktifkan.' : 'Unit laboratorium berhasil diaktifkan.');
+                await Promise.all([loadLaboratoryUnits(false), loadLaboratories(false)]);
+            } catch (error) {
+                showError(errorMessage(error, 'Status unit laboratorium gagal diubah.'));
+            }
+        });
+    });
+};
 const attachBookingListeners = (): void => {
     document.getElementById('admin-peminjaman-booking-filters')?.addEventListener('submit', (event) => {
         event.preventDefault();
@@ -545,7 +680,7 @@ const loadRooms = async (showLoading = true): Promise<void> => {
     }
 };
 
-const loadLaboratories = async (): Promise<void> => {
+const loadLaboratories = async (rerender = true): Promise<void> => {
     try {
         laboratories = await getSuperAdminLaboratories();
         laboratoriesError = null;
@@ -553,7 +688,25 @@ const loadLaboratories = async (): Promise<void> => {
         laboratories = [];
         laboratoriesError = errorMessage(error, 'Daftar laboratorium gagal dimuat.');
     }
-    renderPage();
+    if (rerender) renderPage();
+};
+
+const loadLaboratoryUnits = async (showLoading = true): Promise<void> => {
+    if (showLoading) {
+        laboratoryUnitsLoading = true;
+        laboratoryUnitsError = null;
+        renderPage();
+    }
+    try {
+        laboratoryUnits = await listSuperAdminLaboratoryUnits();
+        laboratoryUnitsError = null;
+    } catch (error) {
+        laboratoryUnits = [];
+        laboratoryUnitsError = errorMessage(error, 'Unit laboratorium gagal dimuat.');
+    } finally {
+        laboratoryUnitsLoading = false;
+        renderPage();
+    }
 };
 
 const loadBookings = async (showLoading = true): Promise<void> => {
@@ -583,6 +736,98 @@ const closeModal = (): void => {
         document.removeEventListener('keydown', modalEscapeHandler);
         modalEscapeHandler = null;
     }
+};
+
+const openLaboratoryUnitModal = (laboratory?: LaboratoryUnit): void => {
+    closeModal();
+    const root = document.createElement('div');
+    root.id = 'admin-peminjaman-modal-root';
+    document.body.appendChild(root);
+
+    const departmentOptions = departments.map((department) => `
+        <option value="${department.id}" ${selected(laboratory?.department_id, department.id)}>${escapeHtml(department.code)} - ${escapeHtml(department.name)}</option>
+    `).join('');
+
+    root.innerHTML = `
+        <div data-admin-laboratory-modal-overlay class="fixed inset-0 z-[230] bg-black/50"></div>
+        <section role="dialog" aria-modal="true" aria-labelledby="laboratory-form-title" class="fixed left-1/2 top-1/2 z-[231] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white p-6 shadow-2xl">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <p class="text-xs font-bold uppercase tracking-wider text-teal-700">Unit Laboratorium</p>
+                    <h2 id="laboratory-form-title" class="mt-1 text-xl font-bold text-gray-900">${laboratory ? 'Edit Unit Lab' : 'Tambah Unit Lab'}</h2>
+                </div>
+                <button id="close-laboratory-modal" type="button" class="rounded-lg p-2 text-gray-400 hover:bg-gray-100" aria-label="Tutup formulir">x</button>
+            </div>
+            <form id="laboratory-form" class="mt-5 space-y-4">
+                <label class="block text-xs font-bold text-gray-600">
+                    Kode Unit Lab
+                    <input id="laboratory-code" maxlength="50" value="${escapeHtml(laboratory?.code ?? '')}" required placeholder="Contoh: LAB-01" class="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm font-medium text-gray-700 uppercase">
+                </label>
+                <label class="block text-xs font-bold text-gray-600">
+                    Nama Unit Lab
+                    <input id="laboratory-name" maxlength="255" value="${escapeHtml(laboratory?.name ?? '')}" required placeholder="Contoh: Laboratorium Komputer 1" class="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm font-medium text-gray-700">
+                </label>
+                <label class="block text-xs font-bold text-gray-600">
+                    Departemen
+                    <select id="laboratory-department" class="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm font-medium text-gray-700">
+                        <option value="">Tanpa departemen</option>
+                        ${departmentOptions}
+                    </select>
+                </label>
+                <p id="laboratory-form-error" role="alert" class="hidden rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700"></p>
+                <div class="flex justify-start gap-2 pt-2">
+                    <button id="cancel-laboratory-modal" type="button" class="rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-50">Batal</button>
+                    <button type="submit" class="rounded-xl bg-teal-700 px-5 py-2.5 text-sm font-bold text-white hover:bg-teal-800">${laboratory ? 'Simpan' : 'Tambah'}</button>
+                </div>
+            </form>
+        </section>
+    `;
+
+    const close = (): void => closeModal();
+    root.querySelector('[data-admin-laboratory-modal-overlay]')?.addEventListener('click', close);
+    root.querySelector('#close-laboratory-modal')?.addEventListener('click', close);
+    root.querySelector('#cancel-laboratory-modal')?.addEventListener('click', close);
+
+    const codeInput = root.querySelector<HTMLInputElement>('#laboratory-code');
+    codeInput?.addEventListener('input', () => {
+        codeInput.value = codeInput.value.toUpperCase();
+    });
+
+    root.querySelector('#laboratory-form')?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const errorBox = root.querySelector<HTMLElement>('#laboratory-form-error');
+        const code = codeInput?.value.trim().toUpperCase() ?? '';
+        const name = (root.querySelector<HTMLInputElement>('#laboratory-name')?.value ?? '').trim();
+        const departmentValue = (root.querySelector<HTMLSelectElement>('#laboratory-department')?.value ?? '').trim();
+        const payload: LaboratoryUnitPayload = {
+            code,
+            name,
+            department_id: departmentValue ? Number(departmentValue) : null,
+        };
+
+        try {
+            if (laboratory) {
+                await updateSuperAdminLaboratoryUnit(laboratory.id, payload);
+                showSuccess('Unit laboratorium berhasil diperbarui.');
+            } else {
+                await createSuperAdminLaboratoryUnit(payload);
+                showSuccess('Unit laboratorium berhasil dibuat.');
+            }
+            closeModal();
+            await Promise.all([loadLaboratoryUnits(false), loadLaboratories(false)]);
+        } catch (error) {
+            if (errorBox) {
+                errorBox.textContent = errorMessage(error, 'Unit laboratorium gagal disimpan.');
+                errorBox.classList.remove('hidden');
+            }
+        }
+    });
+
+    modalEscapeHandler = (event: KeyboardEvent): void => {
+        if (event.key === 'Escape') closeModal();
+    };
+    document.addEventListener('keydown', modalEscapeHandler);
+    codeInput?.focus();
 };
 
 const closeDrawer = (): void => {
@@ -631,7 +876,7 @@ const renderBookingDetail = (
                     <p class="text-xs font-bold uppercase tracking-wider text-teal-700">Detail Monitoring</p>
                     <h2 id="admin-booking-detail-title" class="mt-1 text-xl font-bold text-gray-900">${booking ? escapeHtml(booking.activity_name) : 'Pengajuan Peminjaman'}</h2>
                 </div>
-                <button id="close-admin-peminjaman-drawer" type="button" class="rounded-lg p-2 text-gray-400 hover:bg-gray-100" aria-label="Tutup detail pengajuan">×</button>
+                <button id="close-admin-peminjaman-drawer" type="button" class="rounded-lg p-2 text-gray-400 hover:bg-gray-100" aria-label="Tutup detail pengajuan">x</button>
             </header>
             <div class="flex-1 overflow-y-auto px-6 py-5">
                 ${loading ? `
@@ -654,7 +899,7 @@ const renderBookingDetail = (
                             ${[
                                 ['Pemohon', booking.requester?.name ?? '-'],
                                 ['Email Pemohon', booking.requester?.email ?? '-'],
-                                ['Ruangan', `${booking.room.code} · ${booking.room.name}`],
+                                ['Ruangan', `${booking.room.code} - ${booking.room.name}`],
                                 ['Lokasi', booking.room.location],
                                 ['Jenis', getRoomTypeLabel(booking.room.type)],
                                 ['Jumlah Peserta', `${booking.participant_count} orang`],
@@ -679,6 +924,7 @@ const renderBookingDetail = (
                         ${booking.revision_note ? `<p class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"><strong>Catatan revisi:</strong> ${escapeHtml(booking.revision_note)}</p>` : ''}
                         ${booking.rejection_reason ? `<p class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"><strong>Alasan penolakan:</strong> ${escapeHtml(booking.rejection_reason)}</p>` : ''}
                         ${renderSuratPeminjamanPanel(booking, { allowReplace: false })}
+                        ${renderReturnInfoPanel(booking)}
                         <section>
                             <h3 class="mb-3 text-sm font-bold text-gray-800">Riwayat Status</h3>
                             ${(booking.status_histories ?? []).length > 0 ? `
@@ -705,7 +951,7 @@ const renderBookingDetail = (
     root.querySelector('[data-admin-drawer-overlay]')?.addEventListener('click', close);
     root.querySelector('#close-admin-peminjaman-drawer')?.addEventListener('click', close);
     if (booking) {
-        // Read-only PDF evidence for monitoring — never an approval/upload path.
+        // Read-only PDF evidence for monitoring - never an approval/upload path.
         root.querySelector('#peminjaman-surat-preview')?.addEventListener('click', () => {
             openSuratPreview(booking);
         });
@@ -716,11 +962,10 @@ const renderBookingDetail = (
                     booking.surat_peminjaman_pdf?.original_name ?? 'surat-peminjaman.pdf',
                 );
             } catch (downloadError) {
-                showToast(
+                showError(
                     downloadError instanceof Error
                         ? downloadError.message
                         : 'Surat peminjaman gagal diunduh.',
-                    false,
                 );
             }
         });
@@ -744,6 +989,11 @@ export const renderPeminjamanRuanganAdmin = async (): Promise<void> => {
     activeTab = 'rooms';
     laboratories = [];
     laboratoriesError = null;
+    laboratoryUnits = [];
+    laboratoryUnitsLoading = true;
+    laboratoryUnitsError = null;
+    departments = [];
+    departmentsError = null;
     roomCatalog = [];
     rooms = [];
     roomFilters = {};
@@ -761,10 +1011,17 @@ export const renderPeminjamanRuanganAdmin = async (): Promise<void> => {
     closeDrawer();
     closeRoomManagementDrawer();
     closeRoomFormModal();
-    renderPage();
+    renderDashboardLayout(
+        'Peminjaman Ruangan',
+        '<div class="flex items-center justify-center h-64"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div></div>',
+        'super_admin',
+        'peminjaman-admin',
+    );
 
-    const [laboratoryResult, roomResult, bookingResult] = await Promise.allSettled([
+    const [laboratoryResult, laboratoryUnitResult, departmentResult, roomResult, bookingResult] = await Promise.allSettled([
         getSuperAdminLaboratories(),
+        listSuperAdminLaboratoryUnits(),
+        getSuperAdminDepartments(),
         listManagedRooms(),
         getSuperAdminBookings(bookingFilters),
     ]);
@@ -776,6 +1033,16 @@ export const renderPeminjamanRuanganAdmin = async (): Promise<void> => {
     laboratoriesError = laboratoryResult.status === 'rejected'
         ? errorMessage(laboratoryResult.reason, 'Daftar laboratorium gagal dimuat.')
         : null;
+    if (laboratoryUnitResult.status === 'fulfilled') {
+        laboratoryUnits = laboratoryUnitResult.value;
+    } else {
+        laboratoryUnitsError = errorMessage(laboratoryUnitResult.reason, 'Unit laboratorium gagal dimuat.');
+    }
+    if (departmentResult.status === 'fulfilled') {
+        departments = departmentResult.value;
+    } else {
+        departmentsError = errorMessage(departmentResult.reason, 'Daftar departemen gagal dimuat.');
+    }
     if (roomResult.status === 'fulfilled') {
         rooms = roomResult.value;
         roomCatalog = roomResult.value;
@@ -789,6 +1056,7 @@ export const renderPeminjamanRuanganAdmin = async (): Promise<void> => {
         bookingsError = errorMessage(bookingResult.reason, 'Monitoring pengajuan gagal dimuat.');
     }
     roomsLoading = false;
+    laboratoryUnitsLoading = false;
     bookingsLoading = false;
     renderPage();
 };

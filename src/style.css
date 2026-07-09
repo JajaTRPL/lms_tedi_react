@@ -62,6 +62,18 @@
     animation: toast-slide-out 200ms ease-in both;
   }
 
+  /* Notifikasi inline di halaman Login / Reset Password — gaya identik dengan toast surat */
+  .auth-notif {
+    box-sizing: border-box;
+    padding: 16px 20px;
+    color: #111827;
+    background: #ffffff;
+    border: 1px solid rgba(17, 24, 39, 0.08);
+    border-radius: 16px;
+    box-shadow: 0 12px 28px rgba(17, 24, 39, 0.16), 0 2px 6px rgba(17, 24, 39, 0.08);
+    animation: toast-slide-in 240ms ease-out both;
+  }
+
   .toast-layout {
     display: flex;
     align-items: flex-start;

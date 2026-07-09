@@ -78,7 +78,7 @@ export const formatTimeRange = (startISO: string, endISO: string): string => {
     };
     const start = new Date(startISO).toLocaleTimeString('id-ID', options);
     const end = new Date(endISO).toLocaleTimeString('id-ID', options);
-    return `${start}–${end} WIB`;
+    return `${start}-${end} WIB`;
 };
 
 export const normalizeAvailabilityByDate = (
@@ -108,7 +108,7 @@ export const filterApprovedAvailability = (
 ): AvailabilityItem[] =>
     items.filter(
         (item) =>
-            item.status === 'approved'
+            (item.status === 'approved' || item.status === 'return_pending')
             && (filter === 'all' || item.room.type === filter),
     );
 
@@ -153,6 +153,10 @@ export const getBookingStatusLabel = (status: BookingStatus): string => {
             return 'Perlu Revisi';
         case 'approved':
             return 'Disetujui';
+        case 'return_pending':
+            return 'Menunggu Pengembalian';
+        case 'completed':
+            return 'Selesai';
         case 'rejected':
             return 'Ditolak';
         case 'cancelled':
@@ -167,6 +171,10 @@ export const getBookingStatusTone = (status: BookingStatus): string => {
         case 'revision_requested':
             return 'bg-amber-50 text-amber-700 border-amber-100';
         case 'approved':
+            return 'bg-emerald-50 text-emerald-700 border-emerald-100';
+        case 'return_pending':
+            return 'bg-cyan-50 text-cyan-700 border-cyan-100';
+        case 'completed':
             return 'bg-emerald-50 text-emerald-700 border-emerald-100';
         case 'rejected':
             return 'bg-red-50 text-red-700 border-red-100';
@@ -197,7 +205,7 @@ export const getDensitySwatchClass = (bucket: DensityBucket): string => {
     }
 };
 
-/** Ordered legend entries (empty → padat) for the calendar density key. */
+/** Ordered legend entries (empty -> padat) for the calendar density key. */
 export const DENSITY_LEGEND: ReadonlyArray<{ bucket: DensityBucket; label: string }> = [
     { bucket: 'empty', label: 'Kosong' },
     { bucket: 'low', label: 'Rendah' },

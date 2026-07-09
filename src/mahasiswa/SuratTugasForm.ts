@@ -1,4 +1,5 @@
 import { renderDashboardLayout } from '../dashboard/DashboardLayout';
+import { renderDashboardLoadingState } from '../shared/ui-primitives';
 import { apiFetch } from '../shared/api-client';
 import { attachProtectedPdfViewer, renderProtectedPdfViewer } from '../shared/protected-pdf-viewer';
 import {
@@ -281,16 +282,9 @@ const fetchLatestActiveApplication = async (): Promise<SuratTugasApplication | n
 
 const mapApplicationData = (app: SuratTugasApplication): SuratTugasFormData => mapSuratTugasDraftValues(app);
 
-const renderLoading = (message: string, activePage = 'administrasi') => {
+const renderLoading = (_message: string, activePage = 'administrasi') => {
     cleanupSupportingDocumentUploadInputs();
-    renderDashboardLayout('Formulir Surat', `
-        <div class="max-w-5xl mx-auto">
-            <div class="bg-white border border-gray-100 rounded-[24px] p-10 shadow-sm flex items-center gap-4">
-                <div class="w-9 h-9 rounded-full border-4 border-teal-100 border-t-primary-teal animate-spin"></div>
-                <p class="text-sm font-semibold text-gray-600">${escapeHtml(message)}</p>
-            </div>
-        </div>
-    `, 'mahasiswa', activePage);
+    renderDashboardLayout('Formulir Surat', renderDashboardLoadingState(), 'mahasiswa', activePage);
 };
 
 const renderForm = () => {

@@ -232,8 +232,8 @@ describe('Super Admin retention control panel', () => {
         document.getElementById('sidebar-retention-link')?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
 
         await waitFor(() => {
-            expect(document.body.textContent).toContain('Kebijakan Global');
-            expect(document.body.textContent).toContain('Archive Pool');
+            expect(document.body.textContent).toContain('Atur Lama Penyimpanan');
+            expect(document.body.textContent).toContain('Arsip PDF Final');
         });
 
         expect(m.apiCalls.some((call) => call.url === '/api/super-admin/retention/overview')).toBe(true);
@@ -243,10 +243,10 @@ describe('Super Admin retention control panel', () => {
         await renderRetentionControlPanel();
 
         const text = document.body.textContent ?? '';
-        expect(text).toContain('Retensi & Arsip Surat');
-        expect(text).toContain('Kandidat Retensi');
-        expect(text).toContain('Archive Pool');
-        expect(text).toContain('Audit Actions');
+        expect(text).toContain('Pengelolaan Arsip Surat');
+        expect(text).toContain('Daftar Surat Siap Diproses');
+        expect(text).toContain('Arsip PDF Final');
+        expect(text).toContain('Riwayat Proses Retensi');
         expect(text).toContain('surat-tugas #44');
         expect(text).toContain('surat-pengantar-magang #45');
         expect(text).toContain('checksum_mismatch');
@@ -325,7 +325,7 @@ describe('Super Admin retention control panel', () => {
         document.getElementById('retention-modal-confirm')?.click();
         await new Promise((resolve) => setTimeout(resolve, 0));
         expect(m.apiCalls.some((call) => call.url === '/api/super-admin/retention/execute')).toBe(false);
-        expect(m.toasts.some((toast) => toast.includes('Alasan aksi retensi minimal 10 karakter.'))).toBe(true);
+        expect(m.toasts.some((toast) => toast.includes('Alasan tindakan minimal 10 karakter.'))).toBe(true);
 
         document.getElementById('retention-modal-cancel')?.click();
         document.querySelector<HTMLButtonElement>('[data-retention-action="restore"]')?.click();

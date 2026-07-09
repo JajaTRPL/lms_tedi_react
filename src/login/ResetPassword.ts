@@ -1,4 +1,4 @@
-import Toastify from 'toastify-js'
+import { showInlineNotification, hideInlineNotification } from './AuthNotification'
 
 type PasswordResetState = {
   email: string
@@ -188,53 +188,33 @@ export const renderForgotPassword = () => {
         data = await response.json();
       }
 
+      hideInlineNotification('auth-notification')
+
       if (response.ok) {
         if (data.token_simulation) {
-          Toastify({
-            text: `Mode simulasi lokal: kode verifikasi Anda ${data.token_simulation}.`,
-            duration: 8000, close: true, gravity: "top", position: "right",
-            style: { background: "#3B82F6" } // Blue
-          }).showToast()
+          showInlineNotification('auth-notification', 'Informasi', `Mode simulasi lokal: kode verifikasi Anda ${data.token_simulation}.`, 'info')
         } else {
-          Toastify({
-            text: data.message || 'Jika email terdaftar, kode verifikasi telah dikirim.',
-            duration: 3000, close: true, gravity: "top", position: "right",
-            style: { background: "#10B981" } // Green
-          }).showToast()
+          showInlineNotification('auth-notification', 'Berhasil', data.message || 'Jika email terdaftar, kode verifikasi telah dikirim.', 'success')
         }
         resetState.email = email
         resetState.resetToken = ''
-        renderVerifyToken()
+        setTimeout(() => {
+          renderVerifyToken()
+        }, 1500)
       } else {
         if (response.status === 429) {
           const seconds = data.seconds_left || 60
           startCountdown(submitBtn, seconds)
-          Toastify({
-            text: data.message || 'Harap tunggu sebentar sebelum mengirim ulang.',
-            duration: 3000, close: true, gravity: "top", position: "right",
-            style: { background: "#EAB308" } // Yellow
-          }).showToast()
+          showInlineNotification('auth-notification', 'Peringatan', data.message || 'Harap tunggu sebentar sebelum mengirim ulang.', 'warning')
         } else if (response.status === 404) {
-          Toastify({
-            text: 'Endpoint API tidak ditemukan (404).',
-            duration: 3000, close: true, gravity: "top", position: "right",
-            style: { background: "#EF4444" }
-          }).showToast()
+          showInlineNotification('auth-notification', 'Gagal', 'Endpoint API tidak ditemukan (404).', 'error')
         } else {
-          Toastify({
-            text: data.message || 'Permintaan tidak dapat diproses. Silakan coba lagi.',
-            duration: 3000, close: true, gravity: "top", position: "right",
-            style: { background: "#EF4444" }
-          }).showToast()
+          showInlineNotification('auth-notification', 'Gagal', data.message || 'Permintaan tidak dapat diproses. Silakan coba lagi.', 'error')
         }
       }
     } catch (error) {
       console.error('Error:', error)
-      Toastify({
-        text: 'Terjadi kesalahan pada server. Pastikan backend Laravel aktif.',
-        duration: 3000, close: true, gravity: "top", position: "right",
-        style: { background: "#EF4444" }
-      }).showToast()
+      showInlineNotification('auth-notification', 'Gagal', 'Terjadi kesalahan pada server. Pastikan backend Laravel aktif.', 'error')
     }
   })
 
@@ -350,13 +330,11 @@ export const renderVerifyToken = () => {
 
   document.getElementById('verify-token-form')?.addEventListener('submit', async (e) => {
     e.preventDefault()
+    hideInlineNotification('auth-notification')
+
     const token = Array.from(otpInputs).map(i => i.value).join('')
     if (token.length < 6) {
-      Toastify({
-        text: 'Silakan masukkan 6 digit kode dengan lengkap.',
-        duration: 3000, close: true, gravity: "top", position: "right",
-        style: { background: "#EAB308" }
-      }).showToast()
+      showInlineNotification('auth-notification', 'Peringatan', 'Silakan masukkan 6 digit kode dengan lengkap.', 'warning')
       return
     }
     try {
@@ -377,50 +355,36 @@ export const renderVerifyToken = () => {
 
       if (response.ok) {
         if (typeof data.reset_token !== 'string' || data.reset_token.length !== 64) {
-          Toastify({
-            text: 'Sesi reset tidak valid. Silakan minta kode baru.',
-            duration: 3000, close: true, gravity: "top", position: "right",
-            style: { background: "#EF4444" }
-          }).showToast()
-          renderForgotPassword()
+          showInlineNotification('auth-notification', 'Gagal', 'Sesi reset tidak valid. Silakan minta kode baru.', 'error')
+          setTimeout(() => {
+            renderForgotPassword()
+          }, 1500)
           return
         }
 
         resetState.resetToken = data.reset_token
-        Toastify({
-          text: data.message || 'Kode berhasil diverifikasi.',
-          duration: 3000, close: true, gravity: "top", position: "right",
-          style: { background: "#10B981" }
-        }).showToast()
-        renderResetPassword()
+        showInlineNotification('auth-notification', 'Berhasil', data.message || 'Kode berhasil diverifikasi.', 'success')
+        setTimeout(() => {
+          renderResetPassword()
+        }, 1500)
       } else {
         if (response.status === 404) {
-          Toastify({
-            text: 'Endpoint API tidak ditemukan (404). Pastikan backend Laravel sudah jalan di port 8000.',
-            duration: 3000, close: true, gravity: "top", position: "right",
-            style: { background: "#EF4444" }
-          }).showToast()
+          showInlineNotification('auth-notification', 'Gagal', 'Endpoint API tidak ditemukan (404). Pastikan backend Laravel sudah jalan di port 8000.', 'error')
         } else {
-          Toastify({
-            text: data.message || 'Kode salah atau sudah kedaluwarsa.',
-            duration: 3000, close: true, gravity: "top", position: "right",
-            style: { background: "#EF4444" }
-          }).showToast()
+          showInlineNotification('auth-notification', 'Gagal', data.message || 'Kode salah atau sudah kedaluwarsa.', 'error')
         }
       }
     } catch (error) {
       console.error('Error:', error)
-      Toastify({
-        text: 'Terjadi kesalahan pada verifikasi token. Pastikan backend Laravel aktif.',
-        duration: 3000, close: true, gravity: "top", position: "right",
-        style: { background: "#EF4444" }
-      }).showToast()
+      showInlineNotification('auth-notification', 'Gagal', 'Terjadi kesalahan pada verifikasi token. Pastikan backend Laravel aktif.', 'error')
     }
   })
 
   document.getElementById('back-to-forgot')?.addEventListener('click', async (e) => {
     const resendBtn = e.currentTarget as HTMLButtonElement
     if (resendBtn.disabled) return
+
+    hideInlineNotification('auth-notification')
 
     resendBtn.disabled = true
     resendBtn.textContent = 'Mengirim kode...'
@@ -441,45 +405,25 @@ export const renderVerifyToken = () => {
       if (response.ok) {
         resetState.resetToken = ''
         if (data.token_simulation) {
-          Toastify({
-            text: `Mode simulasi lokal: kode verifikasi baru Anda ${data.token_simulation}.`,
-            duration: 8000, close: true, gravity: "top", position: "right",
-            style: { background: "#3B82F6" }
-          }).showToast()
+          showInlineNotification('auth-notification', 'Informasi', `Mode simulasi lokal: kode verifikasi baru Anda ${data.token_simulation}.`, 'info')
         } else {
-          Toastify({
-            text: data.message || 'Jika email terdaftar, kode verifikasi telah dikirim.',
-            duration: 3000, close: true, gravity: "top", position: "right",
-            style: { background: "#10B981" }
-          }).showToast()
+          showInlineNotification('auth-notification', 'Berhasil', data.message || 'Jika email terdaftar, kode verifikasi telah dikirim.', 'success')
         }
         startResendCountdown(resendBtn, RESEND_COOLDOWN_SECONDS)
       } else {
         if (response.status === 429) {
           const seconds = data.seconds_left || RESEND_COOLDOWN_SECONDS
           startResendCountdown(resendBtn, seconds)
-          Toastify({
-            text: data.message || 'Harap tunggu sebentar sebelum mengirim ulang.',
-            duration: 3000, close: true, gravity: "top", position: "right",
-            style: { background: "#EAB308" }
-          }).showToast()
+          showInlineNotification('auth-notification', 'Peringatan', data.message || 'Harap tunggu sebentar sebelum mengirim ulang.', 'warning')
         } else {
           setResendReady(resendBtn)
-          Toastify({
-            text: data.message || 'Terjadi kesalahan saat mengirim ulang token.',
-            duration: 3000, close: true, gravity: "top", position: "right",
-            style: { background: "#EF4444" }
-          }).showToast()
+          showInlineNotification('auth-notification', 'Gagal', data.message || 'Terjadi kesalahan saat mengirim ulang token.', 'error')
         }
       }
     } catch (error) {
       console.error('Error:', error)
       setResendReady(resendBtn)
-      Toastify({
-        text: 'Terjadi kesalahan pada server.',
-        duration: 3000, close: true, gravity: "top", position: "right",
-        style: { background: "#EF4444" }
-      }).showToast()
+      showInlineNotification('auth-notification', 'Gagal', 'Terjadi kesalahan pada server.', 'error')
     }
   })
 
@@ -616,25 +560,19 @@ export const renderResetPassword = () => {
 
   document.getElementById('reset-password-form')?.addEventListener('submit', async (e) => {
     e.preventDefault()
+    hideInlineNotification('auth-notification')
+
     const newPassword = newPasswordInput.value
     const confirmPassword = confirmPasswordInput.value
 
     if (newPassword !== confirmPassword) {
-      Toastify({
-        text: 'Kata sandi dan konfirmasi tidak cocok!',
-        duration: 3000, close: true, gravity: "top", position: "right",
-        style: { background: "#EAB308" }
-      }).showToast()
+      showInlineNotification('auth-notification', 'Peringatan', 'Kata sandi dan konfirmasi tidak cocok!', 'warning')
       return
     }
 
     const strongPassword = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{10,}$/
     if (!strongPassword.test(newPassword)) {
-      Toastify({
-        text: 'Kata sandi minimal 10 karakter dan harus memuat huruf besar, huruf kecil, angka, serta simbol.',
-        duration: 4000, close: true, gravity: "top", position: "right",
-        style: { background: "#EAB308" }
-      }).showToast()
+      showInlineNotification('auth-notification', 'Peringatan', 'Kata sandi minimal 10 karakter dan harus memuat huruf besar, huruf kecil, angka, serta simbol.', 'warning')
       return
     }
 
@@ -660,34 +598,20 @@ export const renderResetPassword = () => {
         newPasswordInput.value = ''
         confirmPasswordInput.value = ''
         clearResetState()
-        Toastify({
-          text: data.message || 'Kata sandi berhasil diatur ulang!',
-          duration: 3000, close: true, gravity: "top", position: "right",
-          style: { background: "#10B981" }
-        }).showToast()
-        renderLogin()
+        showInlineNotification('auth-notification', 'Berhasil', data.message || 'Kata sandi berhasil diatur ulang!', 'success')
+        setTimeout(() => {
+          renderLogin()
+        }, 1500)
       } else {
         if (response.status === 404) {
-          Toastify({
-            text: 'Endpoint API tidak ditemukan (404). Pastikan backend Laravel sudah jalan di port 8000.',
-            duration: 3000, close: true, gravity: "top", position: "right",
-            style: { background: "#EF4444" }
-          }).showToast()
+          showInlineNotification('auth-notification', 'Gagal', 'Endpoint API tidak ditemukan (404). Pastikan backend Laravel sudah jalan di port 8000.', 'error')
         } else {
-          Toastify({
-            text: data.message || 'Gagal mereset password.',
-            duration: 3000, close: true, gravity: "top", position: "right",
-            style: { background: "#EF4444" }
-          }).showToast()
+          showInlineNotification('auth-notification', 'Gagal', data.message || 'Gagal mereset password.', 'error')
         }
       }
     } catch (error) {
       console.error('Error:', error)
-      Toastify({
-        text: 'Terjadi kesalahan pada saat mereset kata sandi. Pastikan backend Laravel aktif.',
-        duration: 3000, close: true, gravity: "top", position: "right",
-        style: { background: "#EF4444" }
-      }).showToast()
+      showInlineNotification('auth-notification', 'Gagal', 'Terjadi kesalahan pada saat mereset kata sandi. Pastikan backend Laravel aktif.', 'error')
     }
   })
 }

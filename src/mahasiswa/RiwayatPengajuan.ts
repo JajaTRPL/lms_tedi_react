@@ -1,4 +1,5 @@
 import { renderDashboardLayout } from '../dashboard/DashboardLayout';
+import { renderDashboardLoadingState } from '../shared/ui-primitives';
 import { apiFetch } from '../shared/api-client';
 import {
     getLetterLabel,
@@ -17,7 +18,6 @@ import {
     attachListControls,
     createListQueryState,
     renderListBody,
-    renderListLoading,
     renderListPagination,
     renderListToolbar,
     type ListPrimitiveConfig,
@@ -289,7 +289,7 @@ export const renderRiwayatPengajuan = async (): Promise<void> => {
         </div>
     `;
 
-    renderDashboardLayout('Riwayat Pengajuan', shell(renderListLoading('Memuat riwayat pengajuan...')), 'mahasiswa', 'history');
+    renderDashboardLayout('Riwayat Pengajuan', shell(renderDashboardLoadingState()), 'mahasiswa', 'history');
 
     let letterItems: MahasiswaListItem[] = [];
     let failedEndpointCount = 0;

@@ -1,4 +1,3 @@
-import Toastify from 'toastify-js';
 import { PeminjamanApiError } from '../../mahasiswa/peminjaman/api';
 import {
     activateManagedRoom,
@@ -36,6 +35,7 @@ import {
     templateFormatLabel,
 } from './utils';
 import { getRoomTypeLabel } from '../peminjaman-calendar';
+import { showError, showSuccess } from '../toast';
 import type {
     FacilitySyncEntry,
     FacilityTypeOption,
@@ -85,13 +85,11 @@ interface DrawerState {
 let state: DrawerState | null = null;
 
 const showToast = (text: string, success: boolean): void => {
-    Toastify({
-        text,
-        duration: 3000,
-        gravity: 'top',
-        position: 'right',
-        style: { background: success ? '#0f766e' : '#b91c1c' },
-    }).showToast();
+    if (success) {
+        showSuccess(text);
+        return;
+    }
+    showError(text);
 };
 
 const apiMessage = (error: unknown, fallback: string): string => {

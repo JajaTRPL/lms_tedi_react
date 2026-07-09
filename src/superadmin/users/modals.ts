@@ -32,14 +32,14 @@ export const renderUserModal = (user: any = null, onRefresh: () => void) => {
     const modalContainer = document.getElementById('modal-container')!;
     modalContainer.innerHTML = `
         <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-[1000] flex items-center justify-center p-4">
-            <div class="bg-white rounded-3xl w-full max-w-md overflow-hidden animate-scale-in max-h-[90vh] overflow-y-auto">
-                <div class="bg-teal-700 px-6 py-4 flex justify-between items-center text-white sticky top-0 z-10">
+            <div class="flex max-h-[calc(100vh-2rem)] w-full max-w-md flex-col overflow-hidden rounded-3xl bg-white animate-scale-in shadow-2xl">
+                <div class="shrink-0 bg-teal-700 px-6 py-4 flex justify-between items-center text-white">
                     <h3 class="font-bold">${user ? 'Edit Akun' : 'Tambah Akun Baru'}</h3>
                     <button id="close-modal" class="hover:bg-white/10 p-1 rounded-lg transition-colors">
                         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                     </button>
                 </div>
-                <form id="user-form" class="p-6 space-y-4">
+                <form id="user-form" class="min-h-0 flex-1 overflow-y-auto p-6 space-y-4">
                     <div>
                         <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Nama Lengkap</label>
                         <input type="text" name="name" value="${escapeHtml(user?.name || '')}" required class="w-full px-4 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-teal-500 outline-none transition-all">
@@ -97,7 +97,7 @@ export const renderUserModal = (user: any = null, onRefresh: () => void) => {
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">NIM</label>
-                                <input type="text" name="nim" value="${escapeHtml(user?.mahasiswa_profile?.nim || '')}" class="w-full px-4 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-teal-500 outline-none transition-all uppercase" placeholder="••••••••">
+                                <input type="text" name="nim" value="${escapeHtml(user?.mahasiswa_profile?.nim || '')}" class="w-full px-4 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-teal-500 outline-none transition-all uppercase">
                             </div>
                             <div>
                                 <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Tgl Lahir</label>
@@ -161,7 +161,7 @@ export const renderUserModal = (user: any = null, onRefresh: () => void) => {
                         <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Password</label>
                         <div class="flex gap-2">
                             <div class="relative flex-1">
-                                <input type="password" id="modal-password-input" name="password" ${!user ? 'required' : ''} class="w-full px-4 pl-4 pr-10 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-teal-500 outline-none transition-all" placeholder="••••••••">
+                                <input type="password" id="modal-password-input" name="password" ${!user ? 'required' : ''} class="w-full px-4 pl-4 pr-10 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-teal-500 outline-none transition-all">
                                 <button type="button" id="toggle-password-btn" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-teal-600 transition-colors">
                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                                 </button>
@@ -318,7 +318,7 @@ export const renderUserModal = (user: any = null, onRefresh: () => void) => {
             passInput.disabled = isMhs;
             passInput.required = !isMhs;
             passInput.readOnly = false;
-            passInput.placeholder = '••••••••';
+            passInput.placeholder = '';
         }
     };
 
@@ -481,10 +481,9 @@ export const renderUserModal = (user: any = null, onRefresh: () => void) => {
         attachNimUppercaseHandler(nimInput);
     }
 
-    // Phase 2A — email lowercase on blur; name whitespace-only normalization.
+    // Phase 2A: email lowercase on blur; name whitespace-only normalization.
     // Intentionally NO title-case on name (may contain titles/acronyms admins
-    // type intentionally). NIP is intentionally left raw — institutional NIP
-    // formatting conventions are outside Phase 2A scope.
+    // type intentionally). NIP is intentionally left raw for institutional values.
     const emailInput = form.querySelector('input[name="email"]') as HTMLInputElement | null;
     if (emailInput) {
         attachBlurLowercaseEmail(emailInput);

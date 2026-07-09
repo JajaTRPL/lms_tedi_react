@@ -3,6 +3,7 @@
 // that page↔page edge is part of the inherited import cycle (C1). Identical
 // behavior; the dynamic import matches the app's existing navigation convention.
 import { renderDashboardLayout } from '../dashboard/DashboardLayout';
+import { renderDashboardLoadingState } from '../shared/ui-primitives';
 import Toastify from 'toastify-js';
 import { apiFetch } from '../shared/api-client';
 import { attachProtectedPdfViewer, renderProtectedPdfViewer } from '../shared/protected-pdf-viewer';
@@ -840,15 +841,7 @@ export const renderScholarshipDetail = async (applicationId: number | string, op
     const origin = resolveDetailOrigin(options);
     const activePage = activePageForDetailOrigin(origin);
 
-    renderDashboardLayout(
-        'Permohonan Beasiswa',
-        `<div class="max-w-5xl mx-auto bg-white border border-gray-100 rounded-[24px] p-10 shadow-sm flex items-center gap-4 animate-fade-in">
-            <div class="w-9 h-9 rounded-full border-4 border-teal-100 border-t-primary-teal animate-spin"></div>
-            <p class="text-sm font-semibold text-gray-600">Memuat detail pengajuan beasiswa...</p>
-        </div>`,
-        'mahasiswa',
-        activePage,
-    );
+    renderDashboardLayout('Permohonan Beasiswa', renderDashboardLoadingState(), 'mahasiswa', activePage);
 
     let application: any = null;
     try {

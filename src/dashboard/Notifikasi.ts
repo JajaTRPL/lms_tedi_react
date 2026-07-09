@@ -1,18 +1,17 @@
+import Toastify from 'toastify-js';
 import { renderDashboardLayout } from './DashboardLayout';
 import { renderLogin } from '../login/Login';
-import Toastify from 'toastify-js';
+import { showSuccess } from '../shared/toast';
 import { apiFetch } from '../shared/api-client';
+import { escapeFormHtml } from '../shared/form-primitives';
+import { fetchSuperAdminNotifications, markNotificationsRead, type SuperAdminNotificationItem } from './notification-state';
 
 let activeTab: 'semua' | 'belum_dibaca' = 'semua';
 
-interface NotifItem {
-    title: string;
-    description: string;
-    date: string;
-    isUnread: boolean;
-}
+type NotifItem = SuperAdminNotificationItem;
 
-export const renderNotifikasi = (role: string) => {
+export const renderNotifikasi = async (role: string, initialTab: 'semua' | 'belum_dibaca' = 'semua') => {
+    activeTab = initialTab;
     const styleBlock = `
         <style>
             header { display: none !important; }
@@ -20,8 +19,20 @@ export const renderNotifikasi = (role: string) => {
     `;
 
     const fullName = localStorage.getItem('auth_name') || 'Pengguna';
+    let allNotifications: NotifItem[] = [];
+    let isLoading = role === 'super_admin';
+    let loadError = '';
 
-    const allNotifications: NotifItem[] = [];
+    const fetchNotifications = async (): Promise<NotifItem[]> => {
+        if (role !== 'super_admin') return [];
+        return fetchSuperAdminNotifications();
+    };
+
+    const markCurrentNotificationsRead = () => {
+        if (role !== 'super_admin') return;
+        markNotificationsRead(allNotifications.map((item) => item.id).filter((id): id is string => Boolean(id)));
+        allNotifications = allNotifications.map((item) => ({ ...item, isUnread: false }));
+    };
 
     const renderTabs = () => {
         const semuaActive = activeTab === 'semua';
@@ -32,7 +43,7 @@ export const renderNotifikasi = (role: string) => {
 
         return `
             <div class="flex items-center gap-0 mb-6 bg-white rounded-xl overflow-hidden border border-gray-200 w-fit">
-                <button id="tab-semua" class="${semuaActive ? activeClass : inactiveClass} ${semuaActive ? '' : 'border-r border-gray-200'}"">Semua</button>
+                <button id="tab-semua" class="${semuaActive ? activeClass : inactiveClass} ${semuaActive ? '' : 'border-r border-gray-200'}">Semua</button>
                 <button id="tab-belum-dibaca" class="${belumActive ? activeClass : inactiveClass}">Belum Dibaca</button>
             </div>
         `;
@@ -47,11 +58,35 @@ export const renderNotifikasi = (role: string) => {
                 </svg>
             </div>
             <h3 class="text-base font-bold text-gray-800 mb-1">Belum ada notifikasi.</h3>
-            <p class="text-sm text-gray-500 max-w-md">Fitur notifikasi akan ditampilkan setelah terhubung dengan data sistem.</p>
+            <p class="text-sm text-gray-500 max-w-md">Belum ada hal yang perlu dicek untuk saat ini.</p>
+        </div>
+    `;
+
+    const notificationTone = (type?: NotifItem['type']) => {
+        if (type === 'danger') return { border: 'border-red-200', dot: 'bg-red-500', text: 'text-red-700', label: 'Perlu dicek' };
+        if (type === 'warning') return { border: 'border-amber-200', dot: 'bg-amber-500', text: 'text-amber-700', label: 'Perhatian' };
+        if (type === 'success') return { border: 'border-emerald-200', dot: 'bg-emerald-500', text: 'text-emerald-700', label: 'Selesai' };
+        return { border: 'border-blue-200', dot: 'bg-blue-500', text: 'text-blue-700', label: 'Info' };
+    };
+
+    const renderLoadingState = () => `
+        <div class="bg-white border border-gray-100 rounded-2xl p-12 flex flex-col items-center justify-center text-center shadow-sm">
+            <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-[#0D4A46] mb-4"></div>
+            <h3 class="text-base font-bold text-gray-800 mb-1">Memuat notifikasi...</h3>
+            <p class="text-sm text-gray-500 max-w-md">Sedang mengecek hal yang perlu diperhatikan Super Admin.</p>
+        </div>
+    `;
+
+    const renderErrorState = () => `
+        <div class="bg-red-50 border border-red-100 rounded-2xl p-6 text-red-700 font-semibold">
+            ${escapeFormHtml(loadError || 'Notifikasi gagal dimuat.')}
         </div>
     `;
 
     const renderNotifications = () => {
+        if (isLoading) return renderLoadingState();
+        if (loadError) return renderErrorState();
+
         const filtered = activeTab === 'belum_dibaca'
             ? allNotifications.filter(n => n.isUnread)
             : allNotifications;
@@ -60,13 +95,24 @@ export const renderNotifikasi = (role: string) => {
             return renderEmptyState();
         }
 
-        return filtered.map(item => `
-            <div class="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm mb-4">
-                <h3 class="text-base font-bold text-gray-900">${item.title}</h3>
-                <p class="text-sm text-gray-600 mt-1">${item.description}</p>
-                <span class="text-[11px] font-semibold text-gray-400 mt-2 block">${item.date}</span>
-            </div>
-        `).join('');
+        return filtered.map(item => {
+            const tone = notificationTone(item.type);
+            return `
+                <div class="bg-white border ${tone.border} rounded-2xl p-5 shadow-sm mb-4">
+                    <div class="flex items-start gap-3">
+                        <span class="mt-1.5 h-2.5 w-2.5 rounded-full ${tone.dot} shrink-0"></span>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                                <h3 class="text-base font-bold text-gray-900">${escapeFormHtml(item.title)}</h3>
+                                <span class="text-[10px] font-bold ${tone.text} bg-gray-50 px-2.5 py-1 rounded-full w-fit">${tone.label}</span>
+                            </div>
+                            <p class="text-sm text-gray-600 mt-1 leading-relaxed">${escapeFormHtml(item.description)}</p>
+                            <span class="text-[11px] font-semibold text-gray-400 mt-2 block">${escapeFormHtml(item.date)}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
     };
 
     const updateView = () => {
@@ -107,7 +153,7 @@ export const renderNotifikasi = (role: string) => {
                     <div class="w-10 h-10 rounded-full border border-gray-200 bg-white flex items-center justify-center text-gray-600 overflow-hidden shadow-sm">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                     </div>
-                    <span class="text-sm font-semibold text-gray-700 pr-1">${fullName}</span>
+                    <span class="text-sm font-semibold text-gray-700 pr-1">${escapeFormHtml(fullName)}</span>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-500"><polyline points="6 9 12 15 18 9"></polyline></svg>
 
                     <div class="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
@@ -132,6 +178,7 @@ export const renderNotifikasi = (role: string) => {
     renderDashboardLayout('Notifikasi', content, role, 'dashboard');
 
     document.getElementById('back-btn-notif')?.addEventListener('click', () => {
+        markCurrentNotificationsRead();
         (window as any).clearDashboardInterval?.();
         if (role === 'mahasiswa') {
             import('./MahasiswaDashboard').then(({ renderMahasiswaDashboard }) => renderMahasiswaDashboard());
@@ -145,6 +192,7 @@ export const renderNotifikasi = (role: string) => {
     });
 
     document.getElementById('notif-logout-btn')?.addEventListener('click', async () => {
+        markCurrentNotificationsRead();
         (window as any).clearDashboardInterval?.();
         const token = localStorage.getItem('auth_token');
         if (token) {
@@ -153,11 +201,12 @@ export const renderNotifikasi = (role: string) => {
             } catch (e) {}
         }
         localStorage.clear();
-        Toastify({ text: "Berhasil keluar!", duration: 2000, style: { background: "#10B981" } }).showToast();
+        showSuccess('Berhasil keluar!');
         setTimeout(() => renderLogin(), 500);
     });
 
     document.getElementById('notif-profile-btn')?.addEventListener('click', () => {
+        markCurrentNotificationsRead();
         if (role === 'mahasiswa') {
             import('../mahasiswa/ProfilMahasiswa').then(({ renderProfilMahasiswa }) => renderProfilMahasiswa());
         } else if (role.startsWith('tendik')) {
@@ -165,9 +214,27 @@ export const renderNotifikasi = (role: string) => {
         } else if (['kadep', 'kaprodi', 'sekdep', 'sekprodi', 'akademik'].includes(role)) {
             import('../akademik/ProfilKaprodi').then(({ renderProfilKaprodi }) => renderProfilKaprodi(role));
         } else {
-            Toastify({ text: "Profil untuk role ini belum tersedia", duration: 2000, style: { background: "#F59E0B" } }).showToast();
+            Toastify({ text: 'Profil untuk role ini belum tersedia', duration: 2000, style: { background: '#F59E0B' } }).showToast();
         }
     });
 
     bindDynamicListeners();
+
+    document.querySelectorAll('#dashboard-sidebar nav a').forEach((link) => {
+        link.addEventListener('click', () => markCurrentNotificationsRead(), { capture: true });
+    });
+
+    if (role === 'super_admin') {
+        try {
+            allNotifications = await fetchNotifications();
+            if (initialTab === 'belum_dibaca' && allNotifications.every((item) => !item.isUnread)) {
+                activeTab = 'semua';
+            }
+        } catch (error) {
+            loadError = error instanceof Error ? error.message : 'Notifikasi gagal dimuat.';
+        } finally {
+            isLoading = false;
+            updateView();
+        }
+    }
 };
