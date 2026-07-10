@@ -35,33 +35,33 @@ export const renderStep2Keluarga = (formData: any) => `
             </div>
 
             <div class="space-y-5">
-                <div class="grid grid-cols-[200px_1fr] items-baseline gap-4">
+                <div class="grid grid-cols-1 gap-2 sm:grid-cols-[200px_1fr] sm:items-baseline sm:gap-4">
                     <label class="text-sm font-bold text-gray-800">Tempat, Tanggal Lahir</label>
                     <p class="text-sm text-gray-600 font-medium">${formData.pob || '-'}, ${formData.dob || '-'}</p>
                 </div>
 
-                <div class="grid grid-cols-[200px_1fr] items-baseline gap-4">
+                <div class="grid grid-cols-1 gap-2 sm:grid-cols-[200px_1fr] sm:items-baseline sm:gap-4">
                     <label class="text-sm font-bold text-gray-800">Jenis Kelamin</label>
                     <p class="text-sm text-gray-600 font-medium">${formData.gender || '-'}</p>
                 </div>
 
-                <div class="grid grid-cols-[200px_1fr] items-baseline gap-4">
+                <div class="grid grid-cols-1 gap-2 sm:grid-cols-[200px_1fr] sm:items-baseline sm:gap-4">
                     <label class="text-sm font-bold text-gray-800">Alamat Asal</label>
                     <p class="text-sm text-gray-600 font-medium leading-relaxed">${formData.origin_address || '-'}</p>
                 </div>
 
-                <div class="grid grid-cols-[200px_1fr] items-baseline gap-4">
+                <div class="grid grid-cols-1 gap-2 sm:grid-cols-[200px_1fr] sm:items-baseline sm:gap-4">
                     <label class="text-sm font-bold text-gray-800">Alamat di Yogyakarta</label>
                     <p class="text-sm text-gray-600 font-medium leading-relaxed">${formData.jogja_address || '-'}</p>
                 </div>
 
-                <div class="grid grid-cols-[200px_1fr] items-baseline gap-4">
+                <div class="grid grid-cols-1 gap-2 sm:grid-cols-[200px_1fr] sm:items-baseline sm:gap-4">
                     <label class="text-sm font-bold text-gray-800">No. Telp</label>
                     <p class="text-sm text-gray-600 font-medium">${formData.phone || '-'}</p>
                 </div>
 
-                <div class="grid grid-cols-[200px_1fr] items-start gap-4">
-                    <label class="text-sm font-bold text-gray-800 pt-2">Pas Foto 3x4</label>
+                <div class="grid grid-cols-1 gap-2 sm:grid-cols-[200px_1fr] sm:items-start sm:gap-4">
+                    <label class="text-sm font-bold text-gray-800 sm:pt-2">Pas Foto 3x4</label>
                     <div class="space-y-3">
                         ${formData.pas_foto_path ? `
                             <div id="step2-pas-foto-preview" data-pas-foto-path="${escapeHtmlAttribute(String(formData.pas_foto_path))}" class="w-32 h-40 rounded-xl border-2 border-gray-100 overflow-hidden bg-gray-50 shadow-sm relative flex items-center justify-center">
@@ -79,15 +79,15 @@ export const renderStep2Keluarga = (formData: any) => `
                 <h3 class="text-lg font-bold text-gray-800">Data Ayah</h3>
             </div>
             <div class="space-y-4">
-                <div class="grid grid-cols-[200px_1fr] items-baseline gap-4">
+                <div class="grid grid-cols-1 gap-2 sm:grid-cols-[200px_1fr] sm:items-baseline sm:gap-4">
                     <label class="text-sm font-bold text-gray-800">Nama</label>
                     <p class="text-sm text-gray-700 font-bold">${formData.father_name || '-'}</p>
                 </div>
-                <div class="grid grid-cols-[200px_1fr] items-baseline gap-4">
+                <div class="grid grid-cols-1 gap-2 sm:grid-cols-[200px_1fr] sm:items-baseline sm:gap-4">
                     <label class="text-sm font-bold text-gray-800">Pekerjaan</label>
                     <p class="text-sm text-gray-600 font-medium">${formData.father_job || '-'}</p>
                 </div>
-                <div class="grid grid-cols-[200px_1fr] items-baseline gap-4">
+                <div class="grid grid-cols-1 gap-2 sm:grid-cols-[200px_1fr] sm:items-baseline sm:gap-4">
                     <label class="text-sm font-bold text-gray-800">Penghasilan</label>
                     <p class="text-sm text-gray-600 font-medium">
                         ${formData.father_income !== undefined && formData.father_income !== null && formData.father_income !== '' ?
@@ -99,7 +99,7 @@ export const renderStep2Keluarga = (formData: any) => `
                             'Rp ' + Number(formData.father_income).toLocaleString('id-ID')) : '-'}
                     </p>
                 </div>
-                <div class="grid grid-cols-[200px_1fr] items-baseline gap-4">
+                <div class="grid grid-cols-1 gap-2 sm:grid-cols-[200px_1fr] sm:items-baseline sm:gap-4">
                     <label class="text-sm font-bold text-gray-800">Status</label>
                     <p class="text-sm text-gray-600 font-medium">${formData.father_status || 'Hidup'}</p>
                 </div>
@@ -112,15 +112,15 @@ export const renderStep2Keluarga = (formData: any) => `
                 <h3 class="text-lg font-bold text-gray-800">Data Ibu</h3>
             </div>
             <div class="space-y-4">
-                <div class="grid grid-cols-[200px_1fr] items-baseline gap-4">
+                <div class="grid grid-cols-1 gap-2 sm:grid-cols-[200px_1fr] sm:items-baseline sm:gap-4">
                     <label class="text-sm font-bold text-gray-800">Nama</label>
                     <p class="text-sm text-gray-700 font-bold">${formData.mother_name || '-'}</p>
                 </div>
-                <div class="grid grid-cols-[200px_1fr] items-baseline gap-4">
+                <div class="grid grid-cols-1 gap-2 sm:grid-cols-[200px_1fr] sm:items-baseline sm:gap-4">
                     <label class="text-sm font-bold text-gray-800">Pekerjaan</label>
                     <p class="text-sm text-gray-600 font-medium">${formData.mother_job || '-'}</p>
                 </div>
-                <div class="grid grid-cols-[200px_1fr] items-baseline gap-4">
+                <div class="grid grid-cols-1 gap-2 sm:grid-cols-[200px_1fr] sm:items-baseline sm:gap-4">
                     <label class="text-sm font-bold text-gray-800">Penghasilan</label>
                     <p class="text-sm text-gray-600 font-medium">
                         ${formData.mother_income !== undefined && formData.mother_income !== null && formData.mother_income !== '' ?
@@ -132,7 +132,7 @@ export const renderStep2Keluarga = (formData: any) => `
                             'Rp ' + Number(formData.mother_income).toLocaleString('id-ID')) : '-'}
                     </p>
                 </div>
-                <div class="grid grid-cols-[200px_1fr] items-baseline gap-4">
+                <div class="grid grid-cols-1 gap-2 sm:grid-cols-[200px_1fr] sm:items-baseline sm:gap-4">
                     <label class="text-sm font-bold text-gray-800">Status</label>
                     <p class="text-sm text-gray-600 font-medium">${formData.mother_status || 'Hidup'}</p>
                 </div>
@@ -145,11 +145,11 @@ export const renderStep2Keluarga = (formData: any) => `
                 <h3 class="text-lg font-bold text-gray-800">Data Wali</h3>
             </div>
             <div class="space-y-4">
-                <div class="grid grid-cols-[200px_1fr] items-baseline gap-4">
+                <div class="grid grid-cols-1 gap-2 sm:grid-cols-[200px_1fr] sm:items-baseline sm:gap-4">
                     <label class="text-sm font-bold text-gray-800">Nama</label>
                     <p class="text-sm text-gray-700 font-bold">${formData.guardian_name || '-'}</p>
                 </div>
-                <div class="grid grid-cols-[200px_1fr] items-baseline gap-4">
+                <div class="grid grid-cols-1 gap-2 sm:grid-cols-[200px_1fr] sm:items-baseline sm:gap-4">
                     <label class="text-sm font-bold text-gray-800">Pekerjaan</label>
                     <p class="text-sm text-gray-600 font-medium">${formData.guardian_job || '-'}</p>
                 </div>
@@ -164,11 +164,11 @@ export const renderStep2Keluarga = (formData: any) => `
             <div id="siblings-container-read" class="space-y-6">
                 ${formData.siblings && formData.siblings.length > 0 ? formData.siblings.map((s: any) => `
                     <div class="bg-gray-50/50 p-4 rounded-xl border border-gray-100 space-y-3">
-                        <div class="grid grid-cols-[200px_1fr] items-baseline gap-4">
+                        <div class="grid grid-cols-1 gap-2 sm:grid-cols-[200px_1fr] sm:items-baseline sm:gap-4">
                             <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">Nama</label>
                             <p class="text-sm text-gray-700 font-bold">${s.name || '-'}</p>
                         </div>
-                        <div class="grid grid-cols-[200px_1fr] items-baseline gap-4">
+                        <div class="grid grid-cols-1 gap-2 sm:grid-cols-[200px_1fr] sm:items-baseline sm:gap-4">
                             <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">Pekerjaan/Sekolah</label>
                             <p class="text-sm text-gray-600 font-medium">${s.job_or_school || '-'}</p>
                         </div>

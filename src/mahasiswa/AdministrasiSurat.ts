@@ -5,7 +5,7 @@ import { renderSuratPengantarMagangForm } from './SuratPengantarMagangForm';
 import { renderSuratKeteranganAktifForm } from './SuratKeteranganAktifForm';
 import { renderProsesLuarNegeriForm } from './ProsesLuarNegeriForm';
 import { renderSuratTugasForm } from './SuratTugasForm';
-import Toastify from 'toastify-js';
+import { showInfo, showWarning } from '../shared/toast';
 import { apiFetch } from '../shared/api-client';
 import { ADMINISTRASI_LETTER_CARDS, renderLetterCard } from '../shared/letter-presentation';
 
@@ -18,9 +18,9 @@ export const renderAdministrasiSurat = () => {
                     <h2 class="text-3xl font-bold text-gray-800 tracking-tight">Administrasi Surat</h2>
                     <p class="text-gray-500 mt-2">Pilih jenis surat yang ingin Anda ajukan.</p>
                 </div>
-                <button id="btn-back-dashboard-dokumen" class="flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-200 text-gray-600 font-semibold rounded-xl hover:bg-gray-50 hover:text-teal-600 hover:border-teal-200 transition-all shadow-sm text-sm">
+                <button id="btn-back-dashboard-dokumen" class="flex items-center gap-2 whitespace-nowrap px-5 py-2.5 bg-white border border-gray-200 text-gray-600 font-semibold rounded-xl hover:bg-gray-50 hover:text-teal-600 hover:border-teal-200 transition-all shadow-sm text-sm">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-                    Kembali ke Dashboard
+                    Dashboard
                 </button>
             </div>
 
@@ -49,13 +49,7 @@ export const renderAdministrasiSurat = () => {
                 if (res.ok) {
                     const data = await res.json();
                     if (data.completeness && !data.completeness.is_complete) {
-                        Toastify({
-                            text: "⚠️ Mohon lengkapi profil Anda terlebih dahulu sebelum mengajukan surat.",
-                            duration: 4000,
-                            gravity: "top",
-                            position: "right",
-                            style: { background: "#F59E0B" }
-                        }).showToast();
+                        showWarning('Mohon lengkapi profil Anda terlebih dahulu sebelum mengajukan surat.', 4000);
 
                         import('./ProfilMahasiswa').then(({ renderProfilMahasiswa }) => {
                             renderProfilMahasiswa();
@@ -68,13 +62,7 @@ export const renderAdministrasiSurat = () => {
             }
             if (callback) callback();
             else {
-                Toastify({
-                    text: "Fitur surat ini segera hadir.",
-                    duration: 2000,
-                    gravity: "top",
-                    position: "right",
-                    style: { background: "#6b7280" }
-                }).showToast();
+                showInfo('Fitur surat ini segera hadir.', 2000);
             }
         };
 

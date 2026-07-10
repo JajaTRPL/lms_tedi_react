@@ -4,7 +4,8 @@
 // behavior; the dynamic import matches the app's existing navigation convention.
 import { renderDashboardLayout } from '../dashboard/DashboardLayout';
 import { renderDashboardLoadingState } from '../shared/ui-primitives';
-import Toastify from 'toastify-js';
+import { renderFormActionFooter } from '../shared/form-primitives';
+import { showError, showSuccess } from '../shared/toast';
 import { apiFetch } from '../shared/api-client';
 import { attachProtectedPdfViewer, renderProtectedPdfViewer } from '../shared/protected-pdf-viewer';
 import {
@@ -91,23 +92,12 @@ const escapeHtml = (value: unknown): string => String(value ?? '')
     .replace(/'/g, '&#039;');
 
 const showErrorToast = (text: string) => {
-    // @ts-ignore Toastify has no types
-    Toastify({
-        text,
-        duration: 4000,
-        style: { background: '#EF4444' },
-    }).showToast();
+    showError(text);
 };
 
 const showSuccessToast = (text: string) => {
-    // @ts-ignore Toastify has no types
-    Toastify({
-        text,
-        duration: 3500,
-        style: { background: '#10B981' },
-    }).showToast();
+    showSuccess(text);
 };
-
 const parseApiError = async (res: Response, fallback: string): Promise<string> => {
     try {
         const contentType = res.headers.get('content-type') || '';
@@ -153,6 +143,7 @@ const fetchExistingApplication = async (): Promise<any | null> => {
 };
 
 export const renderScholarshipForm = async () => {
+    renderDashboardLayout('Formulir Surat', renderDashboardLoadingState(), 'mahasiswa', 'administrasi');
     const existing = await fetchExistingApplication();
 
     if (existing && READONLY_DETAIL_STATUSES.includes(existing.status)) {
@@ -197,64 +188,26 @@ const renderScholarshipFormEditable = () => {
     const render = () => {
         const isRevision = formData.status === LETTER_WORKFLOW_STATUS.REVISION;
         const content = `
-            <div class="max-w-4xl mx-auto space-y-8 animate-fade-in pb-20">
-                <div class="flex justify-between items-center bg-white p-6 rounded-[24px] shadow-sm border border-gray-100">
-                    <div class="flex items-center gap-4">
-                        <button id="btn-back-to-docs" class="p-2.5 hover:bg-gray-50 rounded-xl text-gray-500 transition-colors">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <line x1="19" y1="12" x2="5" y2="12"></line>
-                                <polyline points="12 19 5 12 12 5"></polyline>
-                            </svg>
-                        </button>
-                        <div>
-                            <h2 class="text-xl font-bold text-gray-800">Permohonan Beasiswa</h2>
-                            <p class="text-xs text-gray-500">Lengkapi formulir pengajuan surat rekomendasi</p>
-                        </div>
-                    </div>
+            <div class="max-w-5xl mx-auto space-y-6 animate-fade-in pb-16">
+                <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <button id="btn-back-to-docs" type="button" class="inline-flex items-center gap-2 text-gray-700 hover:text-primary-teal font-semibold w-fit" aria-label="Kembali ke administrasi surat">
+                        ${iconArrowLeft('20')}
+                        <span>Kembali</span>
+                    </button>
                     <div id="scholarship-save-badge" class="${`hidden md:flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border ${badgeToneFor(autosaveState, formData.status)}`}">
                         ${badgeContentFor(autosaveState, formData.status)}
                     </div>
                 </div>
 
-                <div class="bg-white p-8 rounded-[24px] shadow-sm border border-gray-100">
-                    <div class="relative flex justify-between">
-                        <div class="absolute top-5 left-0 right-0 h-0.5 bg-gray-100 -z-0 mx-8"></div>
-                        <div class="absolute top-5 left-0 h-0.5 bg-primary-teal transition-all duration-500 -z-0 mx-8" style="width: ${(currentStep - 1) * 33.33}%"></div>
-
-                        ${[1, 2, 3, 4].map(step => `
-                            <div class="relative z-10 flex flex-col items-center gap-3">
-                                <div class="w-10 h-10 rounded-full flex items-center justify-center border-4 border-white shadow-sm transition-all duration-300 ${currentStep === step ? 'bg-primary-teal text-white scale-110 ring-4 ring-teal-50' :
-                currentStep > step ? 'bg-emerald-500 text-white' : 'bg-gray-100 text-gray-400'
-            }">
-                                    ${currentStep > step ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>' : `<span class="font-bold text-sm">${step}</span>`}
-                                </div>
-                                <span class="text-[10px] font-bold uppercase tracking-wider ${currentStep === step ? 'text-primary-teal' : 'text-gray-400'}">
-                                    ${step === 1 ? 'Biodata' : step === 2 ? 'Keluarga' : step === 3 ? 'Akademik' : 'Submit'}
-                                </span>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-
                 ${isRevision ? renderRevisionBanner(formData.revision_note) : ''}
+                ${renderScholarshipStepper(currentStep)}
 
-                <div class="bg-white rounded-[32px] shadow-xl shadow-teal-900/5 border border-gray-100 overflow-hidden min-h-[400px]">
-                    <div class="p-8 md:p-12">
-                        <form id="scholarship-form" class="space-y-8">
-                            ${renderStepContent()}
-
-                            <div class="pt-8 flex justify-between items-center border-t border-gray-50">
-                                <button type="button" id="btn-prev" class="px-8 py-3.5 text-gray-500 font-bold hover:text-gray-800 transition-colors ${currentStep === 1 ? 'invisible' : ''}">
-                                    Sebelumnya
-                                </button>
-                                <button type="button" id="btn-next" class="px-10 py-3.5 bg-primary-teal text-white font-bold rounded-2xl hover:bg-teal-800 transition-all shadow-lg active:scale-95 flex items-center gap-2">
-                                    ${currentStep === 4 ? (isRevision ? 'Perbaiki & Kirim Ulang' : 'Kirim Pengajuan') : 'Lanjutkan'}
-                                    ${currentStep < 4 ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>' : ''}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
+                <section class="bg-white rounded-[24px] border border-gray-100 shadow-sm overflow-hidden">
+                    <form id="scholarship-form" class="p-6 md:p-10 space-y-8">
+                        ${renderStepContent()}
+                        ${renderScholarshipNavigation(currentStep, isRevision)}
+                    </form>
+                </section>
             </div>
         `;
 
@@ -309,7 +262,7 @@ const renderScholarshipFormEditable = () => {
             }
 
             const originalText = btn.innerHTML;
-            btn.innerHTML = '<span class="animate-spin mr-2">⏳</span> Menyimpan...';
+            btn.innerHTML = '<span class="inline-block w-4 h-4 mr-2 border-2 border-white/40 border-t-white rounded-full animate-spin"></span> Menyimpan...';
             btn.disabled = true;
             // While the user explicitly advances or submits, suspend autosave to avoid overlapping writes.
             submitInProgress = currentStep === 4;
@@ -615,6 +568,65 @@ const renderScholarshipFormEditable = () => {
     render();
 };
 
+const iconArrowLeft = (size = '20') => `
+    <svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <line x1="19" y1="12" x2="5" y2="12"></line>
+        <polyline points="12 19 5 12 12 5"></polyline>
+    </svg>
+`;
+
+const iconCheck = (size = '18') => `
+    <svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <polyline points="20 6 9 17 4 12"></polyline>
+    </svg>
+`;
+
+const iconChevronRight = (size = '18') => `
+    <svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+`;
+
+const renderScholarshipStepper = (currentStep: number): string => {
+    const steps = [
+        { number: 1, label: 'Biodata' },
+        { number: 2, label: 'Keluarga' },
+        { number: 3, label: 'Akademik' },
+        { number: 4, label: 'Tinjau Pengajuan' },
+    ];
+
+    return `
+        <nav class="bg-white rounded-[18px] border border-gray-200 shadow-sm px-5 py-4" aria-label="Tahap formulir">
+            <ol class="grid grid-cols-1 gap-3 md:grid-cols-4">
+                ${steps.map((step, index) => {
+                    const isComplete = currentStep > step.number;
+                    const isCurrent = currentStep === step.number;
+                    return `
+                        <li class="flex items-center gap-3 ${isCurrent ? 'text-gray-900' : 'text-gray-400'}">
+                            <span class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${isComplete ? 'bg-emerald-500 text-white' : isCurrent ? 'bg-white text-primary-teal border-2 border-primary-teal' : 'bg-gray-100 text-gray-400'}">
+                                ${isComplete ? iconCheck('18') : step.number}
+                            </span>
+                            <span class="text-sm font-bold">${escapeHtml(step.label)}</span>
+                            ${index < steps.length - 1 ? `<span class="hidden md:block ml-auto text-gray-700">${iconChevronRight('18')}</span>` : ''}
+                        </li>
+                    `;
+                }).join('')}
+            </ol>
+        </nav>
+    `;
+};
+
+const renderScholarshipNavigation = (currentStep: number, isRevision: boolean): string => renderFormActionFooter({
+    previous: {
+        id: 'btn-prev',
+        label: currentStep === 1 ? 'Batalkan' : 'Kembali',
+        invisible: currentStep === 1,
+    },
+    next: {
+        id: 'btn-next',
+        label: currentStep === 4 ? (isRevision ? 'Perbaiki & Kirim Ulang' : 'Kirim Pengajuan') : 'Lanjutkan',
+    },
+});
 const badgeToneFor = (state: AutosaveState, status?: string): string => {
     if (status === LETTER_WORKFLOW_STATUS.REVISION) {
         return 'bg-red-50 text-red-700 border-red-100';

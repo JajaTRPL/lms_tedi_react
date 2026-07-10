@@ -13,8 +13,8 @@ export const renderSectionSaudara = () => `
 
         <div id="profile-section-body-saudara" class="profile-section-body-wrapper">
             <div class="profile-section-body pt-6">
-                <div class="border border-gray-200 rounded-xl overflow-hidden mb-4">
-                    <table class="w-full text-left ">
+                <div class="mb-4 overflow-x-auto rounded-xl border border-gray-200">
+                    <table class="min-w-[760px] w-full text-left">
                         <thead class="bg-gray-50 border-b border-gray-200 text-xs text-gray-500 uppercase font-bold tracking-wider">
                             <tr>
                                 <th class="px-6 py-4">Nama</th>
@@ -35,7 +35,7 @@ export const renderSectionSaudara = () => `
                                     </select>
                                 </td>
                                 <td class="px-6 py-4">
-                                    <div class="flex items-center gap-4">
+                                    <div class="flex flex-wrap items-center gap-3 sm:gap-4">
                                         <label class="flex items-center gap-1.5 cursor-pointer">
                                             <input type="radio" name="ket_saudara_0" value="Kakak" class="w-4 h-4 text-teal-600 focus:ring-teal-500 border-gray-300">
                                             <span class="text-sm text-gray-700">Kakak</span>
@@ -56,7 +56,7 @@ export const renderSectionSaudara = () => `
                     </table>
                 </div>
                 <div class="section-status hidden mt-5" data-section-status="saudara" role="status" aria-live="polite"></div>
-                <div class="flex items-center justify-end gap-4 mt-6">
+                <div class="mt-6 flex flex-wrap items-center justify-end gap-3 sm:gap-4">
                     <button type="button" class="btn-batal-section hidden px-6 py-2.5 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-xl hover:bg-gray-50 transition-colors shadow-sm" data-section="saudara">
                         Batal
                     </button>

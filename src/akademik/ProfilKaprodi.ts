@@ -1,7 +1,6 @@
-import Toastify from 'toastify-js';
 import { renderDashboardLayout } from '../dashboard/DashboardLayout';
 import { renderLogin } from '../login/Login';
-import { showSuccess } from '../shared/toast';
+import { showError, showSuccess } from '../shared/toast';
 import { apiFetch, loadProtectedImageObjectUrl, revokeProtectedImageObjectUrl } from '../shared/api-client';
 import { STATUS_LABELS, type UserStatusValue } from '../shared/user-status';
 
@@ -483,7 +482,7 @@ export const renderProfilKaprodi = async (role: string) => {
                     if (typeof updatedName === 'string' && updatedName) {
                         localStorage.setItem('auth_name', updatedName);
                     }
-                    Toastify({ text: "Profil berhasil diperbarui!", duration: 3000, style: { background: "#10B981" } }).showToast();
+                    showSuccess('Profil berhasil diperbarui!');
                     // Drop locally-selected previews; fetchProfile loads canonical object URLs.
                     pendingPhotoFile = null;
                     pendingPhotoPreviewUrl = null;
@@ -511,15 +510,15 @@ export const renderProfilKaprodi = async (role: string) => {
                         signatureError = String(signatureErrors[0]);
                     }
                     if (!nameError && !photoError && !signatureError) {
-                        Toastify({ text: body?.message || "Gagal memperbarui profil", duration: 3000, style: { background: "#EF4444" } }).showToast();
+                        showError(body?.message || 'Gagal memperbarui profil');
                     }
                     render();
                     return;
                 }
 
-                Toastify({ text: body?.message || "Gagal memperbarui profil", duration: 3000, style: { background: "#EF4444" } }).showToast();
+                showError(body?.message || 'Gagal memperbarui profil');
             } catch (err) {
-                Toastify({ text: "Terjadi kesalahan sistem", duration: 3000, style: { background: "#EF4444" } }).showToast();
+                showError('Terjadi kesalahan sistem');
             }
         });
 
@@ -532,15 +531,15 @@ export const renderProfilKaprodi = async (role: string) => {
             try {
                 const res = await apiFetch('/api/profile', { method: 'POST', isFormData: true, body: formData });
                 if (res.ok) {
-                    Toastify({ text: "Kata sandi berhasil diperbarui!", duration: 3000, style: { background: "#10B981" } }).showToast();
+                    showSuccess('Kata sandi berhasil diperbarui!');
                     isEditingPassword = false;
                     render();
                 } else {
                     const err = await res.json();
-                    Toastify({ text: err.message || "Gagal memperbarui kata sandi", duration: 3000, style: { background: "#EF4444" } }).showToast();
+                    showError(err.message || 'Gagal memperbarui kata sandi');
                 }
             } catch (err) {
-                Toastify({ text: "Terjadi kesalahan sistem", duration: 3000, style: { background: "#EF4444" } }).showToast();
+                showError('Terjadi kesalahan sistem');
             }
         });
     };
