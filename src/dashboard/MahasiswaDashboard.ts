@@ -1,5 +1,6 @@
 import { renderDashboardLayout } from './DashboardLayout';
 import { renderDashboardLoadingState } from '../shared/ui-primitives';
+import { clearNotificationCache } from './notification-state';
 import { renderProfilMahasiswa } from '../mahasiswa/ProfilMahasiswa';
 import { renderScholarshipDetail, renderScholarshipForm } from '../mahasiswa/ScholarshipForm';
 import { renderSuratPengantarMagangDetail } from '../mahasiswa/SuratPengantarMagangForm';
@@ -19,7 +20,7 @@ import {
     isSuratTugasLetter,
     LETTER_WORKFLOW_STATUS,
 } from '../shared/letter-workflow';
-import Toastify from 'toastify-js';
+import { showError, showSuccess } from '../shared/toast';
 import { apiFetch, loadProtectedImageObjectUrl, revokeProtectedImageObjectUrl } from '../shared/api-client';
 import { badgeClass, buttonClass, cx, surfaceClass, textClass } from '../shared/design-system';
 import { MAHASISWA_LETTER_ENDPOINTS, mahasiswaEndpointPrefixFor } from '../shared/letter-registry';
@@ -379,6 +380,301 @@ const renderTrackingCard = (item: TrackingItem): string => {
     });
 };
 
+
+type StudentDashboardPeriod = 'today' | 'week' | '1month' | '3months' | '6months' | '12months';
+
+let activeStudentDashboardPeriod: StudentDashboardPeriod = 'week';
+
+const STUDENT_DASHBOARD_PERIODS: { key: StudentDashboardPeriod; label: string }[] = [
+    { key: 'today', label: 'Hari Ini' },
+    { key: 'week', label: 'Minggu Ini' },
+    { key: '1month', label: '1 Bulan' },
+    { key: '3months', label: '3 Bulan' },
+    { key: '6months', label: '6 Bulan' },
+    { key: '12months', label: '12 Bulan' },
+];
+
+const startOfLocalDay = (date: Date): Date => new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+const resolvePeriodStart = (period: StudentDashboardPeriod, now = new Date()): Date => {
+    const start = startOfLocalDay(now);
+    if (period === 'today') return start;
+    if (period === 'week') {
+        start.setDate(start.getDate() - 6);
+        return start;
+    }
+    const months = period === '1month' ? 1 : period === '3months' ? 3 : period === '6months' ? 6 : 12;
+    start.setMonth(start.getMonth() - months);
+    return start;
+};
+
+const parseApplicationDate = (value: unknown): Date | null => {
+    if (!value) return null;
+    const parsed = new Date(String(value));
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const applicationStartDate = (app: any): Date | null => parseApplicationDate(app?.submitted_at || app?.created_at);
+const applicationCompletedDate = (app: any): Date | null => parseApplicationDate(app?.completed_at || app?.student_reviewed_at || app?.updated_at);
+
+const formatDurationParts = (totalMinutes: number) => {
+    const safeMinutes = Math.max(0, Math.round(totalMinutes));
+    const days = Math.floor(safeMinutes / 1440);
+    const hours = Math.floor((safeMinutes % 1440) / 60);
+    const minutes = safeMinutes % 60;
+    return { days, hours, minutes };
+};
+
+const buildStudentDashboardStats = (applications: any[], period: StudentDashboardPeriod) => {
+    const now = new Date();
+    const periodStart = resolvePeriodStart(period, now);
+    const inPeriod = applications.filter((app) => {
+        const start = applicationStartDate(app);
+        return Boolean(start && start >= periodStart && start <= now);
+    });
+
+    const completedDurations = inPeriod
+        .filter((app) => app?.status === LETTER_WORKFLOW_STATUS.COMPLETED)
+        .map((app) => {
+            const start = applicationStartDate(app);
+            const end = applicationCompletedDate(app);
+            if (!start || !end || end < start) return null;
+            return (end.getTime() - start.getTime()) / 60000;
+        })
+        .filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
+
+    const averageMinutes = completedDurations.length > 0
+        ? completedDurations.reduce((total, value) => total + value, 0) / completedDurations.length
+        : 0;
+
+    return {
+        chart: buildStudentSubmissionChart(inPeriod, period, periodStart, now),
+        totalInPeriod: inPeriod.length,
+        completedInPeriod: completedDurations.length,
+        averageDuration: formatDurationParts(averageMinutes),
+    };
+};
+
+const buildStudentSubmissionChart = (applications: any[], period: StudentDashboardPeriod, start: Date, now: Date) => {
+    const daily = period === 'today' || period === 'week' || period === '1month';
+    const buckets = new Map<string, { label: string; count: number }>();
+
+    if (daily) {
+        const cursor = startOfLocalDay(start);
+        while (cursor <= now) {
+            const key = cursor.toISOString().slice(0, 10);
+            buckets.set(key, {
+                label: cursor.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' }),
+                count: 0,
+            });
+            cursor.setDate(cursor.getDate() + 1);
+        }
+    } else {
+        const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+        const endMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        while (cursor <= endMonth) {
+            const key = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}`;
+            buckets.set(key, {
+                label: cursor.toLocaleDateString('id-ID', { month: 'short', year: '2-digit' }),
+                count: 0,
+            });
+            cursor.setMonth(cursor.getMonth() + 1);
+        }
+    }
+
+    applications.forEach((app) => {
+        const date = applicationStartDate(app);
+        if (!date) return;
+        const key = daily
+            ? date.toISOString().slice(0, 10)
+            : `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        const bucket = buckets.get(key);
+        if (bucket) bucket.count += 1;
+    });
+
+    const values = Array.from(buckets.values());
+    return {
+        labels: values.map((item) => item.label),
+        data: values.map((item) => item.count),
+    };
+};
+
+const renderStudentSubmissionChart = (data: { labels: string[]; data: number[] }): string => {
+    const chartData = data.data.length ? data.data : [0];
+    const chartLabels = data.labels.length ? data.labels : ['-'];
+    const maxVal = Math.max(...chartData, 1);
+    const svgWidth = 700;
+    const svgHeight = 130;
+    const padLeft = 42;
+    const padRight = 14;
+    const padTop = 12;
+    const padBottom = 28;
+    const chartW = svgWidth - padLeft - padRight;
+    const chartH = svgHeight - padTop - padBottom;
+    const stepX = chartData.length > 1 ? chartW / (chartData.length - 1) : 0;
+    const points = chartData.map((value, index) => {
+        const x = chartData.length > 1 ? padLeft + index * stepX : padLeft + chartW / 2;
+        const y = padTop + chartH - (value / maxVal) * chartH;
+        return { x, y, value };
+    });
+    const linePath = points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' ');
+    const areaPath = points.length > 0
+        ? `${linePath} L ${points[points.length - 1].x} ${padTop + chartH} L ${points[0].x} ${padTop + chartH} Z`
+        : '';
+    const tickValues = [0, Math.ceil(maxVal / 2), maxVal];
+
+    return `
+        <svg viewBox="0 0 ${svgWidth} ${svgHeight}" class="w-full" style="height:150px" role="img" aria-label="Grafik jumlah pengajuan">
+            <defs>
+                <linearGradient id="mahasiswa-submission-chart-gradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#0D9488" stop-opacity="0.18" />
+                    <stop offset="100%" stop-color="#0D9488" stop-opacity="0" />
+                </linearGradient>
+            </defs>
+            ${tickValues.map((value) => {
+                const y = padTop + chartH - (value / maxVal) * chartH;
+                return `<line x1="${padLeft}" y1="${y}" x2="${svgWidth - padRight}" y2="${y}" stroke="#F3F4F6" stroke-width="1" />
+                    <text x="${padLeft - 6}" y="${y + 4}" text-anchor="end" font-size="9" fill="#9CA3AF">${value}</text>`;
+            }).join('')}
+            <path d="${areaPath}" fill="url(#mahasiswa-submission-chart-gradient)" />
+            <path d="${linePath}" fill="none" stroke="#0D9488" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" />
+            ${points.map((point) => `<circle cx="${point.x}" cy="${point.y}" r="4" fill="white" stroke="#0D9488" stroke-width="2" />`).join('')}
+            ${chartLabels.map((label, index) => {
+                const x = chartData.length > 1 ? padLeft + index * stepX : padLeft + chartW / 2;
+                return `<text x="${x}" y="${svgHeight - 7}" text-anchor="middle" font-size="9" fill="#9CA3AF">${escapeHtml(label)}</text>`;
+            }).join('')}
+        </svg>
+    `;
+};
+
+const renderStudentDurationBox = (label: string, duration: { days: number; hours: number; minutes: number }): string => `
+    <div class="rounded-xl border border-amber-200 bg-white p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <span class="text-sm font-bold text-gray-700">${escapeHtml(label)}</span>
+        <div class="flex items-baseline gap-1">
+            <span class="text-2xl font-black text-gray-900 leading-none">${String(duration.days).padStart(2, '0')}</span>
+            <span class="text-[9px] font-bold text-gray-400">Hari</span>
+            <span class="text-2xl font-black text-gray-900 leading-none ml-1">${String(duration.hours).padStart(2, '0')}</span>
+            <span class="text-[9px] font-bold text-gray-400">Jam</span>
+            <span class="text-2xl font-black text-gray-900 leading-none ml-1">${String(duration.minutes).padStart(2, '0')}</span>
+            <span class="text-[9px] font-bold text-gray-400">Menit</span>
+        </div>
+    </div>
+`;
+
+const renderStudentSubmissionStatsPanel = (applications: any[]): string => {
+    const stats = buildStudentDashboardStats(applications, activeStudentDashboardPeriod);
+
+    return `
+        <section class="bg-white rounded-[24px] border border-gray-100 shadow-sm overflow-hidden">
+            <div class="p-6 border-b border-gray-100 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                    <h3 class="text-base font-bold text-gray-900">Statistik Pengajuan Saya</h3>
+                    <p class="text-xs text-gray-500 mt-1">Jumlah pengajuan dan rata-rata lama proses pada rentang waktu yang dipilih.</p>
+                </div>
+                <div id="student-dashboard-period-tabs" class="flex flex-wrap gap-2">
+                    ${STUDENT_DASHBOARD_PERIODS.map((period) => {
+                        const active = period.key === activeStudentDashboardPeriod;
+                        return `<button type="button" data-period="${period.key}" class="student-dashboard-period-tab px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${active ? 'bg-primary-teal text-white' : 'bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-800'}">${period.label}</button>`;
+                    }).join('')}
+                </div>
+            </div>
+            <div class="p-6 grid grid-cols-1 xl:grid-cols-[1.4fr_1fr] gap-6">
+                <div class="rounded-2xl border border-gray-100 bg-gray-50/40 p-5">
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <h4 class="text-sm font-bold text-gray-800">Grafik Pengajuan Surat</h4>
+                            <p class="text-[11px] text-gray-500 mt-1">Kamu mengajukan ${stats.totalInPeriod} surat pada periode ini.</p>
+                        </div>
+                        <span class="w-fit rounded-full bg-teal-50 px-3 py-1 text-xs font-bold text-primary-teal border border-teal-100">${stats.totalInPeriod} pengajuan</span>
+                    </div>
+                    <div class="mt-4 overflow-x-auto">
+                        <div class="min-w-[520px]">
+                            ${renderStudentSubmissionChart(stats.chart)}
+                        </div>
+                    </div>
+                </div>
+                <div class="rounded-2xl overflow-hidden border border-amber-200 bg-amber-50">
+                    <div class="px-5 py-4 border-b border-amber-200 flex items-start gap-3">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" class="mt-0.5 shrink-0"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                        <div>
+                            <h4 class="text-sm font-bold text-gray-800">Rata-Rata Lama Pengajuan</h4>
+                            <p class="text-[11px] text-gray-500 mt-1">Dihitung dari surat diajukan sampai selesai.</p>
+                        </div>
+                    </div>
+                    <div class="p-5 space-y-3">
+                        ${renderStudentDurationBox('Surat selesai', stats.averageDuration)}
+                        <p class="text-[11px] text-amber-700">Berdasarkan ${stats.completedInPeriod} surat yang selesai pada periode ini.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    `;
+};
+const DASHBOARD_CACHE_TTL_MS = 25_000;
+
+let dashboardApplicationsCache: {
+    expiresAt: number;
+    promise?: Promise<{ applications: any[]; failedEndpointCount: number }>;
+    data?: { applications: any[]; failedEndpointCount: number };
+} | null = null;
+
+let dashboardBookingsCache: {
+    expiresAt: number;
+    promise?: Promise<{ items: MahasiswaBooking[]; error: string | null }>;
+    data?: { items: MahasiswaBooking[]; error: string | null };
+} | null = null;
+
+const loadDashboardApplications = async (): Promise<{ applications: any[]; failedEndpointCount: number }> => {
+    const now = Date.now();
+    if (dashboardApplicationsCache?.data && dashboardApplicationsCache.expiresAt > now) {
+        return dashboardApplicationsCache.data;
+    }
+    if (dashboardApplicationsCache?.promise) return dashboardApplicationsCache.promise;
+
+    const promise = loadMahasiswaApplications((url) => apiFetch(url, { cache: 'no-store' }))
+        .then((loaded) => ({
+            applications: loaded.items.map((item) => item.raw),
+            failedEndpointCount: loaded.failedEndpointCount,
+        }))
+        .then((data) => {
+            dashboardApplicationsCache = { data, expiresAt: Date.now() + DASHBOARD_CACHE_TTL_MS };
+            return data;
+        })
+        .catch((error) => {
+            dashboardApplicationsCache = null;
+            throw error;
+        });
+
+    dashboardApplicationsCache = { promise, expiresAt: now + DASHBOARD_CACHE_TTL_MS };
+    return promise;
+};
+
+const loadDashboardBookings = async (): Promise<{ items: MahasiswaBooking[]; error: string | null }> => {
+    const now = Date.now();
+    if (dashboardBookingsCache?.data && dashboardBookingsCache.expiresAt > now) {
+        return dashboardBookingsCache.data;
+    }
+    if (dashboardBookingsCache?.promise) return dashboardBookingsCache.promise;
+
+    const promise = getMahasiswaBookings()
+        .then((items) => ({ items, error: null as string | null }))
+        .catch(() => ({
+            items: [] as MahasiswaBooking[],
+            error: 'Data peminjaman ruangan gagal dimuat. Coba refresh halaman.',
+        }))
+        .then((data) => {
+            dashboardBookingsCache = { data, expiresAt: Date.now() + DASHBOARD_CACHE_TTL_MS };
+            return data;
+        });
+
+    dashboardBookingsCache = { promise, expiresAt: now + DASHBOARD_CACHE_TTL_MS };
+    return promise;
+};
+
+export const clearMahasiswaDashboardCache = (): void => {
+    dashboardApplicationsCache = null;
+    dashboardBookingsCache = null;
+};
 export const renderMahasiswaDashboard = async () => {
     renderDashboardLayout('Dashboard', renderDashboardLoadingState(), 'mahasiswa', 'dashboard');
 
@@ -393,22 +689,12 @@ export const renderMahasiswaDashboard = async () => {
     // Track endpoints that didn't return a usable payload so we can surface a
     // visible partial-failure banner — silent undercounts must not happen.
     let failedEndpointCount = 0;
-
-    // Peminjaman Ruangan uses its OWN status vocabulary and detail dialog —
-    // it is intentionally kept out of the letter aggregate (counts, timeline,
-    // letter-workflow labels) and rendered as a dedicated section below.
-    const peminjamanRequest = getMahasiswaBookings()
-        .then((items) => ({ items, error: null as string | null }))
-        .catch(() => ({
-            items: [] as MahasiswaBooking[],
-            error: 'Data peminjaman ruangan gagal dimuat. Coba refresh halaman.',
-        }));
+    // Peminjaman Ruangan uses its OWN status vocabulary and is cached briefly to avoid duplicate dashboard fetches.
+    const peminjamanRequest = loadDashboardBookings();
 
     try {
-        const loaded = await loadMahasiswaApplications((url) => apiFetch(url, { cache: 'no-store' }));
-        // Unwrap to the raw rows the existing stats/tracking/history code expects;
-        // the adapter already tagged letter_type and sorted newest-first.
-        applications = loaded.items.map((item) => item.raw);
+        const loaded = await loadDashboardApplications();
+        applications = loaded.applications;
         failedEndpointCount = loaded.failedEndpointCount;
     } catch (e) {
         console.error("Failed to fetch applications", e);
@@ -539,6 +825,8 @@ export const renderMahasiswaDashboard = async () => {
                 </div>
             </div>
 
+            ${renderStudentSubmissionStatsPanel(applications)}
+
             <!-- Ajukan Surat Button -->
             <button id="btn-ajukan-surat" class="w-full py-4 bg-primary-teal text-white rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-teal-800 transition-all duration-200 shadow-sm border border-teal-700/20">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -568,6 +856,15 @@ export const renderMahasiswaDashboard = async () => {
                 renderProfilMahasiswa();
             });
         }
+
+        document.querySelectorAll('.student-dashboard-period-tab').forEach((button) => {
+            button.addEventListener('click', () => {
+                const period = (button as HTMLElement).dataset.period as StudentDashboardPeriod | undefined;
+                if (!period || period === activeStudentDashboardPeriod) return;
+                activeStudentDashboardPeriod = period;
+                void renderMahasiswaDashboard();
+            });
+        });
 
         const btnAjukan = document.getElementById('btn-ajukan-surat');
         if (btnAjukan) {
@@ -625,6 +922,8 @@ export const renderMahasiswaDashboard = async () => {
                 import('../mahasiswa/peminjaman/detail').then(({ openPeminjamanBookingDetail }) => {
                     void openPeminjamanBookingDetail(id, {
                         onMutated: () => {
+                            clearMahasiswaDashboardCache();
+                            clearNotificationCache('mahasiswa');
                             void renderMahasiswaDashboard();
                         },
                     });
@@ -698,11 +997,11 @@ export const renderMahasiswaDashboard = async () => {
 };
 
 const showToast = (text: string, success = true) => {
-    Toastify({
-        text,
-        duration: 3500,
-        style: { background: success ? '#10B981' : '#EF4444' }
-    }).showToast();
+    if (success) {
+        showSuccess(text);
+        return;
+    }
+    showError(text);
 };
 
 // Resolve the per-letter /complete endpoint prefix from the row's letter type.
@@ -731,6 +1030,8 @@ const completeLetterReview = async (applicationId: string, letterType: string) =
         }
 
         showToast('Pengajuan berhasil diselesaikan.');
+        clearMahasiswaDashboardCache();
+        clearNotificationCache('mahasiswa');
         renderMahasiswaDashboard();
     } catch (error: any) {
         showToast(error?.message || 'Gagal menyelesaikan pengajuan.', false);

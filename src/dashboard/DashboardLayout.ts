@@ -1,6 +1,6 @@
 import Toastify from 'toastify-js';
 // `renderLogin` is loaded lazily inside the logout handler (below) so this shared
-// layout does not statically depend on the Login page. That page→page edge was the
+// layout does not statically depend on the Login page. That pageÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢page edge was the
 // root of the inherited import cycle (C1); the dynamic import matches the app's
 // existing navigation convention and preserves identical runtime behavior.
 import { renderSidebar } from '../components/Sidebar';
@@ -8,7 +8,7 @@ import { getGreetingName } from '../utils/nameHelper';
 import { showSuccess } from '../shared/toast';
 import { apiFetch, loadProtectedImageObjectUrl, revokeProtectedImageObjectUrl } from '../shared/api-client';
 import { clearAllAuthenticationState } from '../login/password-rotation-state';
-import { fetchSuperAdminNotifications } from './notification-state';
+import { fetchNotificationsForRole } from './notification-state';
 import { renderDashboardLoadingState } from '../shared/ui-primitives';
 
 let dashboardLayoutAvatarObjectUrl: string | null = null;
@@ -20,6 +20,26 @@ const renderMahasiswaNavigationLoading = (title: string, activePage: string): vo
     renderDashboardLayout(title, renderDashboardLoadingState(), 'mahasiswa', activePage);
 };
 
+const headerRoleLabel = (role: string): string => {
+    if (role.startsWith('tendik')) {
+        switch ((localStorage.getItem('auth_tendik_role') || '').toLowerCase()) {
+            case 'laboran': return 'Laboran';
+            case 'kepala_lab': return 'Kepala Lab';
+            case 'sarpras': return 'Sarpras';
+            default: return 'Tendik';
+        }
+    }
+    if (role === 'super_admin') return 'Super Admin';
+    if (role === 'mahasiswa') return 'Mahasiswa';
+    const academicSubRole = (localStorage.getItem('auth_sub_role') || role || '').toLowerCase();
+    switch (academicSubRole) {
+        case 'kaprodi': return 'Kaprodi';
+        case 'sekprodi': return 'Sekprodi';
+        case 'kadep': return 'Kadep';
+        case 'sekdep': return 'Sekdep';
+        default: return role.replace('_', ' ');
+    }
+};
 const afterLoadingPaint = (callback: () => void): void => {
     window.requestAnimationFrame(() => {
         window.setTimeout(callback, 180);
@@ -155,7 +175,7 @@ export const renderDashboardLayout = (title: string, content: string, role: stri
                                     </div>
                                     <div class="hidden text-right sm:block">
                                         <p class="text-sm font-semibold text-gray-900 leading-none">${getGreetingName(localStorage.getItem('auth_name'))}</p>
-                                        <p class="text-[10px] text-gray-500 font-medium uppercase mt-1 tracking-wider">${role.replace('_', ' ')}</p>
+                                        <p class="text-[10px] text-gray-500 font-medium uppercase mt-1 tracking-wider">${headerRoleLabel(role)}</p>
                                     </div>
                                 </div>
                                 
@@ -195,8 +215,8 @@ export const renderDashboardLayout = (title: string, content: string, role: stri
 
     dashboardLayoutDrawerCleanup = attachDashboardSidebarDrawer();
 
-    if (role === 'super_admin') {
-        void refreshSuperAdminNotificationBadge();
+    if (role === 'super_admin' || role === 'mahasiswa' || role.startsWith('tendik') || ['kaprodi', 'sekprodi', 'kadep', 'sekdep'].includes(role) || ['kaprodi', 'sekprodi', 'kadep', 'sekdep'].includes((localStorage.getItem('auth_sub_role') || '').toLowerCase())) {
+        void refreshNotificationBadge(role);
     }
 
     // Async-load the header avatar from the auth-protected storage endpoint.
@@ -438,13 +458,13 @@ export const renderDashboardLayout = (title: string, content: string, role: stri
     });
 };
 
-const refreshSuperAdminNotificationBadge = async (): Promise<void> => {
+const refreshNotificationBadge = async (role: string): Promise<void> => {
     const button = document.getElementById('notif-btn');
     const dot = document.getElementById('notif-unread-dot');
     if (!button || !dot) return;
 
     try {
-        const notifications = await fetchSuperAdminNotifications();
+        const notifications = await fetchNotificationsForRole(role);
         const unreadCount = notifications.filter((item) => item.isUnread).length;
         const hasUnread = unreadCount > 0;
 

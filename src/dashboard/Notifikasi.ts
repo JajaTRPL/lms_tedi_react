@@ -4,7 +4,7 @@ import { renderLogin } from '../login/Login';
 import { showSuccess } from '../shared/toast';
 import { apiFetch } from '../shared/api-client';
 import { escapeFormHtml } from '../shared/form-primitives';
-import { fetchSuperAdminNotifications, markNotificationsRead, type SuperAdminNotificationItem } from './notification-state';
+import { fetchNotificationsForRole, getNotificationScopeForRole, markNotificationsRead, type SuperAdminNotificationItem } from './notification-state';
 
 let activeTab: 'semua' | 'belum_dibaca' = 'semua';
 
@@ -20,17 +20,14 @@ export const renderNotifikasi = async (role: string, initialTab: 'semua' | 'belu
 
     const fullName = localStorage.getItem('auth_name') || 'Pengguna';
     let allNotifications: NotifItem[] = [];
-    let isLoading = role === 'super_admin';
+    let isLoading = role === 'super_admin' || role === 'mahasiswa' || role.startsWith('tendik') || ['kaprodi', 'sekprodi', 'kadep', 'sekdep'].includes(role) || ['kaprodi', 'sekprodi', 'kadep', 'sekdep'].includes((localStorage.getItem('auth_sub_role') || '').toLowerCase());
     let loadError = '';
 
-    const fetchNotifications = async (): Promise<NotifItem[]> => {
-        if (role !== 'super_admin') return [];
-        return fetchSuperAdminNotifications();
-    };
+    const fetchNotifications = async (): Promise<NotifItem[]> => fetchNotificationsForRole(role);
 
     const markCurrentNotificationsRead = () => {
-        if (role !== 'super_admin') return;
-        markNotificationsRead(allNotifications.map((item) => item.id).filter((id): id is string => Boolean(id)));
+        if (role !== 'super_admin' && role !== 'mahasiswa' && !role.startsWith('tendik') && !['kaprodi', 'sekprodi', 'kadep', 'sekdep'].includes(role) && !['kaprodi', 'sekprodi', 'kadep', 'sekdep'].includes((localStorage.getItem('auth_sub_role') || '').toLowerCase())) return;
+        markNotificationsRead(allNotifications.map((item) => item.id).filter((id): id is string => Boolean(id)), getNotificationScopeForRole(role));
         allNotifications = allNotifications.map((item) => ({ ...item, isUnread: false }));
     };
 
@@ -73,7 +70,7 @@ export const renderNotifikasi = async (role: string, initialTab: 'semua' | 'belu
         <div class="bg-white border border-gray-100 rounded-2xl p-12 flex flex-col items-center justify-center text-center shadow-sm">
             <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-[#0D4A46] mb-4"></div>
             <h3 class="text-base font-bold text-gray-800 mb-1">Memuat notifikasi...</h3>
-            <p class="text-sm text-gray-500 max-w-md">Sedang mengecek hal yang perlu diperhatikan Super Admin.</p>
+            <p class="text-sm text-gray-500 max-w-md">Sedang mengecek pembaruan pengajuan Anda.</p>
         </div>
     `;
 
@@ -224,7 +221,7 @@ export const renderNotifikasi = async (role: string, initialTab: 'semua' | 'belu
         link.addEventListener('click', () => markCurrentNotificationsRead(), { capture: true });
     });
 
-    if (role === 'super_admin') {
+    if (role === 'super_admin' || role === 'mahasiswa' || role.startsWith('tendik') || ['kaprodi', 'sekprodi', 'kadep', 'sekdep'].includes(role) || ['kaprodi', 'sekprodi', 'kadep', 'sekdep'].includes((localStorage.getItem('auth_sub_role') || '').toLowerCase())) {
         try {
             allNotifications = await fetchNotifications();
             if (initialTab === 'belum_dibaca' && allNotifications.every((item) => !item.isUnread)) {
