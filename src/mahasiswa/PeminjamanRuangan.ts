@@ -1,4 +1,4 @@
-import Toastify from 'toastify-js';
+import { showError, showSuccess } from '../shared/toast';
 import { renderDashboardLayout } from '../dashboard/DashboardLayout';
 import { renderDashboardLoadingState } from '../shared/ui-primitives';
 import { renderMahasiswaDashboard } from '../dashboard/MahasiswaDashboard';
@@ -86,13 +86,11 @@ function createInitialViewState(): CalendarViewState {
 }
 
 const showToast = (text: string, success: boolean): void => {
-    Toastify({
-        text,
-        duration: 3000,
-        gravity: 'top',
-        position: 'right',
-        style: { background: success ? '#0f766e' : '#b91c1c' },
-    }).showToast();
+    if (success) {
+        showSuccess(text);
+        return;
+    }
+    showError(text);
 };
 
 const renderPageShell = (): string => `
@@ -102,9 +100,9 @@ const renderPageShell = (): string => `
                 <h2 class="text-3xl font-bold text-gray-800 tracking-tight">Peminjaman Ruangan</h2>
                 <p class="text-gray-500 mt-2">Pilih jenis ruangan untuk mengajukan peminjaman. Status pengajuan dapat dipantau melalui Dashboard dan Riwayat Pengajuan.</p>
             </div>
-            <button id="btn-back-dashboard-peminjaman" type="button" class="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-semibold text-gray-600 shadow-sm transition-all hover:border-teal-200 hover:bg-gray-50 hover:text-teal-600">
+            <button id="btn-back-dashboard-peminjaman" type="button" class="flex items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-semibold text-gray-600 shadow-sm transition-all hover:border-teal-200 hover:bg-gray-50 hover:text-teal-600">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg>
-                Kembali ke Dashboard
+                Dashboard
             </button>
         </div>
         <div id="peminjaman-page-state" aria-live="polite">

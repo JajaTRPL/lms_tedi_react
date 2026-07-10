@@ -153,7 +153,10 @@ const toLetterRiwayatItem = (item: MahasiswaListItem): RiwayatPengajuanItem => {
 };
 
 const toPeminjamanRiwayatItem = (booking: MahasiswaBooking): RiwayatPengajuanItem => {
-    const title = [booking.room.code, booking.room.name].filter(Boolean).join(' - ') || 'Peminjaman Ruangan';
+    const isLaboratory = booking.room.type === 'laboratory';
+    const requestLabel = isLaboratory ? 'Peminjaman Laboratorium' : 'Peminjaman Ruangan';
+    const roomTypeLabel = getRoomTypeLabel(booking.room.type);
+    const title = [booking.room.code, booking.room.name].filter(Boolean).join(' - ') || requestLabel;
     const schedule = formatBookingSchedule(booking);
     const statusLabel = getBookingStatusLabel(booking.status);
     return {
@@ -163,20 +166,20 @@ const toPeminjamanRiwayatItem = (booking: MahasiswaBooking): RiwayatPengajuanIte
         typeFilter: PEMINJAMAN_TYPE_VALUE,
         statusFilter: booking.status,
         searchText: [
-            'Peminjaman Ruangan',
+            requestLabel,
+            roomTypeLabel,
             booking.room.code,
             booking.room.name,
             booking.activity_name,
-            getRoomTypeLabel(booking.room.type),
             schedule,
             statusLabel,
         ].join(' '),
         sortDate: booking.created_at ?? booking.start_at,
         submittedAt: booking.created_at,
-        typeLabel: 'Peminjaman Ruangan',
-        requestTypeLabel: 'Peminjaman Ruangan',
+        typeLabel: requestLabel,
+        requestTypeLabel: roomTypeLabel,
         title,
-        subtitle: booking.activity_name || 'Peminjaman Ruangan',
+        subtitle: booking.activity_name || requestLabel,
         detail: schedule,
         statusLabel,
         statusTone: getBookingStatusTone(booking.status),

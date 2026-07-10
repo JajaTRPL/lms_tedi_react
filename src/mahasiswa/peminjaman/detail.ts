@@ -1,4 +1,4 @@
-import Toastify from 'toastify-js';
+import { showError, showSuccess } from '../../shared/toast';
 import {
     cancelMahasiswaBooking,
     downloadSuratPeminjamanPdf,
@@ -39,13 +39,11 @@ let pdfViewerEscapeHandler: ((event: KeyboardEvent) => void) | null = null;
 let pdfViewerCleanup: (() => void) | null = null;
 
 const showToast = (text: string, success: boolean): void => {
-    Toastify({
-        text,
-        duration: 3000,
-        gravity: 'top',
-        position: 'right',
-        style: { background: success ? '#0f766e' : '#b91c1c' },
-    }).showToast();
+    if (success) {
+        showSuccess(text);
+        return;
+    }
+    showError(text);
 };
 
 export const closePeminjamanDetail = (): void => {

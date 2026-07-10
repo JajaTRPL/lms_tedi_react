@@ -1,5 +1,6 @@
-import Toastify from 'toastify-js';
 import { renderDashboardLayout } from '../dashboard/DashboardLayout';
+import { showError, showSuccess } from '../shared/toast';
+import { apiFetch } from '../shared/api-client';
 import {
     approveTendikBooking,
     downloadSuratPeminjamanPdf,
@@ -89,13 +90,11 @@ const escapeHtml = (value: unknown): string => String(value ?? '')
     .replace(/'/g, '&#039;');
 
 const showToast = (text: string, success: boolean): void => {
-    Toastify({
-        text,
-        duration: 3000,
-        gravity: 'top',
-        position: 'right',
-        style: { background: success ? '#0f766e' : '#b91c1c' },
-    }).showToast();
+    if (success) {
+        showSuccess(text);
+        return;
+    }
+    showError(text);
 };
 
 const formatDateTime = (iso: string | null | undefined): string => {
@@ -116,8 +115,16 @@ const formatDateTime = (iso: string | null | undefined): string => {
 const reviewerRole = (): TendikReviewerRole | null =>
     reviewerProfile?.tendik_role ?? null;
 
+const isLaboran = (): boolean => reviewerRole() === 'laboran';
+
 const canAct = (): boolean =>
     reviewerRole() === 'sarpras' || reviewerRole() === 'kepala_lab';
+
+const defaultQueueFilters = (): TendikBookingFilters => (
+    isLaboran()
+        ? { status: 'completed', roomType: 'laboratory', page: 1, perPage: PER_PAGE }
+        : { page: 1, perPage: PER_PAGE }
+);
 
 // Room master-data management surface is available to sarpras (classrooms),
 // kepala_lab (own lab), and laboran (all labs). Persuratan/unknown roles keep
@@ -195,8 +202,8 @@ const renderRoleNotice = (): string => {
             `;
         case 'laboran':
             return `
-                <div data-reviewer-role="laboran" class="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
-                    <strong>Akses baca saja.</strong> Laboran dapat melihat antrean dan detail, tetapi tidak dapat menyetujui, meminta revisi, atau menolak pengajuan.
+                <div data-reviewer-role="laboran" class="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm text-emerald-900">
+                    <strong>Bukti pengembalian.</strong> Laboran melihat peminjaman laboratorium yang sudah dikembalikan, termasuk penerima kunci, waktu, catatan, dan foto bukti.
                 </div>
             `;
         case 'persuratan':
@@ -268,29 +275,57 @@ const renderFilters = (): string => {
     `;
 };
 
-const renderQueueRows = (): string => queue.map((booking) => `
-    <tr class="border-b border-gray-100 last:border-0">
-        <td class="px-5 py-4 align-top">
-            <p class="break-words text-sm font-bold text-gray-800">${escapeHtml(booking.activity_name)}</p>
-            <p class="mt-1 text-xs text-gray-500">${escapeHtml(booking.requester?.name ?? 'Pemohon tidak tersedia')}</p>
-        </td>
-        <td class="px-5 py-4 align-top">
-            <p class="break-words text-sm font-semibold text-gray-700">${escapeHtml(booking.room.code)} - ${escapeHtml(booking.room.name)}</p>
-            <p class="mt-1 text-xs text-gray-500">${escapeHtml(getRoomTypeLabel(booking.room.type))}</p>
-        </td>
-        <td class="px-5 py-4 align-top text-sm text-gray-600">
-            <p>${escapeHtml(formatDateTime(booking.start_at))}</p>
-            <p class="mt-1 text-xs">${escapeHtml(formatTimeRange(booking.start_at, booking.end_at))}</p>
-        </td>
-        <td class="px-5 py-4 align-top">
-            <span class="inline-flex rounded-full border px-3 py-1 text-xs font-bold ${getBookingStatusTone(booking.status)}">${escapeHtml(getBookingStatusLabel(booking.status))}</span>
-        </td>
-        <td class="px-5 py-4 text-right align-top">
-            <button type="button" data-tendik-booking-detail="${booking.id}" class="rounded-xl border border-teal-700 px-4 py-2 text-xs font-bold text-teal-700 hover:bg-teal-50">Lihat Detail</button>
-        </td>
-    </tr>
-`).join('');
+const renderQueueRows = (): string => queue.map((booking) => {
+    const returnInfo = booking.return_info ?? null;
+    const returnPhoto = returnInfo?.photo ?? null;
+    if (isLaboran()) {
+        return `
+            <tr class="border-b border-gray-100 last:border-0">
+                <td class="px-5 py-4 align-top">
+                    <p class="break-words text-sm font-bold text-gray-800">${escapeHtml(booking.activity_name)}</p>
+                    <p class="mt-1 text-xs text-gray-500">${escapeHtml(booking.requester?.name ?? 'Pemohon tidak tersedia')}</p>
+                </td>
+                <td class="px-5 py-4 align-top">
+                    <p class="break-words text-sm font-semibold text-gray-700">${escapeHtml(booking.room.code)} - ${escapeHtml(booking.room.name)}</p>
+                    <p class="mt-1 text-xs text-gray-500">${escapeHtml(formatTimeRange(booking.start_at, booking.end_at))}</p>
+                </td>
+                <td class="px-5 py-4 align-top text-sm text-gray-600">
+                    <p class="font-semibold text-gray-700">${escapeHtml(returnInfo?.returned_to || '-')}</p>
+                    <p class="mt-1 text-xs text-gray-500">${escapeHtml(formatDateTime(returnInfo?.returned_at ?? null))}</p>
+                </td>
+                <td class="px-5 py-4 align-top">
+                    ${returnPhoto?.exists ? '<span class="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">Ada bukti foto</span>' : '<span class="inline-flex rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-bold text-gray-500">Tanpa foto</span>'}
+                </td>
+                <td class="px-5 py-4 text-right align-top">
+                    <button type="button" data-tendik-booking-detail="${booking.id}" class="rounded-xl border border-teal-700 px-4 py-2 text-xs font-bold text-teal-700 hover:bg-teal-50">Lihat Bukti</button>
+                </td>
+            </tr>
+        `;
+    }
 
+    return `
+        <tr class="border-b border-gray-100 last:border-0">
+            <td class="px-5 py-4 align-top">
+                <p class="break-words text-sm font-bold text-gray-800">${escapeHtml(booking.activity_name)}</p>
+                <p class="mt-1 text-xs text-gray-500">${escapeHtml(booking.requester?.name ?? 'Pemohon tidak tersedia')}</p>
+            </td>
+            <td class="px-5 py-4 align-top">
+                <p class="break-words text-sm font-semibold text-gray-700">${escapeHtml(booking.room.code)} - ${escapeHtml(booking.room.name)}</p>
+                <p class="mt-1 text-xs text-gray-500">${escapeHtml(getRoomTypeLabel(booking.room.type))}</p>
+            </td>
+            <td class="px-5 py-4 align-top text-sm text-gray-600">
+                <p>${escapeHtml(formatDateTime(booking.start_at))}</p>
+                <p class="mt-1 text-xs">${escapeHtml(formatTimeRange(booking.start_at, booking.end_at))}</p>
+            </td>
+            <td class="px-5 py-4 align-top">
+                <span class="inline-flex rounded-full border px-3 py-1 text-xs font-bold ${getBookingStatusTone(booking.status)}">${escapeHtml(getBookingStatusLabel(booking.status))}</span>
+            </td>
+            <td class="px-5 py-4 text-right align-top">
+                <button type="button" data-tendik-booking-detail="${booking.id}" class="rounded-xl border border-teal-700 px-4 py-2 text-xs font-bold text-teal-700 hover:bg-teal-50">Lihat Detail</button>
+            </td>
+        </tr>
+    `;
+}).join('');
 const renderPagination = (): string => {
     if (pagination.last_page <= 1) return '';
     return `
@@ -309,7 +344,7 @@ const renderQueueState = (): string => {
         return `
             <div data-reviewer-queue-state="loading" class="px-6 py-16 text-center">
                 <div class="mx-auto h-9 w-9 animate-spin rounded-full border-4 border-teal-100 border-t-teal-700" aria-hidden="true"></div>
-                <p class="mt-4 text-sm font-bold text-gray-700">Memuat antrean review peminjaman...</p>
+                <p class="mt-4 text-sm font-bold text-gray-700">${isLaboran() ? 'Memuat bukti pengembalian...' : 'Memuat antrean review peminjaman...'}</p>
             </div>
         `;
     }
@@ -325,7 +360,7 @@ const renderQueueState = (): string => {
     if (queueError) {
         return `
             <div data-reviewer-queue-state="error" class="px-6 py-16 text-center">
-                <h3 class="text-base font-bold text-gray-800">Antrean gagal dimuat</h3>
+                <h3 class="text-base font-bold text-gray-800">${isLaboran() ? 'Bukti pengembalian gagal dimuat' : 'Antrean gagal dimuat'}</h3>
                 <p class="mx-auto mt-2 max-w-xl text-sm text-gray-500">${escapeHtml(queueError)}</p>
                 <button id="retry-tendik-peminjaman" type="button" class="mt-5 rounded-xl bg-teal-700 px-4 py-2 text-sm font-bold text-white hover:bg-teal-800">Coba Lagi</button>
             </div>
@@ -334,8 +369,8 @@ const renderQueueState = (): string => {
     if (queue.length === 0) {
         return `
             <div data-reviewer-queue-state="empty" class="px-6 py-16 text-center">
-                <h3 class="text-base font-bold text-gray-800">Belum ada pengajuan dalam antrean</h3>
-                <p class="mt-2 text-sm text-gray-500">Tidak ada peminjaman yang sesuai dengan lingkup dan filter aktif.</p>
+                <h3 class="text-base font-bold text-gray-800">${isLaboran() ? 'Belum ada bukti pengembalian' : 'Belum ada pengajuan dalam antrean'}</h3>
+                <p class="mt-2 text-sm text-gray-500">${isLaboran() ? 'Peminjaman laboratorium yang sudah dikembalikan akan muncul di sini.' : 'Tidak ada peminjaman yang sesuai dengan lingkup dan filter aktif.'}</p>
             </div>
         `;
     }
@@ -345,9 +380,9 @@ const renderQueueState = (): string => {
                 <thead class="bg-gray-50 text-xs font-bold uppercase tracking-wide text-gray-500">
                     <tr>
                         <th class="px-5 py-4">Kegiatan / Pemohon</th>
-                        <th class="px-5 py-4">Ruangan</th>
-                        <th class="px-5 py-4">Jadwal</th>
-                        <th class="px-5 py-4">Status</th>
+                        <th class="px-5 py-4">${isLaboran() ? 'Laboratorium' : 'Ruangan'}</th>
+                        <th class="px-5 py-4">${isLaboran() ? 'Pengembalian' : 'Jadwal'}</th>
+                        <th class="px-5 py-4">${isLaboran() ? 'Bukti' : 'Status'}</th>
                         <th class="px-5 py-4"></th>
                     </tr>
                 </thead>
@@ -365,7 +400,7 @@ const renderTabBar = (): string => {
     `;
     return `
         <div class="flex flex-wrap gap-2" role="tablist" aria-label="Bagian Peminjaman Ruangan">
-            ${tab('queue', 'Pengajuan')}
+            ${tab('queue', isLaboran() ? 'Bukti Pengembalian' : 'Pengajuan')}
             ${tab('rooms', 'Kelola Ruangan')}
         </div>
     `;
@@ -377,8 +412,8 @@ const renderQueueTab = (): string => `
         ${renderFilters()}
         <section class="overflow-hidden rounded-[24px] border border-gray-100 bg-white shadow-sm" aria-live="polite">
             <div class="border-b border-gray-100 px-5 py-5">
-                <h3 class="text-base font-bold text-gray-800">Antrean Review Peminjaman</h3>
-                <p class="mt-1 text-xs text-gray-500">Daftar ini mengikuti lingkup reviewer yang ditentukan backend.</p>
+                <h3 class="text-base font-bold text-gray-800">${isLaboran() ? 'Bukti Pengembalian Laboratorium' : 'Antrean Review Peminjaman'}</h3>
+                <p class="mt-1 text-xs text-gray-500">${isLaboran() ? 'Daftar peminjaman yang sudah mengisi penerima kunci, waktu, catatan, dan foto bukti.' : 'Daftar ini mengikuti lingkup reviewer yang ditentukan backend.'}</p>
             </div>
             ${renderQueueState()}
         </section>
@@ -512,7 +547,7 @@ const pageShell = (): string => `
         <div>
             <p class="text-xs font-bold uppercase tracking-[0.18em] text-teal-700">${escapeHtml(roleLabel(reviewerRole()))}</p>
             <h2 class="mt-1 text-3xl font-bold tracking-tight text-gray-800">Peminjaman Ruangan</h2>
-            <p class="mt-2 text-sm text-gray-500">Tinjau pengajuan sesuai lingkup Sarpras atau laboratorium tanpa mencampurkannya dengan workflow Persuratan.</p>
+            <p class="mt-2 text-sm text-gray-500">${isLaboran() ? 'Lihat bukti pengembalian kunci laboratorium yang sudah selesai digunakan.' : 'Tinjau pengajuan sesuai lingkup Sarpras atau laboratorium tanpa mencampurkannya dengan workflow Persuratan.'}</p>
         </div>
         <div id="tendik-peminjaman-page-state" aria-live="polite"></div>
     </div>
@@ -613,7 +648,7 @@ const renderDetailDrawer = (
         <aside role="dialog" aria-modal="true" aria-labelledby="tendik-peminjaman-detail-title" class="fixed inset-y-0 right-0 z-[201] flex h-full w-full max-w-[620px] flex-col bg-white shadow-2xl">
             <header class="flex items-start justify-between gap-4 border-b border-gray-100 px-6 py-5">
                 <div>
-                    <p class="text-xs font-bold uppercase tracking-wider text-teal-700">Detail Review</p>
+                    <p class="text-xs font-bold uppercase tracking-wider text-teal-700">${isLaboran() ? 'Detail Bukti Pengembalian' : 'Detail Review'}</p>
                     <h2 id="tendik-peminjaman-detail-title" class="mt-1 text-xl font-bold text-gray-900">${booking ? escapeHtml(booking.activity_name) : 'Peminjaman Ruangan'}</h2>
                 </div>
                 <button id="close-tendik-peminjaman-detail" type="button" class="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700" aria-label="Tutup detail"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
@@ -697,6 +732,12 @@ const renderDetailDrawer = (
             }
         });
     }
+    root.querySelectorAll<HTMLAnchorElement>('a[href*="/return-photo/preview"]').forEach((link) => {
+        link.addEventListener('click', (event) => {
+            event.preventDefault();
+            void openProtectedFile(link.getAttribute('href') || '', link.textContent?.trim() || 'bukti-pengembalian.jpg');
+        });
+    });
     if (drawerEscapeHandler) document.removeEventListener('keydown', drawerEscapeHandler);
     drawerEscapeHandler = (event: KeyboardEvent) => {
         // Escape closes the topmost layer first: action dialog and PDF preview
@@ -822,6 +863,30 @@ const openActionDialog = (booking: TendikBooking, action: ReviewerAction): void 
     render(null, false);
 };
 
+const openProtectedFile = async (url: string, fallbackName: string): Promise<void> => {
+    if (!url || url === '#') {
+        showError('Foto bukti belum tersedia.');
+        return;
+    }
+    try {
+        const response = await apiFetch(url, { headers: { Accept: 'image/*,*/*' } });
+        if (!response.ok) throw new Error('Bukti foto tidak dapat dimuat.');
+        const blob = await response.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        const opened = window.open(objectUrl, '_blank', 'noopener');
+        if (!opened) {
+            const link = document.createElement('a');
+            link.href = objectUrl;
+            link.download = fallbackName || 'bukti-pengembalian.jpg';
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        }
+        window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+    } catch (error) {
+        showError(error instanceof Error ? error.message : 'Bukti foto tidak dapat dimuat.');
+    }
+};
 const openDetail = async (bookingId: number): Promise<void> => {
     closeDrawer();
     renderDetailDrawer(null, true, null);
@@ -848,7 +913,7 @@ const readFilters = (): TendikBookingFilters | null => {
         return null;
     }
     filterError = null;
-    return {
+    const baseFilters: TendikBookingFilters = {
         ...(status ? { status } : {}),
         ...(roomType ? { roomType } : {}),
         ...(roomIdValue ? { roomId: Number(roomIdValue) } : {}),
@@ -857,6 +922,9 @@ const readFilters = (): TendikBookingFilters | null => {
         page: 1,
         perPage: PER_PAGE,
     };
+    return isLaboran()
+        ? { ...baseFilters, status: 'completed', roomType: 'laboratory' }
+        : baseFilters;
 };
 
 const fetchQueue = async (): Promise<void> => {
@@ -879,7 +947,7 @@ const loadQueue = async (showLoading = true): Promise<void> => {
         await fetchQueue();
     } catch (error) {
         queue = [];
-        queueError = errorMessage(error, 'Antrean review peminjaman gagal dimuat.');
+        queueError = errorMessage(error, isLaboran() ? 'Bukti pengembalian gagal dimuat.' : 'Antrean review peminjaman gagal dimuat.');
         queueErrorStatus = error instanceof PeminjamanApiError ? error.status : null;
     } finally {
         queueLoading = false;
@@ -926,7 +994,7 @@ const attachMainListeners = (): void => {
         void loadQueue();
     });
     document.getElementById('reset-tendik-peminjaman-filters')?.addEventListener('click', () => {
-        filters = { page: 1, perPage: PER_PAGE };
+        filters = defaultQueueFilters();
         filterError = null;
         void loadQueue();
     });
@@ -1001,7 +1069,16 @@ export const renderPeminjamanRuanganTendik = async (role = 'tendik'): Promise<vo
     reviewerProfile = profileResult.status === 'fulfilled'
         ? profileResult.value
         : null;
-    if (queueResult.status === 'fulfilled') {
+    if (isLaboran()) {
+        filters = defaultQueueFilters();
+        try {
+            await fetchQueue();
+        } catch (error) {
+            queue = [];
+            queueError = errorMessage(error, 'Bukti pengembalian gagal dimuat.');
+            queueErrorStatus = error instanceof PeminjamanApiError ? error.status : null;
+        }
+    } else if (queueResult.status === 'fulfilled') {
         queue = queueResult.value.data;
         pagination = queueResult.value.meta;
         rememberRooms(queue);

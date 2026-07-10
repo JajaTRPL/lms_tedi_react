@@ -49,8 +49,8 @@ export const renderTendikDashboard = async (role: string) => {
     try {
         // Fetch dashboard tasks/stats and the live profile in parallel.
         // /api/tendik/dashboard/tasks returns only stats+tasks+scope (no user meta),
-        // so we read assigned_tasks from /api/profile — the same source the Tendik
-        // Profile page uses — to keep both surfaces consistent and live with
+        // so we read assigned_tasks from /api/profile, the same source the Tendik
+        // Profile page uses, to keep both surfaces consistent and live with
         // Super Admin penugasan changes (localStorage is only seeded at login).
         const [response, profileResponse, riwayatResponse] = await Promise.all([
             apiFetch('/api/tendik/dashboard/tasks'),
@@ -98,7 +98,7 @@ export const renderTendikDashboard = async (role: string) => {
         }
 
         // Sarpras/Kepala Lab/Laboran work in Peminjaman Ruangan, not surat
-        // verification — their greeting must not talk about "jenis surat"
+        // verification. Their greeting must not talk about "jenis surat"
         // or show empty surat-assignment chips.
         const tendikRole = localStorage.getItem('auth_tendik_role') ?? '';
         const isPeminjamanOnlyRole = ['sarpras', 'kepala_lab', 'laboran'].includes(tendikRole);
@@ -107,8 +107,39 @@ export const renderTendikDashboard = async (role: string) => {
             : tendikRole === 'kepala_lab'
                 ? 'Tinjau pengajuan peminjaman laboratorium yang menjadi tanggung jawab Anda.'
                 : tendikRole === 'laboran'
-                    ? 'Pantau jadwal dan pengajuan laboratorium yang berada dalam cakupan Anda.'
+                    ? 'Pantau bukti pengembalian kunci dan ruangan laboratorium yang sudah selesai digunakan.'
                     : 'Tinjau dan proses dokumen administrasi surat mahasiswa.';
+
+        if (tendikRole === 'laboran') {
+            const laboranContent = `
+                <div class="space-y-6 animate-fade-in pb-12 w-full max-w-[1200px] mx-auto">
+                    <div class="mt-2">
+                        <h2 class="text-[28px] font-bold text-gray-800 leading-tight">Halo, ${userName}!</h2>
+                        <p class="text-xs text-gray-600 mt-1 mb-3">${welcomeSubtitle}</p>
+                    </div>
+
+                    <section class="rounded-2xl border border-emerald-100 bg-white p-7 shadow-sm">
+                        <div class="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+                            <div class="max-w-2xl">
+                                <p class="text-xs font-bold uppercase tracking-[0.18em] text-teal-700">Bukti Pengembalian</p>
+                                <h3 class="mt-2 text-xl font-bold text-gray-900">Pengembalian laboratorium selesai</h3>
+                                <p class="mt-2 text-sm leading-6 text-gray-600">Jika mahasiswa sudah mengisi form pengembalian, datanya akan muncul di menu Peminjaman Ruangan. Detailnya berisi penerima kunci, waktu pengembalian, catatan, dan foto bukti.</p>
+                            </div>
+                            <button id="laboran-return-evidence" type="button" class="rounded-xl bg-teal-700 px-5 py-3 text-sm font-bold text-white shadow-sm transition-colors hover:bg-teal-800">
+                                Lihat Bukti Pengembalian
+                            </button>
+                        </div>
+                    </section>
+                </div>
+            `;
+            renderDashboardLayout('Dashboard', laboranContent, role, 'dashboard');
+            document.getElementById('laboran-return-evidence')?.addEventListener('click', () => {
+                import('../tendik/PeminjamanRuanganTendik').then(({ renderPeminjamanRuanganTendik }) => {
+                    renderPeminjamanRuanganTendik(role);
+                });
+            });
+            return;
+        }
 
         const content = `
             <div class="space-y-6 animate-fade-in pb-12 w-full max-w-[1200px] mx-auto">
