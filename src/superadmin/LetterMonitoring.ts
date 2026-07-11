@@ -10,7 +10,7 @@ const PERIODS = [
     { key: '12months', label: '12 Bulan' },
 ];
 
-let activePeriod = 'today';
+let activePeriod = '12months';
 
 const getStatusBadge = (status: string) => {
     const map: Record<string, { label: string; bg: string; text: string; border: string }> = {
