@@ -54,7 +54,9 @@ export async function apiFetch(url: string, options: ApiFetchOptions = {}): Prom
         },
     });
 
-    if (response.status === 423) {
+    const isResponseForCurrentToken = (): boolean => localStorage.getItem('auth_token') === token;
+
+    if (response.status === 423 && isResponseForCurrentToken()) {
         let code: unknown;
         try {
             const payload: unknown = await response.clone().json();
@@ -81,7 +83,7 @@ export async function apiFetch(url: string, options: ApiFetchOptions = {}): Prom
 
     // Handle 401 Unauthorized: token expired, revoked, or invalid.
     // Skip the logout endpoint itself to prevent an infinite redirect loop.
-    if (response.status === 401 && !url.includes('/api/logout')) {
+    if (response.status === 401 && !url.includes('/api/logout') && isResponseForCurrentToken()) {
         clearNormalAuthState();
         const { renderLogin } = await import('../login/Login');
         renderLogin('Sesi Anda telah berakhir. Silakan login kembali.');
