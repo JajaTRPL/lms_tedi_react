@@ -225,9 +225,14 @@ export const renderNotifikasi = async (role: string, initialTab: 'semua' | 'belu
     if (role === 'super_admin' || role === 'mahasiswa' || role.startsWith('tendik') || ['kaprodi', 'sekprodi', 'kadep', 'sekdep'].includes(role) || ['kaprodi', 'sekprodi', 'kadep', 'sekdep'].includes((localStorage.getItem('auth_sub_role') || '').toLowerCase())) {
         try {
             allNotifications = await fetchNotifications();
+            const visibleUnreadIds = allNotifications
+                .filter((item) => item.isUnread)
+                .map((item) => item.id)
+                .filter((id): id is string => Boolean(id));
             if (initialTab === 'belum_dibaca' && allNotifications.every((item) => !item.isUnread)) {
                 activeTab = 'semua';
             }
+            markNotificationsRead(visibleUnreadIds, getNotificationScopeForRole(role));
         } catch (error) {
             loadError = error instanceof Error ? error.message : 'Notifikasi gagal dimuat.';
         } finally {

@@ -49,10 +49,15 @@ export const applyNotificationReadState = (
 const NOTIFICATION_CACHE_TTL_MS = 30_000;
 const notificationCache = new Map<string, { expiresAt: number; promise?: Promise<SuperAdminNotificationItem[]>; items?: SuperAdminNotificationItem[] }>();
 
-const isProdiAcademicRole = (role: string): boolean => {
-    const subRole = (localStorage.getItem('auth_sub_role') || '').toLowerCase();
-    return ['kaprodi', 'sekprodi'].includes(role) || ['kaprodi', 'sekprodi'].includes(subRole);
-};
+const currentAcademicRole = (role: string): string =>
+    (localStorage.getItem('auth_sub_role') || role || '').toLowerCase();
+
+const isProdiAcademicRole = (role: string): boolean =>
+    ['kaprodi', 'sekprodi'].includes(currentAcademicRole(role));
+
+const isDepartmentAcademicRole = (role: string): boolean =>
+    ['kadep', 'sekdep'].includes(currentAcademicRole(role));
+
 
 const currentTendikRole = (): string => (localStorage.getItem('auth_tendik_role') || '').toLowerCase();
 
@@ -69,6 +74,7 @@ export const getNotificationScopeForRole = (role: string): string => {
         return 'tendik';
     }
     if (isProdiAcademicRole(role)) return 'akademik-paraf';
+    if (isDepartmentAcademicRole(role)) return 'akademik-ttd';
     return role || 'unknown';
 };
 const getCachedNotifications = (
@@ -475,5 +481,6 @@ export const fetchNotificationsForRole = async (role: string): Promise<SuperAdmi
     if (role === 'super_admin') return getCachedNotifications(getNotificationScopeForRole(role), fetchSuperAdminNotifications);
     if (role.startsWith('tendik')) return getCachedNotifications(getNotificationScopeForRole(role), fetchTendikNotifications);
     if (isProdiAcademicRole(role)) return getCachedNotifications(getNotificationScopeForRole(role), fetchAkademikParafNotifications);
+    if (isDepartmentAcademicRole(role)) return getCachedNotifications(getNotificationScopeForRole(role), fetchAkademikTandaTanganNotifications);
     return [];
 };
