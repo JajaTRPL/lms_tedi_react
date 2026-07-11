@@ -1,6 +1,7 @@
 import { renderDashboardLayout } from '../dashboard/DashboardLayout';
 import { showSuccess } from '../shared/toast';
 import { renderLogin } from '../login/Login';
+import { clearAllAuthenticationState } from '../login/password-rotation-state';
 import { apiFetch } from '../shared/api-client';
 
 export const renderProfilSuperAdmin = () => {
@@ -108,7 +109,7 @@ export const renderProfilSuperAdmin = () => {
                     await apiFetch('/api/logout', { method: 'POST' });
                 } catch (e) { }
             }
-            localStorage.clear();
+            clearAllAuthenticationState();
             modal.remove();
             showSuccess('Berhasil keluar!');
             setTimeout(() => renderLogin(), 500);

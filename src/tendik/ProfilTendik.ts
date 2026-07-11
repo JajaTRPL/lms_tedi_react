@@ -1,5 +1,6 @@
 import { renderDashboardLayout } from '../dashboard/DashboardLayout';
 import { renderLogin } from '../login/Login';
+import { clearAllAuthenticationState } from '../login/password-rotation-state';
 import { showSuccess, showError } from '../shared/toast';
 import { apiFetch, loadProtectedImageObjectUrl, revokeProtectedImageObjectUrl } from '../shared/api-client';
 import { getAssignedTaskLabel } from '../shared/letter-workflow';
@@ -565,7 +566,7 @@ export const renderProfilTendik = (role: string) => {
                 await apiFetch('/api/logout', { method: 'POST' });
             } catch { /* ignore */ }
         }
-        localStorage.clear();
+        clearAllAuthenticationState();
         showSuccess('Berhasil keluar!');
         setTimeout(() => renderLogin(), 500);
     });

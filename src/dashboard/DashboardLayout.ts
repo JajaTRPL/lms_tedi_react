@@ -1,6 +1,6 @@
 import Toastify from 'toastify-js';
 // `renderLogin` is loaded lazily inside the logout handler (below) so this shared
-// layout does not statically depend on the Login page. That pageÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢page edge was the
+// layout does not statically depend on the Login page. That page-to-page edge was the
 // root of the inherited import cycle (C1); the dynamic import matches the app's
 // existing navigation convention and preserves identical runtime behavior.
 import { renderSidebar } from '../components/Sidebar';

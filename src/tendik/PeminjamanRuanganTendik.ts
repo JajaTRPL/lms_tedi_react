@@ -1,12 +1,13 @@
 import { renderDashboardLayout } from '../dashboard/DashboardLayout';
 import { showError, showSuccess } from '../shared/toast';
-import { apiFetch } from '../shared/api-client';
 import {
     approveTendikBooking,
+    downloadReturnPhoto,
     downloadSuratPeminjamanPdf,
     getTendikBooking,
     getTendikBookings,
     getTendikReviewerProfile,
+    openReturnPhotoPreview,
     PeminjamanApiError,
     rejectTendikBooking,
     reviseTendikBooking,
@@ -732,10 +733,19 @@ const renderDetailDrawer = (
             }
         });
     }
-    root.querySelectorAll<HTMLAnchorElement>('a[href*="/return-photo/preview"]').forEach((link) => {
-        link.addEventListener('click', (event) => {
-            event.preventDefault();
-            void openProtectedFile(link.getAttribute('href') || '', link.textContent?.trim() || 'bukti-pengembalian.jpg');
+    root.querySelectorAll<HTMLButtonElement>('[data-return-photo-action]').forEach((button) => {
+        button.addEventListener('click', async () => {
+            const bookingId = Number(button.dataset.bookingId);
+            if (!Number.isInteger(bookingId) || bookingId <= 0) return;
+            try {
+                if (button.dataset.returnPhotoAction === 'download') {
+                    await downloadReturnPhoto(bookingId, button.textContent?.trim() || 'bukti-pengembalian.jpg');
+                } else {
+                    await openReturnPhotoPreview(bookingId);
+                }
+            } catch (error) {
+                showToast(error instanceof Error ? error.message : 'Bukti foto pengembalian gagal dimuat.', false);
+            }
         });
     });
     if (drawerEscapeHandler) document.removeEventListener('keydown', drawerEscapeHandler);
@@ -863,30 +873,6 @@ const openActionDialog = (booking: TendikBooking, action: ReviewerAction): void 
     render(null, false);
 };
 
-const openProtectedFile = async (url: string, fallbackName: string): Promise<void> => {
-    if (!url || url === '#') {
-        showError('Foto bukti belum tersedia.');
-        return;
-    }
-    try {
-        const response = await apiFetch(url, { headers: { Accept: 'image/*,*/*' } });
-        if (!response.ok) throw new Error('Bukti foto tidak dapat dimuat.');
-        const blob = await response.blob();
-        const objectUrl = URL.createObjectURL(blob);
-        const opened = window.open(objectUrl, '_blank', 'noopener');
-        if (!opened) {
-            const link = document.createElement('a');
-            link.href = objectUrl;
-            link.download = fallbackName || 'bukti-pengembalian.jpg';
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-        }
-        window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
-    } catch (error) {
-        showError(error instanceof Error ? error.message : 'Bukti foto tidak dapat dimuat.');
-    }
-};
 const openDetail = async (bookingId: number): Promise<void> => {
     closeDrawer();
     renderDetailDrawer(null, true, null);
@@ -1023,7 +1009,10 @@ const attachMainListeners = (): void => {
     });
 };
 
-export const renderPeminjamanRuanganTendik = async (role = 'tendik'): Promise<void> => {
+export const renderPeminjamanRuanganTendik = async (
+    role = 'tendik',
+    options: { initialTab?: TendikTab } = {},
+): Promise<void> => {
     const sequence = ++renderSequence;
     reviewerProfile = null;
     queue = [];
@@ -1040,7 +1029,7 @@ export const renderPeminjamanRuanganTendik = async (role = 'tendik'): Promise<vo
     filterError = null;
     knownRooms = new Map();
     actionDeniedBookingIds = new Set();
-    activeTab = 'queue';
+    activeTab = options.initialTab ?? 'queue';
     managedRooms = [];
     managedRoomsLoaded = false;
     managedRoomsLoading = false;
@@ -1094,4 +1083,5 @@ export const renderPeminjamanRuanganTendik = async (role = 'tendik'): Promise<vo
         ?.querySelector('p');
     if (pageTitle) pageTitle.textContent = roleLabel(reviewerRole());
     renderMainState();
+    if (activeTab === 'rooms' && canManageRooms() && !managedRoomsLoaded) void loadManagedRooms();
 };

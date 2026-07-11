@@ -38,6 +38,11 @@ export const suratPeminjamanPreviewUrl = (bookingId: number): string =>
 
 export const suratPeminjamanDownloadUrl = (bookingId: number): string =>
     `${ATTACHMENT_BASE}/${bookingId}/attachment/surat-peminjaman/download`;
+export const returnPhotoPreviewUrl = (bookingId: number): string =>
+    `${ATTACHMENT_BASE}/${bookingId}/return-photo/preview`;
+
+export const returnPhotoDownloadUrl = (bookingId: number): string =>
+    `${ATTACHMENT_BASE}/${bookingId}/return-photo/download`;
 
 interface AvailabilityFilters {
     from: string;
@@ -275,6 +280,65 @@ export async function downloadSuratPeminjamanPdf(
         const anchor = document.createElement('a');
         anchor.href = objectUrl;
         anchor.download = fileName || 'surat-peminjaman.pdf';
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+    } finally {
+        URL.revokeObjectURL(objectUrl);
+    }
+}
+
+export async function openReturnPhotoPreview(bookingId: number): Promise<void> {
+    const response = await apiFetch(returnPhotoPreviewUrl(bookingId), {
+        cache: 'no-store',
+        headers: { Accept: 'image/*,*/*' },
+    });
+    if (!response.ok) {
+        const message = response.status === 403
+            ? 'Anda tidak berwenang melihat bukti pengembalian ini.'
+            : response.status === 404
+                ? 'Bukti foto pengembalian tidak ditemukan.'
+                : 'Bukti foto pengembalian gagal dimuat.';
+        throw new PeminjamanApiError(message, response.status);
+    }
+
+    const objectUrl = URL.createObjectURL(await response.blob());
+    const opened = window.open(objectUrl, '_blank', 'noopener');
+    if (!opened) {
+        const anchor = document.createElement('a');
+        anchor.href = objectUrl;
+        anchor.target = '_blank';
+        anchor.rel = 'noopener';
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+    }
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+}
+
+export async function downloadReturnPhoto(
+    bookingId: number,
+    fileName = 'bukti-pengembalian.jpg',
+): Promise<void> {
+    const response = await apiFetch(returnPhotoDownloadUrl(bookingId), {
+        cache: 'no-store',
+        headers: { Accept: 'image/*,*/*' },
+    });
+    if (!response.ok) {
+        const message = response.status === 403
+            ? 'Anda tidak berwenang mengunduh bukti pengembalian ini.'
+            : response.status === 404
+                ? 'Bukti foto pengembalian tidak ditemukan.'
+                : 'Bukti foto pengembalian gagal diunduh.';
+        throw new PeminjamanApiError(message, response.status);
+    }
+
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    try {
+        const anchor = document.createElement('a');
+        anchor.href = objectUrl;
+        anchor.download = fileName || 'bukti-pengembalian.jpg';
         document.body.appendChild(anchor);
         anchor.click();
         anchor.remove();

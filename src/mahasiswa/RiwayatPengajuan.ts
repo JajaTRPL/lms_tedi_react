@@ -30,6 +30,7 @@ import {
 } from '../shared/mahasiswa-application-list';
 import { badgeClass, buttonClass, cx, surfaceClass, textClass } from '../shared/design-system';
 import { escapeFormAttribute, escapeFormHtml } from '../shared/form-primitives';
+import { showError } from '../shared/toast';
 import {
     formatIndonesianDate,
     formatIsoDateKeyInJakarta,
@@ -39,14 +40,14 @@ import {
     getRoomTypeLabel,
     parseDateKey,
 } from '../shared/peminjaman-calendar';
-import { getMahasiswaBookings } from './peminjaman/api';
+import { downloadReturnPhoto, getMahasiswaBookings, openReturnPhotoPreview } from './peminjaman/api';
 import type { MahasiswaBooking } from './peminjaman/types';
 
 const LIST_ID_PREFIX = 'riwayat-list';
 const LIST_ROWS_ID = `${LIST_ID_PREFIX}-rows`;
 
 // Type-based detail dispatch. Kept in the page (not the adapter) so the static
-// import graph and code-splitting are preserved — the adapter holds data only.
+// import graph and code-splitting are preserved - the adapter holds data only.
 const openDetailForApplication = (id: string, type?: string): void => {
     if (!id) return;
     if (isMagangLetter(type)) {
@@ -82,6 +83,8 @@ interface RiwayatPengajuanItem {
     detail: string;
     statusLabel: string;
     statusTone: string;
+    returnPhotoAvailable?: boolean;
+    returnPhotoName?: string | null;
 }
 
 const filterOptionsFor = (key: string) =>
@@ -104,6 +107,8 @@ const riwayatPengajuanFilters = [
             { value: 'submitted', label: 'Diajukan' },
             { value: 'revision_requested', label: 'Perlu Revisi' },
             { value: 'approved', label: 'Disetujui' },
+            { value: 'return_pending', label: 'Menunggu Pengembalian' },
+            { value: 'completed', label: 'Selesai' },
             { value: 'rejected', label: 'Ditolak' },
             { value: 'cancelled', label: 'Dibatalkan' },
         ],
@@ -173,6 +178,7 @@ const toPeminjamanRiwayatItem = (booking: MahasiswaBooking): RiwayatPengajuanIte
             booking.activity_name,
             schedule,
             statusLabel,
+            booking.return_info?.photo?.exists ? 'bukti pengembalian kunci foto' : '',
         ].join(' '),
         sortDate: booking.created_at ?? booking.start_at,
         submittedAt: booking.created_at,
@@ -183,6 +189,8 @@ const toPeminjamanRiwayatItem = (booking: MahasiswaBooking): RiwayatPengajuanIte
         detail: schedule,
         statusLabel,
         statusTone: getBookingStatusTone(booking.status),
+        returnPhotoAvailable: Boolean(booking.return_info?.photo?.exists),
+        returnPhotoName: booking.return_info?.photo?.original_name ?? null,
     };
 };
 
@@ -202,7 +210,7 @@ const riwayatPengajuanFilterValue = (item: RiwayatPengajuanItem, filterKey: stri
 };
 
 const renderRiwayatPengajuanItem = (item: RiwayatPengajuanItem): string => `
-    <article class="grid cursor-pointer gap-4 px-5 py-5 transition-colors hover:bg-gray-50/70 lg:grid-cols-[155px_minmax(170px,0.9fr)_minmax(240px,1.4fr)_150px_110px] lg:items-center"
+    <article class="grid cursor-pointer gap-4 px-5 py-5 transition-colors hover:bg-gray-50/70 lg:grid-cols-[150px_minmax(155px,0.8fr)_minmax(220px,1.3fr)_135px_135px_100px] lg:items-center"
         data-row-action="view-detail"
         data-source="${escapeFormAttribute(item.source)}"
         data-id="${escapeFormAttribute(item.id)}"
@@ -229,6 +237,15 @@ const renderRiwayatPengajuanItem = (item: RiwayatPengajuanItem): string => `
                 item.statusTone,
             ))}">${escapeFormHtml(item.statusLabel)}</span>
         </div>
+        <div>
+            <p class="lg:hidden text-[11px] font-bold uppercase tracking-wide text-gray-400">Bukti</p>
+            ${item.returnPhotoAvailable ? `
+                <div class="mt-1 flex flex-wrap gap-2 lg:mt-0">
+                    <button type="button" data-return-photo-action="preview" data-booking-id="${escapeFormAttribute(item.id)}" class="text-xs font-bold text-primary-teal hover:underline">Lihat Foto</button>
+                    <button type="button" data-return-photo-action="download" data-booking-id="${escapeFormAttribute(item.id)}" data-file-name="${escapeFormAttribute(item.returnPhotoName || 'bukti-pengembalian.jpg')}" class="text-xs font-bold text-primary-teal hover:underline">Unduh</button>
+                </div>
+            ` : `<span class="mt-1 inline-flex text-xs font-semibold text-gray-400 lg:mt-0">${item.source === 'peminjaman' ? 'Belum ada' : '-'}</span>`}
+        </div>
         <div class="lg:text-right">
             <button type="button"
                 data-action="view-detail"
@@ -236,7 +253,7 @@ const renderRiwayatPengajuanItem = (item: RiwayatPengajuanItem): string => `
                 data-id="${escapeFormAttribute(item.id)}"
                 data-type="${escapeFormAttribute(item.letterType)}"
                 class="${buttonClass('ghost', 'sm', 'px-0')}">
-                Lihat Detail
+                Detail
             </button>
         </div>
     </article>
@@ -250,11 +267,12 @@ const listConfig: ListPrimitiveConfig<RiwayatPengajuanItem> = {
     getFilterValue: riwayatPengajuanFilterValue,
     renderItem: renderRiwayatPengajuanItem,
     renderItemsContainer: (rowsHtml) => `
-        <div class="hidden grid-cols-[155px_minmax(170px,0.9fr)_minmax(240px,1.4fr)_150px_110px] border-b border-gray-100 px-5 py-4 text-[12px] font-bold uppercase tracking-wide text-gray-500 lg:grid">
+        <div class="hidden grid-cols-[150px_minmax(155px,0.8fr)_minmax(220px,1.3fr)_135px_135px_100px] border-b border-gray-100 px-5 py-4 text-[12px] font-bold uppercase tracking-wide text-gray-500 lg:grid">
             <span>Tanggal Pengajuan</span>
             <span>Jenis Pengajuan</span>
             <span>Nama Pengajuan</span>
             <span>Status</span>
+            <span>Bukti</span>
             <span class="text-right">Aksi</span>
         </div>
         <div class="divide-y divide-gray-50">${rowsHtml}</div>
@@ -333,6 +351,24 @@ export const renderRiwayatPengajuan = async (): Promise<void> => {
     const bindRowActions = (): void => {
         const root = document.getElementById(LIST_ROWS_ID);
         if (!root) return;
+
+
+        root.querySelectorAll<HTMLButtonElement>('[data-return-photo-action]').forEach((button) => {
+            button.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const bookingId = Number(button.dataset.bookingId);
+                if (!Number.isInteger(bookingId) || bookingId <= 0) return;
+                try {
+                    if (button.dataset.returnPhotoAction === 'download') {
+                        await downloadReturnPhoto(bookingId, button.dataset.fileName || 'bukti-pengembalian.jpg');
+                    } else {
+                        await openReturnPhotoPreview(bookingId);
+                    }
+                } catch (error) {
+                    showError(error instanceof Error ? error.message : 'Bukti foto pengembalian gagal dimuat.');
+                }
+            });
+        });
 
         root.querySelectorAll('[data-action="view-detail"]').forEach((button) => {
             button.addEventListener('click', (e) => {

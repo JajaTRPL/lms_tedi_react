@@ -1,9 +1,11 @@
 import { showError, showSuccess } from '../../shared/toast';
 import {
     cancelMahasiswaBooking,
+    downloadReturnPhoto,
     downloadSuratPeminjamanPdf,
     getMahasiswaBooking,
     getPeminjamanRooms,
+    openReturnPhotoPreview,
     replaceSuratPeminjamanPdf,
     resubmitMahasiswaBooking,
     suratPeminjamanPreviewUrl,
@@ -110,6 +112,7 @@ const renderDetailState = (
             openCancelDialog(booking, options);
         });
         bindSuratControls(root, booking, options);
+        bindReturnPhotoControls(root);
         bindReturnControls(root, booking, options);
     }
 
@@ -245,6 +248,28 @@ const bindSuratControls = (
                 false,
             );
         }
+    });
+};
+
+
+const bindReturnPhotoControls = (root: HTMLElement): void => {
+    root.querySelectorAll<HTMLButtonElement>('[data-return-photo-action]').forEach((button) => {
+        button.addEventListener('click', async () => {
+            const bookingId = Number(button.dataset.bookingId);
+            if (!Number.isInteger(bookingId) || bookingId <= 0) return;
+            try {
+                if (button.dataset.returnPhotoAction === 'download') {
+                    await downloadReturnPhoto(bookingId, 'bukti-pengembalian.jpg');
+                } else {
+                    await openReturnPhotoPreview(bookingId);
+                }
+            } catch (error) {
+                showToast(
+                    error instanceof Error ? error.message : 'Bukti foto pengembalian gagal dimuat.',
+                    false,
+                );
+            }
+        });
     });
 };
 

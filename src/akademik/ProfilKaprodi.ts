@@ -1,5 +1,6 @@
 import { renderDashboardLayout } from '../dashboard/DashboardLayout';
 import { renderLogin } from '../login/Login';
+import { clearAllAuthenticationState } from '../login/password-rotation-state';
 import { showError, showSuccess } from '../shared/toast';
 import { apiFetch, loadProtectedImageObjectUrl, revokeProtectedImageObjectUrl } from '../shared/api-client';
 import { STATUS_LABELS, type UserStatusValue } from '../shared/user-status';
@@ -359,7 +360,7 @@ export const renderProfilKaprodi = async (role: string) => {
         document.getElementById('logout-profil')?.addEventListener('click', async () => {
             const token = localStorage.getItem('auth_token');
             if (token) try { await apiFetch('/api/logout', { method: 'POST' }); } catch (e) { }
-            localStorage.clear();
+            clearAllAuthenticationState();
             showSuccess('Berhasil keluar!');
             setTimeout(() => renderLogin(), 500);
         });

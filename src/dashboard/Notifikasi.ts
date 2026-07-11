@@ -1,6 +1,7 @@
 import Toastify from 'toastify-js';
 import { renderDashboardLayout } from './DashboardLayout';
 import { renderLogin } from '../login/Login';
+import { clearAllAuthenticationState } from '../login/password-rotation-state';
 import { showSuccess } from '../shared/toast';
 import { apiFetch } from '../shared/api-client';
 import { escapeFormHtml } from '../shared/form-primitives';
@@ -197,7 +198,7 @@ export const renderNotifikasi = async (role: string, initialTab: 'semua' | 'belu
                 await apiFetch('/api/logout', { method: 'POST' });
             } catch (e) {}
         }
-        localStorage.clear();
+        clearAllAuthenticationState();
         showSuccess('Berhasil keluar!');
         setTimeout(() => renderLogin(), 500);
     });

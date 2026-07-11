@@ -394,8 +394,8 @@ export const renderReturnInfoPanel = (
             ${hasPhoto ? `
                 <div class="mt-3 flex flex-wrap items-center gap-2">
                     <span class="text-xs font-semibold text-emerald-800">${escapeHtml(photo?.original_name || 'Bukti pengembalian')}</span>
-                    <a href="${escapeHtml(photo?.preview_url || '#')}" target="_blank" rel="noopener" class="text-xs font-bold text-primary-teal hover:underline">Lihat Foto</a>
-                    <a href="${escapeHtml(photo?.download_url || '#')}" class="text-xs font-bold text-primary-teal hover:underline">Unduh</a>
+                    <button type="button" data-return-photo-action="preview" data-booking-id="${booking.id}" class="text-xs font-bold text-primary-teal hover:underline">Lihat Foto</button>
+                    <button type="button" data-return-photo-action="download" data-booking-id="${booking.id}" class="text-xs font-bold text-primary-teal hover:underline">Unduh</button>
                 </div>
             ` : ''}
         </div>

@@ -1,7 +1,7 @@
 import { apiFetch } from '../shared/api-client';
 import { loadMahasiswaApplications } from '../shared/mahasiswa-application-list';
 import { getAssignedTaskLabel, getLetterLabel, LETTER_WORKFLOW_STATUS, type TendikTaskRow } from '../shared/letter-workflow';
-import { getTendikBookings } from '../mahasiswa/peminjaman/api';
+import { getMahasiswaBookings, getTendikBookings } from '../mahasiswa/peminjaman/api';
 
 export interface SuperAdminNotificationItem {
     id?: string;
@@ -54,12 +54,20 @@ const isProdiAcademicRole = (role: string): boolean => {
     return ['kaprodi', 'sekprodi'].includes(role) || ['kaprodi', 'sekprodi'].includes(subRole);
 };
 
+const currentTendikRole = (): string => (localStorage.getItem('auth_tendik_role') || '').toLowerCase();
+
 const isLaboranNotificationRole = (): boolean =>
-    (localStorage.getItem('auth_tendik_role') || '').toLowerCase() === 'laboran';
+    currentTendikRole() === 'laboran';
 export const getNotificationScopeForRole = (role: string): string => {
     if (role === 'mahasiswa') return 'mahasiswa';
     if (role === 'super_admin') return 'super_admin';
-    if (role.startsWith('tendik')) return isLaboranNotificationRole() ? 'laboran-return' : 'tendik';
+    if (role.startsWith('tendik')) {
+        const tendikRole = currentTendikRole();
+        if (tendikRole === 'laboran') return 'laboran-return';
+        if (tendikRole === 'sarpras') return 'sarpras-room-review';
+        if (tendikRole === 'kepala_lab') return 'kepala-lab-room-review';
+        return 'tendik';
+    }
     if (isProdiAcademicRole(role)) return 'akademik-paraf';
     return role || 'unknown';
 };
@@ -182,8 +190,80 @@ const fetchLaboranReturnNotifications = async (): Promise<SuperAdminNotification
 
     return applyNotificationReadState(sorted, 'laboran-return');
 };
+const bookingRoomLabel = (booking: any): string =>
+    [booking?.room?.code, booking?.room?.name].filter(Boolean).join(' - ') || 'Ruangan';
+
+const bookingRequesterName = (booking: any): string =>
+    booking?.requester?.name || 'Mahasiswa';
+
+const bookingActivityName = (booking: any): string =>
+    booking?.activity_name || 'kegiatan peminjaman';
+
+const fetchRoomReviewNotifications = async (): Promise<SuperAdminNotificationItem[]> => {
+    const tendikRole = currentTendikRole();
+    const roomType = tendikRole === 'sarpras' ? 'classroom' : tendikRole === 'kepala_lab' ? 'laboratory' : undefined;
+    const [submittedEnvelope, completedEnvelope] = await Promise.all([
+        getTendikBookings({
+            status: 'submitted',
+            ...(roomType ? { roomType } : {}),
+            page: 1,
+            perPage: 30,
+        }),
+        getTendikBookings({
+            status: 'completed',
+            ...(roomType ? { roomType } : {}),
+            page: 1,
+            perPage: 30,
+        }),
+    ]);
+
+    const reviewerLabel = tendikRole === 'sarpras' ? 'Sarpras' : 'Kepala Lab';
+    const roomLabel = tendikRole === 'sarpras' ? 'ruang kelas' : 'laboratorium';
+    const scope = getNotificationScopeForRole('tendik');
+
+    const incomingItems: Array<SuperAdminNotificationItem & { sortTime: number }> = submittedEnvelope.data.map((booking) => {
+        const submittedAt = booking.created_at || booking.updated_at || booking.start_at;
+        const requesterName = bookingRequesterName(booking);
+        const roomName = bookingRoomLabel(booking);
+
+        return {
+            id: `${scope}:submitted:${booking.id}:${submittedAt || booking.status}`,
+            type: 'info',
+            title: `Pengajuan peminjaman ${roomLabel} perlu ACC`,
+            description: `${requesterName} mengajukan ${roomName} untuk ${bookingActivityName(booking)}. ${reviewerLabel} dapat menyetujui, meminta revisi, atau menolak pengajuan ini.`,
+            date: formatNotificationDate(submittedAt),
+            isUnread: true,
+            sortTime: parseTime(submittedAt),
+        };
+    });
+
+    const completedItems: Array<SuperAdminNotificationItem & { sortTime: number }> = completedEnvelope.data.map((booking) => {
+        const completedAt = booking.return_info?.returned_at || booking.updated_at || booking.end_at;
+        const requesterName = bookingRequesterName(booking);
+        const roomName = bookingRoomLabel(booking);
+        const returnedTo = booking.return_info?.returned_to || reviewerLabel;
+        const photoText = booking.return_info?.photo?.exists ? ' Bukti foto pengembalian sudah tersedia.' : '';
+
+        return {
+            id: `${scope}:completed:${booking.id}:${completedAt || booking.status}`,
+            type: 'success',
+            title: `Peminjaman ${roomLabel} selesai`,
+            description: `${requesterName} sudah menyelesaikan peminjaman ${roomName} dan pengembalian tercatat kepada ${returnedTo}.${photoText}`,
+            date: formatNotificationDate(completedAt),
+            isUnread: true,
+            sortTime: parseTime(completedAt),
+        };
+    });
+
+    const sorted = [...incomingItems, ...completedItems]
+        .sort((a, b) => b.sortTime - a.sortTime)
+        .map(({ sortTime: _sortTime, ...item }) => item);
+
+    return applyNotificationReadState(sorted, scope);
+};
 export const fetchTendikNotifications = async (): Promise<SuperAdminNotificationItem[]> => {
     if (isLaboranNotificationRole()) return fetchLaboranReturnNotifications();
+    if (['sarpras', 'kepala_lab'].includes(currentTendikRole())) return fetchRoomReviewNotifications();
 
     const response = await apiFetch('/api/tendik/dashboard/tasks');
     if (!response.ok) {
@@ -278,7 +358,10 @@ export const fetchAkademikTandaTanganNotifications = async (): Promise<SuperAdmi
     });
 };
 export const fetchMahasiswaNotifications = async (): Promise<SuperAdminNotificationItem[]> => {
-    const loaded = await loadMahasiswaApplications((url: string) => apiFetch(url, { cache: 'no-store' }));
+    const [loaded, bookings] = await Promise.all([
+        loadMahasiswaApplications((url: string) => apiFetch(url, { cache: 'no-store' })),
+        getMahasiswaBookings(),
+    ]);
     const notifications: Array<SuperAdminNotificationItem & { sortTime: number }> = [];
 
     loaded.items.forEach((item) => {
@@ -320,6 +403,66 @@ export const fetchMahasiswaNotifications = async (): Promise<SuperAdminNotificat
         }
     });
 
+    bookings.forEach((booking) => {
+        const roomName = bookingRoomLabel(booking);
+        const baseId = `mahasiswa-booking:${booking.id}`;
+        const changedAt = booking.return_info?.returned_at || booking.reviewed_at || booking.updated_at || booking.created_at;
+        const reviewer = booking.reviewer?.name || (booking.room.type === 'classroom' ? 'Sarpras' : 'Kepala Lab');
+
+        if (booking.status === 'return_pending') {
+            notifications.push({
+                id: `${baseId}:approved:${changedAt || booking.status}`,
+                type: 'success',
+                title: 'Peminjaman ruangan disetujui',
+                description: `${roomName} untuk ${bookingActivityName(booking)} telah di-ACC oleh ${reviewer}. Setelah selesai digunakan, unggah bukti foto pengembalian kunci dari detail peminjaman.`,
+                date: formatNotificationDate(changedAt),
+                isUnread: true,
+                sortTime: parseTime(changedAt),
+            });
+        } else if (booking.status === 'revision_requested') {
+            notifications.push({
+                id: `${baseId}:revision:${changedAt || booking.status}`,
+                type: 'warning',
+                title: 'Peminjaman ruangan perlu revisi',
+                description: `${roomName} perlu diperbaiki sebelum diajukan ulang.${booking.revision_note ? ` Catatan: ${booking.revision_note}` : ''}`,
+                date: formatNotificationDate(changedAt),
+                isUnread: true,
+                sortTime: parseTime(changedAt),
+            });
+        } else if (booking.status === 'rejected') {
+            notifications.push({
+                id: `${baseId}:rejected:${changedAt || booking.status}`,
+                type: 'danger',
+                title: 'Peminjaman ruangan ditolak',
+                description: `${roomName} ditolak oleh ${reviewer}.${booking.rejection_reason ? ` Alasan: ${booking.rejection_reason}` : ''}`,
+                date: formatNotificationDate(changedAt),
+                isUnread: true,
+                sortTime: parseTime(changedAt),
+            });
+        } else if (booking.status === 'cancelled') {
+            notifications.push({
+                id: `${baseId}:cancelled:${changedAt || booking.status}`,
+                type: 'warning',
+                title: 'Peminjaman ruangan dibatalkan',
+                description: `${roomName} telah dibatalkan.${booking.cancellation_reason ? ` Alasan: ${booking.cancellation_reason}` : ''}`,
+                date: formatNotificationDate(changedAt),
+                isUnread: true,
+                sortTime: parseTime(changedAt),
+            });
+        } else if (booking.status === 'completed') {
+            const returnedAt = booking.return_info?.returned_at || changedAt;
+            const photoText = booking.return_info?.photo?.exists ? ' Bukti foto pengembalian tersedia di detail dan Riwayat Peminjaman.' : '';
+            notifications.push({
+                id: `${baseId}:completed:${returnedAt || booking.status}`,
+                type: 'success',
+                title: 'Pengembalian kunci tercatat',
+                description: `${roomName} sudah dicatat kembali kepada ${booking.return_info?.returned_to || 'petugas'}.${photoText}`,
+                date: formatNotificationDate(returnedAt),
+                isUnread: true,
+                sortTime: parseTime(returnedAt),
+            });
+        }
+    });
     const sorted = notifications
         .sort((a, b) => b.sortTime - a.sortTime)
         .map(({ sortTime: _sortTime, ...item }) => item);
